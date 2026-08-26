@@ -1,15 +1,19 @@
+-- ============================================================
 -- GreenPlace Database Schema - Phase 1 Foundation
--- This is a placeholder migration. Full schema will be added in Phase 2.
+-- Enables required PostgreSQL extensions
+-- ============================================================
 
--- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "postgis";
 
--- This migration will be replaced with the full schema in Phase 2
--- For now, just creating a placeholder to verify database connectivity
-
+-- Schema version tracking
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER PRIMARY KEY,
+    description TEXT,
     applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-INSERT INTO schema_version (version) VALUES (1) ON CONFLICT DO NOTHING;
+INSERT INTO schema_version (version, description)
+VALUES (1, 'Initial foundation - extensions and version tracking')
+ON CONFLICT (version) DO NOTHING;

@@ -1,97 +1,150 @@
+import { Routes, Route, Link } from 'react-router-dom';
 import { Leaf, Recycle, MapPin, ShoppingBag, Users, Shield } from 'lucide-react';
+import { useAuth } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
+  const { isAuthenticated, profile, logout } = useAuth();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
               <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
                 <Leaf className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold text-gray-900">GreenPlace</span>
-            </div>
+            </Link>
             <nav className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-gray-600 hover:text-primary-600 transition-colors">Features</a>
               <a href="#how-it-works" className="text-gray-600 hover:text-primary-600 transition-colors">How It Works</a>
-              <a href="/login" className="text-gray-600 hover:text-primary-600 transition-colors">Login</a>
-              <a href="/register" className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">Get Started</a>
+              {isAuthenticated ? (
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-600">Hi, {profile?.first_name}</span>
+                  {profile?.role === 'admin' && (
+                    <Link to="/admin" className="text-gray-600 hover:text-primary-600 transition-colors">Admin</Link>
+                  )}
+                  {profile?.role === 'business' && (
+                    <Link to="/dashboard" className="text-gray-600 hover:text-primary-600 transition-colors">Dashboard</Link>
+                  )}
+                  <button onClick={logout} className="text-gray-600 hover:text-red-600 transition-colors">Logout</button>
+                </div>
+              ) : (
+                <>
+                  <Link to="/login" className="text-gray-600 hover:text-primary-600 transition-colors">Login</Link>
+                  <Link to="/register" className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">Get Started</Link>
+                </>
+              )}
             </nav>
           </div>
         </div>
       </header>
 
-      <main>
-        <section className="relative bg-gradient-to-b from-primary-50 to-white py-20 sm:py-32">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight">
-              Sustainable Living Made Simple
-            </h1>
-            <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-              GreenPlace connects Metro Cebu residents with waste management establishments, 
-              recyclable marketplaces, and a community dedicated to proper waste segregation and recycling.
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute roles={['business', 'admin']}>
+              <DashboardPlaceholder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={['admin']}>
+              <AdminPlaceholder />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </div>
+  );
+}
+
+function LandingPage() {
+  return (
+    <main>
+      <section className="relative bg-gradient-to-b from-primary-50 to-white py-20 sm:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight">
+            Sustainable Living Made Simple
+          </h1>
+          <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+            GreenPlace connects Metro Cebu residents with waste management establishments,
+            recyclable marketplaces, and a community dedicated to proper waste segregation and recycling.
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/register" className="w-full sm:w-auto bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors text-lg">
+              Join as Resident
+            </a>
+            <a href="/register" className="w-full sm:w-auto bg-white text-primary-600 border-2 border-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-colors text-lg">
+              Register Business
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Why Choose GreenPlace?</h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+              A comprehensive platform for waste management, recycling, and sustainable living in Metro Cebu
             </p>
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a href="/register" className="w-full sm:w-auto bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors text-lg">
-                Join as Resident
-              </a>
-              <a href="/business/register" className="w-full sm:w-auto bg-white text-primary-600 border-2 border-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-colors text-lg">
-                Register Business
-              </a>
-            </div>
           </div>
-        </section>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <FeatureCard icon={<MapPin className="w-6 h-6" />} title="Find Establishments" description="Locate nearby waste management facilities, recycling centers, and junk shops with interactive maps and filters." />
+            <FeatureCard icon={<Recycle className="w-6 h-6" />} title="Material Exchange" description="Buy and sell recyclable materials through our marketplace. Turn waste into value." />
+            <FeatureCard icon={<ShoppingBag className="w-6 h-6" />} title="Eco Marketplace" description="Discover upcycled products and sustainable goods from local businesses." />
+            <FeatureCard icon={<Users className="w-6 h-6" />} title="Community Forum" description="Engage with fellow residents, share tips, and learn about sustainable practices." />
+            <FeatureCard icon={<Shield className="w-6 h-6" />} title="Secure Transactions" description="Safe payment options including Cash on Pickup and PayMongo test mode for demonstrations." />
+            <FeatureCard icon={<Leaf className="w-6 h-6" />} title="Drop-off Tracking" description="Track your recycling drop-offs, view history, and monitor your environmental impact." />
+          </div>
+        </div>
+      </section>
 
-        <section id="features" className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Why Choose GreenPlace?</h2>
-              <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                A comprehensive platform for waste management, recycling, and sustainable living in Metro Cebu
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <FeatureCard icon={<MapPin className="w-6 h-6" />} title="Find Establishments" description="Locate nearby waste management facilities, recycling centers, and junk shops with interactive maps and filters." />
-              <FeatureCard icon={<Recycle className="w-6 h-6" />} title="Material Exchange" description="Buy and sell recyclable materials through our marketplace. Turn waste into value." />
-              <FeatureCard icon={<ShoppingBag className="w-6 h-6" />} title="Eco Marketplace" description="Discover upcycled products and sustainable goods from local businesses." />
-              <FeatureCard icon={<Users className="w-6 h-6" />} title="Community Forum" description="Engage with fellow residents, share tips, and learn about sustainable practices." />
-              <FeatureCard icon={<Shield className="w-6 h-6" />} title="Secure Transactions" description="Safe payment options including Cash on Pickup and PayMongo test mode for demonstrations." />
-              <FeatureCard icon={<Leaf className="w-6 h-6" />} title="Drop-off Tracking" description="Track your recycling drop-offs, view history, and monitor your environmental impact." />
-            </div>
+      <section id="how-it-works" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">How It Works</h2>
           </div>
-        </section>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <StepCard number="1" title="Discover" description="Search for nearby waste management establishments that accept your materials. Filter by material type, distance, and ratings." />
+            <StepCard number="2" title="Transact" description="Schedule drop-offs or browse the marketplace for recyclable materials and eco-friendly products." />
+            <StepCard number="3" title="Earn & Impact" description="Get paid for recyclables, track your contributions, and join a community making Metro Cebu greener." />
+          </div>
+        </div>
+      </section>
 
-        <section id="how-it-works" className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">How It Works</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <StepCard number="1" title="Discover" description="Search for nearby waste management establishments that accept your materials. Filter by material type, distance, and ratings." />
-              <StepCard number="2" title="Transact" description="Schedule drop-offs or browse the marketplace for recyclable materials and eco-friendly products." />
-              <StepCard number="3" title="Earn & Impact" description="Get paid for recyclables, track your contributions, and join a community making Metro Cebu greener." />
-            </div>
+      <section className="py-20 bg-primary-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">Ready to Make an Impact?</h2>
+          <p className="text-primary-100 text-lg mb-10 max-w-2xl mx-auto">
+            Join thousands of residents and businesses in Metro Cebu working together for a sustainable future.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/register" className="w-full sm:w-auto bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-colors text-lg">
+              Get Started Free
+            </a>
+            <a href="/register" className="w-full sm:w-auto bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors text-lg">
+              Register Your Business
+            </a>
           </div>
-        </section>
-
-        <section className="py-20 bg-primary-600">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">Ready to Make an Impact?</h2>
-            <p className="text-primary-100 text-lg mb-10 max-w-2xl mx-auto">
-              Join thousands of residents and businesses in Metro Cebu working together for a sustainable future.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a href="/register" className="w-full sm:w-auto bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-colors text-lg">
-                Get Started Free
-              </a>
-              <a href="/business/register" className="w-full sm:w-auto bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors text-lg">
-                Register Your Business
-              </a>
-            </div>
-          </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
       <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -108,10 +161,10 @@ function App() {
             <div>
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Find Establishments</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Marketplace</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Community Forum</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Drop-off Tracking</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Find Establishments</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Marketplace</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Community Forum</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Drop-off Tracking</a></li>
               </ul>
             </div>
             <div>
@@ -137,6 +190,42 @@ function App() {
           </div>
         </div>
       </footer>
+    </main>
+  );
+}
+
+function DashboardPlaceholder() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900">Business Dashboard</h1>
+        <p className="mt-2 text-gray-600">Coming in future phases</p>
+      </div>
+    </div>
+  );
+}
+
+function AdminPlaceholder() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+        <p className="mt-2 text-gray-600">Coming in future phases</p>
+      </div>
+    </div>
+  );
+}
+
+function NotFound() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-6xl font-bold text-gray-300">404</h1>
+        <p className="mt-4 text-lg text-gray-600">Page not found</p>
+        <Link to="/" className="mt-6 inline-block text-primary-600 hover:text-primary-500 font-medium">
+          Go home
+        </Link>
+      </div>
     </div>
   );
 }
