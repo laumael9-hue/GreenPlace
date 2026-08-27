@@ -28,7 +28,9 @@ app.get('/api/health', (req, res) => {
 
 // API routes
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // 404 handler
 app.use((req, res) => {
