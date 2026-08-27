@@ -12,6 +12,9 @@ import ResidentDashboard from './pages/dashboard/ResidentDashboard';
 import BusinessDashboard from './pages/dashboard/BusinessDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
+import BusinessManagement from './pages/admin/BusinessManagement';
+import BusinessRegistration from './pages/business/BusinessRegistration';
+import BusinessProfileManagement from './pages/business/BusinessProfileManagement';
 import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -29,7 +32,8 @@ function App() {
       <Route path="/forum" element={<MainLayout><Placeholder title="Community Forum" desc="Join sustainability discussions with the community." /></MainLayout>} />
 
       <Route path="/dashboard" element={<ProtectedRoute roles={['resident', 'business']}><DashboardLayout><RoleDashboard /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/dashboard/profile" element={<ProtectedRoute roles={['business']}><DashboardLayout><Placeholder title="Business Profile" desc="Manage your business information, hours, and materials." /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/dashboard/register-business" element={<ProtectedRoute roles={['business']}><DashboardLayout><BusinessRegistration /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/dashboard/profile" element={<ProtectedRoute roles={['business']}><DashboardLayout><BusinessProfileManagement /></DashboardLayout></ProtectedRoute>} />
       <Route path="/dashboard/listings" element={<ProtectedRoute roles={['business']}><DashboardLayout><Placeholder title="My Listings" desc="Create and manage your marketplace listings." /></DashboardLayout></ProtectedRoute>} />
       <Route path="/dashboard/orders" element={<ProtectedRoute roles={['business']}><DashboardLayout><Placeholder title="Orders" desc="View and process incoming orders." /></DashboardLayout></ProtectedRoute>} />
       <Route path="/dashboard/drop-offs" element={<ProtectedRoute roles={['business']}><DashboardLayout><Placeholder title="Drop-offs" desc="Manage scheduled recycling drop-offs." /></DashboardLayout></ProtectedRoute>} />
@@ -44,7 +48,7 @@ function App() {
 
       <Route path="/admin" element={<ProtectedRoute roles={['admin']}><DashboardLayout><AdminDashboard /></DashboardLayout></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><DashboardLayout><UserManagement /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/admin/businesses" element={<ProtectedRoute roles={['admin']}><DashboardLayout><Placeholder title="Business Management" desc="Approve, reject, or suspend business accounts." /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/admin/businesses" element={<ProtectedRoute roles={['admin']}><DashboardLayout><BusinessManagement /></DashboardLayout></ProtectedRoute>} />
       <Route path="/admin/listings" element={<ProtectedRoute roles={['admin']}><DashboardLayout><Placeholder title="Marketplace Moderation" desc="Review and moderate marketplace listings." /></DashboardLayout></ProtectedRoute>} />
       <Route path="/admin/forum" element={<ProtectedRoute roles={['admin']}><DashboardLayout><Placeholder title="Forum Moderation" desc="Moderate forum threads and posts." /></DashboardLayout></ProtectedRoute>} />
       <Route path="/admin/reports" element={<ProtectedRoute roles={['admin']}><DashboardLayout><Placeholder title="Reports" desc="Review content and user reports." /></DashboardLayout></ProtectedRoute>} />

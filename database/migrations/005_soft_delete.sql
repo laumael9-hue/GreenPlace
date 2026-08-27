@@ -16,9 +16,14 @@ ALTER TABLE profiles
     ADD COLUMN IF NOT EXISTS suspended_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS suspended_by UUID DEFAULT NULL;
 
--- Index for filtering out deleted users in queries
+-- Add soft delete column to businesses
+ALTER TABLE businesses
+    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+
+-- Indexes for soft delete
 CREATE INDEX IF NOT EXISTS idx_profiles_deleted_at ON profiles(deleted_at) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_profiles_is_active ON profiles(is_active);
+CREATE INDEX IF NOT EXISTS idx_businesses_deleted_at ON businesses(deleted_at) WHERE deleted_at IS NULL;
 
 -- ============================================================
 -- Admin Audit Log enhancements (already exists, just adding index)
