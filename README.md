@@ -44,6 +44,7 @@ GreenPlace connects Metro Cebu residents with waste management establishments, p
 - Marketplace listing management
 - Order processing
 - Drop-off processing
+- Community forum
 - Analytics dashboard
 - Messaging with residents
 

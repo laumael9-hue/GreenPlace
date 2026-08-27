@@ -63,6 +63,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('refresh_token', data.session.refresh_token);
     setUser(data.user);
     setProfile(data.user.profile);
+    await fetchProfile();
     return data;
   };
 

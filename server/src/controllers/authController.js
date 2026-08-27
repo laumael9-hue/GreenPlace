@@ -75,11 +75,33 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    const { data: profile } = await supabaseAdmin
+    let { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', data.user.id)
       .single();
+
+    if (!profile) {
+      const meta = data.user.user_metadata || {};
+      const { error: insertError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          role: meta.role || 'resident',
+          first_name: meta.first_name || '',
+          last_name: meta.last_name || '',
+          email_verified: !!data.user.email_confirmed_at,
+        });
+
+      if (!insertError) {
+        const { data: newProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+        profile = newProfile;
+      }
+    }
 
     if (profile && !profile.is_active) {
       await supabase.auth.signOut();
@@ -208,11 +230,33 @@ const refreshSession = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    const { data: profile, error } = await supabaseAdmin
+    let { data: profile, error } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', req.user.id)
       .single();
+
+    if (!profile) {
+      const meta = req.user.user_metadata || {};
+      const { error: insertError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: req.user.id,
+          role: meta.role || 'resident',
+          first_name: meta.first_name || '',
+          last_name: meta.last_name || '',
+          email_verified: !!req.user.email_confirmed_at,
+        });
+
+      if (!insertError) {
+        const { data: newProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .eq('id', req.user.id)
+          .single();
+        profile = newProfile;
+      }
+    }
 
     if (error || !profile) {
       return res.status(404).json({ error: 'Profile not found' });

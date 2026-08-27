@@ -1,4 +1,4 @@
-const { supabase } = require('../config/supabase');
+const { supabase, supabaseAdmin } = require('../config/supabase');
 
 const authenticate = async (req, res, next) => {
   try {
@@ -16,13 +16,33 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    const { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile) {
+    if (!profile) {
+      const meta = user.user_metadata || {};
+      await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: user.id,
+          role: meta.role || 'resident',
+          first_name: meta.first_name || '',
+          last_name: meta.last_name || '',
+          email_verified: !!user.email_confirmed_at,
+        });
+
+      const { data: created } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      profile = created;
+    }
+
+    if (!profile) {
       return res.status(401).json({ error: 'User profile not found' });
     }
 
