@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -8,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import {
   Search, Building2, ChevronLeft, ChevronRight,
   CheckCircle, Ban, XCircle, Eye, Clock, MapPin,
-  Phone, Globe, Mail, AlertTriangle, RotateCcw
+  Phone, Globe, Mail, AlertTriangle, RotateCcw, Users
 } from 'lucide-react';
 
 const statusConfig = {
@@ -139,8 +140,8 @@ export default function BusinessManagement() {
       setShowSuspendModal(false);
       fetchBusinesses(pagination.page);
       fetchStats();
-    } catch {
-      // ignore
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to suspend business');
     } finally {
       setActionLoading(false);
     }
@@ -151,11 +152,11 @@ export default function BusinessManagement() {
     setActionLoading(true);
     try {
       await api.patch(`/businesses/admin/${selectedBusiness.id}/reactivate`);
-      setSelectedBusiness(prev => prev ? { ...prev, status: 'pending', rejection_reason: null } : null);
+      setSelectedBusiness(prev => prev ? { ...prev, status: 'approved', is_verified: true, rejection_reason: null } : null);
       fetchBusinesses(pagination.page);
       fetchStats();
-    } catch {
-      // ignore
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to reactivate business');
     } finally {
       setActionLoading(false);
     }
@@ -292,7 +293,16 @@ export default function BusinessManagement() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{getOwnerName(biz)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">{getOwnerName(biz)}</span>
+                        {biz.profiles && (
+                          <Badge variant={biz.profiles.is_active ? 'success' : 'danger'}>
+                            {biz.profiles.is_active ? 'Active' : 'Suspended'}
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3">
                       <Badge variant="neutral">{biz.category}</Badge>
                     </td>
@@ -415,10 +425,26 @@ export default function BusinessManagement() {
             </div>
 
             <div className="text-sm">
-              <p className="text-gray-500">Owner: <span className="font-medium text-gray-900">{getOwnerName(selectedBusiness)}</span></p>
+              <div className="flex items-center gap-2">
+                <p className="text-gray-500">Owner: <span className="font-medium text-gray-900">{getOwnerName(selectedBusiness)}</span></p>
+                {selectedBusiness.profiles && (
+                  <Badge variant={selectedBusiness.profiles.is_active ? 'success' : 'danger'}>
+                    {selectedBusiness.profiles.is_active ? 'Account Active' : 'Account Suspended'}
+                  </Badge>
+                )}
+              </div>
               <p className="text-gray-500">Registered: <span className="font-medium text-gray-900">{new Date(selectedBusiness.created_at).toLocaleDateString()}</span></p>
               {selectedBusiness.approved_at && (
                 <p className="text-gray-500">Approved: <span className="font-medium text-gray-900">{new Date(selectedBusiness.approved_at).toLocaleDateString()}</span></p>
+              )}
+              {selectedBusiness.owner_id && (
+                <Link
+                  to={`/admin/users?role=business`}
+                  className="inline-flex items-center gap-1 mt-2 text-xs text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  <Users className="w-3 h-3" />
+                  View Owner Account
+                </Link>
               )}
             </div>
 
@@ -501,7 +527,7 @@ export default function BusinessManagement() {
               {(selectedBusiness.status === 'suspended' || selectedBusiness.status === 'rejected') && (
                 <Button variant="outline" size="sm" onClick={handleReactivate} disabled={actionLoading}>
                   <RotateCcw className="w-4 h-4" />
-                  Reactivate (Set to Pending)
+                  Reactivate
                 </Button>
               )}
             </div>

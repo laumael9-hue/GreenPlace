@@ -4,6 +4,70 @@ const crypto = require('crypto');
 const BUCKET_DOCS = 'business-documents';
 const BUCKET_IMAGES = 'profile-images';
 
+// ============================================================
+// UTILITY: Haversine Distance Calculation
+// ============================================================
+
+const haversineDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // distance in km
+};
+
+// ============================================================
+// UTILITY: Recommendation Scoring Algorithm
+// Material Match 50% + Distance 30% + Rating 20%
+// ============================================================
+
+const calculateRecommendationScore = (business, userLat, userLng, preferredMaterials = []) => {
+  // Material Match Score (0-1, weight 0.5)
+  let materialScore = 0;
+  if (preferredMaterials.length > 0 && business.business_materials) {
+    const businessMaterials = business.business_materials.map(m => m.material_name.toLowerCase());
+    const matched = preferredMaterials.filter(pm => businessMaterials.includes(pm.toLowerCase()));
+    materialScore = matched.length / preferredMaterials.length;
+  } else if (business.business_materials && business.business_materials.length > 0) {
+    materialScore = 0.5; // neutral if no preferences specified but business has materials
+  }
+
+  // Distance Score (0-1, weight 0.3) — closer is better
+  let distanceScore = 0;
+  let distanceKm = null;
+  if (userLat != null && userLng != null && business.latitude != null && business.longitude != null) {
+    distanceKm = haversineDistance(userLat, userLng, parseFloat(business.latitude), parseFloat(business.longitude));
+    // Score decays with distance: 10km = 0, 0km = 1
+    distanceScore = Math.max(0, 1 - distanceKm / 10);
+  } else {
+    distanceScore = 0.5; // neutral if no location
+  }
+
+  // Rating Score (0-1, weight 0.2)
+  const ratingAvg = parseFloat(business.rating_avg) || 0;
+  const ratingCount = business.rating_count || 0;
+  // Bayesian average to avoid bias from few ratings
+  const C = 3.5; // prior average
+  const m = 5;   // minimum ratings for confidence
+  const ratingScore = (ratingCount / (ratingCount + m)) * (ratingAvg / 5) + (m / (ratingCount + m)) * (C / 5);
+
+  const totalScore = materialScore * 0.5 + distanceScore * 0.3 + ratingScore * 0.2;
+
+  return {
+    totalScore: Math.round(totalScore * 1000) / 1000,
+    materialScore: Math.round(materialScore * 100) / 100,
+    distanceScore: Math.round(distanceScore * 100) / 100,
+    ratingScore: Math.round(ratingScore * 100) / 100,
+    distanceKm: distanceKm != null ? Math.round(distanceKm * 100) / 100 : null,
+  };
+};
+
 const logAuditAction = async (adminId, action, targetId, details = {}) => {
   try {
     await supabaseAdmin.from('admin_audit_log').insert({
@@ -1033,8 +1097,8 @@ const reactivateBusiness = async (req, res) => {
     const { data: updated, error } = await supabaseAdmin
       .from('businesses')
       .update({
-        status: 'pending',
-        is_verified: false,
+        status: 'approved',
+        is_verified: true,
         rejection_reason: null,
       })
       .eq('id', id)
@@ -1048,7 +1112,7 @@ const reactivateBusiness = async (req, res) => {
     await logAuditAction(req.user.id, 'reactivate_business', id, { name: existing.name });
 
     res.json({
-      message: 'Business reactivated and set to pending review',
+      message: 'Business reactivated successfully',
       business: updated,
     });
   } catch (err) {
@@ -1203,6 +1267,182 @@ const getPublicBusinessBySlug = async (req, res) => {
   }
 };
 
+// ============================================================
+// PUBLIC: Nearby Businesses (with distance)
+// ============================================================
+
+const getNearbyBusinesses = async (req, res) => {
+  try {
+    const {
+      latitude, longitude, radius = 50, page = 1, limit = 20,
+      search = '', category = '', city = '', acceptsDropOffs, hasMarketplace,
+    } = req.query;
+
+    const userLat = latitude ? parseFloat(latitude) : null;
+    const userLng = longitude ? parseFloat(longitude) : null;
+
+    let query = supabaseAdmin
+      .from('businesses')
+      .select('id, name, slug, description, category, address, city, latitude, longitude, logo_url, rating_avg, rating_count, accepts_drop_offs, has_marketplace', { count: 'exact' })
+      .eq('status', 'approved')
+      .is('deleted_at', null);
+
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%,category.ilike.%${search}%`);
+    }
+    if (category) {
+      query = query.eq('category', category);
+    }
+    if (city) {
+      query = query.ilike('city', `%${city}%`);
+    }
+    if (acceptsDropOffs === 'true') {
+      query = query.eq('accepts_drop_offs', true);
+    }
+    if (hasMarketplace === 'true') {
+      query = query.eq('has_marketplace', true);
+    }
+
+    const { data: businesses, count, error } = await query
+      .order('rating_avg', { ascending: false })
+      .range(0, 500); // fetch more for distance filtering
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    // Calculate distances and filter by radius
+    let results = (businesses || []).map(b => {
+      const bLat = b.latitude ? parseFloat(b.latitude) : null;
+      const bLng = b.longitude ? parseFloat(b.longitude) : null;
+      const distanceKm = (userLat != null && userLng != null && bLat != null && bLng != null)
+        ? Math.round(haversineDistance(userLat, userLng, bLat, bLng) * 100) / 100
+        : null;
+      return { ...b, distance_km: distanceKm };
+    });
+
+    // Filter by radius if location provided
+    if (userLat != null && userLng != null) {
+      results = results.filter(b => b.distance_km != null && b.distance_km <= parseFloat(radius));
+      results.sort((a, b) => a.distance_km - b.distance_km);
+    }
+
+    const total = results.length;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const paginated = results.slice(offset, offset + parseInt(limit));
+
+    res.json({
+      businesses: paginated,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    console.error('Get nearby businesses error:', err);
+    res.status(500).json({ error: 'Failed to fetch nearby businesses' });
+  }
+};
+
+// ============================================================
+// PUBLIC: Recommendations (scored ranking)
+// ============================================================
+
+const getRecommendations = async (req, res) => {
+  try {
+    const {
+      latitude, longitude, materials = '', page = 1, limit = 20,
+      category = '', city = '', acceptsDropOffs, hasMarketplace,
+    } = req.query;
+
+    const userLat = latitude ? parseFloat(latitude) : null;
+    const userLng = longitude ? parseFloat(longitude) : null;
+    const preferredMaterials = materials ? materials.split(',').map(m => m.trim()).filter(Boolean) : [];
+
+    let query = supabaseAdmin
+      .from('businesses')
+      .select(`
+        id, name, slug, description, category, address, city, latitude, longitude,
+        logo_url, rating_avg, rating_count, accepts_drop_offs, has_marketplace,
+        business_materials (material_name, price_per_kg, unit)
+      `, { count: 'exact' })
+      .eq('status', 'approved')
+      .is('deleted_at', null);
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+    if (city) {
+      query = query.ilike('city', `%${city}%`);
+    }
+    if (acceptsDropOffs === 'true') {
+      query = query.eq('accepts_drop_offs', true);
+    }
+    if (hasMarketplace === 'true') {
+      query = query.eq('has_marketplace', true);
+    }
+
+    const { data: businesses, count, error } = await query
+      .order('rating_avg', { ascending: false })
+      .range(0, 500);
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    // Score each business
+    const scored = (businesses || []).map(b => {
+      const scores = calculateRecommendationScore(b, userLat, userLng, preferredMaterials);
+      return {
+        id: b.id,
+        name: b.name,
+        slug: b.slug,
+        description: b.description,
+        category: b.category,
+        address: b.address,
+        city: b.city,
+        latitude: b.latitude,
+        longitude: b.longitude,
+        logo_url: b.logo_url,
+        rating_avg: b.rating_avg,
+        rating_count: b.rating_count,
+        accepts_drop_offs: b.accepts_drop_offs,
+        has_marketplace: b.has_marketplace,
+        materials: (b.business_materials || []).map(m => m.material_name),
+        recommendation: {
+          score: scores.totalScore,
+          material_match: scores.materialScore,
+          distance: scores.distanceScore,
+          rating: scores.ratingScore,
+          distance_km: scores.distanceKm,
+        },
+      };
+    });
+
+    // Sort by recommendation score
+    scored.sort((a, b) => b.recommendation.score - a.recommendation.score);
+
+    const total = scored.length;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const paginated = scored.slice(offset, offset + parseInt(limit));
+
+    res.json({
+      businesses: paginated,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    console.error('Get recommendations error:', err);
+    res.status(500).json({ error: 'Failed to fetch recommendations' });
+  }
+};
+
 module.exports = {
   createBusiness,
   getMyBusiness,
@@ -1226,4 +1466,6 @@ module.exports = {
   getBusinessStats,
   getPublicBusinesses,
   getPublicBusinessBySlug,
+  getNearbyBusinesses,
+  getRecommendations,
 };

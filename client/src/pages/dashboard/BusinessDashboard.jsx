@@ -27,6 +27,12 @@ export default function BusinessDashboard() {
       }
     };
     fetchBusiness();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchBusiness();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
   if (loading) {

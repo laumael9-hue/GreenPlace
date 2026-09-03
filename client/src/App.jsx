@@ -8,6 +8,11 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
+import FindEstablishments from './pages/FindEstablishments';
+import BusinessDetail from './pages/BusinessDetail';
+import Marketplace from './pages/Marketplace';
+import ProductDetail from './pages/ProductDetail';
+import Cart from './pages/Cart';
 import ResidentDashboard from './pages/dashboard/ResidentDashboard';
 import BusinessDashboard from './pages/dashboard/BusinessDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
@@ -15,6 +20,7 @@ import UserManagement from './pages/admin/UserManagement';
 import BusinessManagement from './pages/admin/BusinessManagement';
 import BusinessRegistration from './pages/business/BusinessRegistration';
 import BusinessProfileManagement from './pages/business/BusinessProfileManagement';
+import ListingManagement from './pages/dashboard/ListingManagement';
 import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -27,14 +33,17 @@ function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route path="/" element={<MainLayout><LandingPage /></MainLayout>} />
-      <Route path="/establishments" element={<MainLayout><Placeholder title="Find Establishments" desc="Search and discover waste management establishments near you." /></MainLayout>} />
-      <Route path="/marketplace" element={<MainLayout><Placeholder title="Marketplace" desc="Browse recyclable materials and eco-friendly products." /></MainLayout>} />
+      <Route path="/establishments" element={<MainLayout><FindEstablishments /></MainLayout>} />
+      <Route path="/establishments/:slug" element={<MainLayout><BusinessDetail /></MainLayout>} />
+      <Route path="/marketplace" element={<MainLayout><Marketplace /></MainLayout>} />
+      <Route path="/marketplace/:slug" element={<MainLayout><ProductDetail /></MainLayout>} />
+      <Route path="/cart" element={<ProtectedRoute><MainLayout><Cart /></MainLayout></ProtectedRoute>} />
       <Route path="/forum" element={<MainLayout><Placeholder title="Community Forum" desc="Join sustainability discussions with the community." /></MainLayout>} />
 
       <Route path="/dashboard" element={<ProtectedRoute roles={['resident', 'business']}><DashboardLayout><RoleDashboard /></DashboardLayout></ProtectedRoute>} />
       <Route path="/dashboard/register-business" element={<ProtectedRoute roles={['business']}><DashboardLayout><BusinessRegistration /></DashboardLayout></ProtectedRoute>} />
       <Route path="/dashboard/profile" element={<ProtectedRoute roles={['business']}><DashboardLayout><BusinessProfileManagement /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/dashboard/listings" element={<ProtectedRoute roles={['business']}><DashboardLayout><Placeholder title="My Listings" desc="Create and manage your marketplace listings." /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/dashboard/listings" element={<ProtectedRoute roles={['business']}><DashboardLayout><ListingManagement /></DashboardLayout></ProtectedRoute>} />
       <Route path="/dashboard/orders" element={<ProtectedRoute roles={['business']}><DashboardLayout><Placeholder title="Orders" desc="View and process incoming orders." /></DashboardLayout></ProtectedRoute>} />
       <Route path="/dashboard/drop-offs" element={<ProtectedRoute roles={['business']}><DashboardLayout><Placeholder title="Drop-offs" desc="Manage scheduled recycling drop-offs." /></DashboardLayout></ProtectedRoute>} />
       <Route path="/dashboard/reviews" element={<ProtectedRoute roles={['business']}><DashboardLayout><Placeholder title="Reviews" desc="View and respond to customer reviews." /></DashboardLayout></ProtectedRoute>} />

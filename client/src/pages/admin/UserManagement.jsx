@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/ui/Card';
@@ -9,15 +10,23 @@ import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
 import {
   Search, Users, ChevronLeft, ChevronRight, Shield,
-  Ban, CheckCircle, Trash2, Eye, AlertTriangle, Clock
+  Ban, CheckCircle, Trash2, Eye, AlertTriangle, Clock, Building2
 } from 'lucide-react';
+
+const ROLE_TABS = [
+  { key: '', label: 'All Users', icon: Users },
+  { key: 'resident', label: 'Residents', icon: Users },
+  { key: 'business', label: 'Business Owners', icon: Building2 },
+  { key: 'admin', label: 'Admins', icon: Shield },
+];
 
 export default function UserManagement() {
   const { profile: currentAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState(searchParams.get('role') || '');
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
   const [selectedUser, setSelectedUser] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -31,6 +40,7 @@ export default function UserManagement() {
   const [deactivateReason, setDeactivateReason] = useState('');
   const [dependencies, setDependencies] = useState(null);
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, pendingDeletion: 0, deleted: 0 });
+  const [businessMap, setBusinessMap] = useState({});
 
   const fetchUsers = useCallback(async (page = 1) => {
     setLoading(true);
@@ -60,10 +70,44 @@ export default function UserManagement() {
     }
   }, []);
 
+  const fetchBusinesses = useCallback(async () => {
+    try {
+      const { data } = await api.get('/businesses/admin?limit=500');
+      const map = {};
+      (data.businesses || []).forEach(biz => {
+        if (biz.owner_id) map[biz.owner_id] = biz;
+      });
+      setBusinessMap(map);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     fetchUsers(1);
     fetchStats();
   }, [fetchUsers, fetchStats]);
+
+  useEffect(() => {
+    if (roleFilter === 'business') {
+      fetchBusinesses();
+    }
+  }, [roleFilter, fetchBusinesses]);
+
+  useEffect(() => {
+    const role = searchParams.get('role') || '';
+    setRoleFilter(role);
+  }, [searchParams]);
+
+  const handleTabChange = (key) => {
+    setRoleFilter(key);
+    setSearch('');
+    if (key) {
+      setSearchParams({ role: key });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -258,6 +302,29 @@ export default function UserManagement() {
         <p className="text-gray-500 mt-1">View and manage all user accounts.</p>
       </div>
 
+      {/* Role Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {ROLE_TABS.map(tab => {
+          const Icon = tab.icon;
+          const isActive = roleFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => handleTabChange(tab.key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300 hover:text-primary-600'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
         <Card className="flex items-center gap-4 p-4">
           <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
@@ -331,16 +398,6 @@ export default function UserManagement() {
                 className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">All Roles</option>
-              <option value="resident">Resident</option>
-              <option value="business">Business</option>
-              <option value="admin">Admin</option>
-            </select>
             <Button type="submit" size="sm">Search</Button>
           </form>
         </div>
@@ -360,58 +417,79 @@ export default function UserManagement() {
                 <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <th className="px-4 py-3">User</th>
                   <th className="px-4 py-3">Role</th>
+                  {roleFilter === 'business' && <th className="px-4 py-3">Business</th>}
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Joined</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar
-                          name={`${user.first_name} ${user.last_name}`}
-                          src={user.avatar_url}
-                          size="sm"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {user.first_name} {user.last_name}
-                          </p>
-                          <p className="text-xs text-gray-500">{user.phone || 'No phone'}</p>
+                {users.map((user) => {
+                  const linkedBusiness = businessMap[user.id];
+                  return (
+                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar
+                            name={`${user.first_name} ${user.last_name}`}
+                            src={user.avatar_url}
+                            size="sm"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {user.first_name} {user.last_name}
+                            </p>
+                            <p className="text-xs text-gray-500">{user.phone || 'No phone'}</p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={roleVariant(user.role)}>{user.role}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      {isPendingDeletion(user) ? (
-                        <Badge variant="warning">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Pending Delete
-                        </Badge>
-                      ) : (
-                        <Badge variant={user.is_active ? 'success' : 'danger'}>
-                          {user.is_active ? 'Active' : 'Suspended'}
-                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={roleVariant(user.role)}>{user.role}</Badge>
+                      </td>
+                      {roleFilter === 'business' && (
+                        <td className="px-4 py-3">
+                          {linkedBusiness ? (
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-gray-400" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{linkedBusiness.name}</p>
+                                <Badge variant={linkedBusiness.status === 'approved' ? 'success' : linkedBusiness.status === 'suspended' ? 'danger' : 'warning'}>
+                                  {linkedBusiness.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">No business</span>
+                          )}
+                        </td>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => openUserDetail(user.id)}
-                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                        title="View details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-4 py-3">
+                        {isPendingDeletion(user) ? (
+                          <Badge variant="warning">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Pending Delete
+                          </Badge>
+                        ) : (
+                          <Badge variant={user.is_active ? 'success' : 'danger'}>
+                            {user.is_active ? 'Active' : 'Suspended'}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => openUserDetail(user.id)}
+                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                          title="View details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -519,6 +597,18 @@ export default function UserManagement() {
                       ({Math.ceil((getDeletionDate(selectedUser.pending_deletion_at) - new Date()) / (1000 * 60 * 60 * 24))} days left)
                     </span>
                   </p>
+                </div>
+              )}
+              {selectedUser.role === 'business' && businessMap[selectedUser.id] && (
+                <div className="col-span-2">
+                  <p className="text-gray-500">Linked Business</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Building2 className="w-4 h-4 text-gray-400" />
+                    <p className="font-medium">{businessMap[selectedUser.id].name}</p>
+                    <Badge variant={businessMap[selectedUser.id].status === 'approved' ? 'success' : businessMap[selectedUser.id].status === 'suspended' ? 'danger' : 'warning'}>
+                      {businessMap[selectedUser.id].status}
+                    </Badge>
+                  </div>
                 </div>
               )}
             </div>

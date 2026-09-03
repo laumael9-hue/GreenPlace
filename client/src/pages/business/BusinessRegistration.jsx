@@ -6,6 +6,7 @@ import Card, { CardHeader, CardTitle } from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Select from '../../components/ui/Select';
+import LocationPicker from '../../components/ui/LocationPicker';
 import {
   Building2, FileText, Package,
   Check, ChevronRight, ChevronLeft, Upload, Trash2,
@@ -71,8 +72,8 @@ export default function BusinessRegistration() {
     address: '',
     city: 'Cebu City',
     province: 'Cebu',
-    latitude: 10.3157,
-    longitude: 123.8854,
+    latitude: null,
+    longitude: null,
     phone: profile?.phone || '',
     email: '',
     website: '',
@@ -357,6 +358,14 @@ export default function BusinessRegistration() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="City" name="city" value={form.city} onChange={handleChange} error={errors.city} required />
               <Input label="Province" name="province" value={form.province} onChange={handleChange} />
+            </div>
+            <div className="border border-gray-200 rounded-lg p-4">
+              <LocationPicker
+                latitude={form.latitude}
+                longitude={form.longitude}
+                address={form.address ? `${form.address}, ${form.city}, ${form.province}` : ''}
+                onChange={(lat, lng) => setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Phone" name="phone" value={form.phone} onChange={handleChange} placeholder="+63 9XX XXX XXXX" />

@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
+import LocationPicker from '../../components/ui/LocationPicker';
 import {
   Building2, Save, Loader2, Clock, Package, FileText,
   Upload, Trash2, AlertTriangle, CheckCircle
@@ -69,8 +70,8 @@ export default function BusinessProfileManagement() {
         address: biz.address || '',
         city: biz.city || '',
         province: biz.province || '',
-        latitude: biz.latitude || '',
-        longitude: biz.longitude || '',
+        latitude: biz.latitude ? parseFloat(biz.latitude) : null,
+        longitude: biz.longitude ? parseFloat(biz.longitude) : null,
         phone: biz.phone || '',
         email: biz.email || '',
         website: biz.website || '',
@@ -309,6 +310,14 @@ export default function BusinessProfileManagement() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="City" name="city" value={form.city} onChange={handleChange} />
               <Input label="Province" name="province" value={form.province} onChange={handleChange} />
+            </div>
+            <div className="border border-gray-200 rounded-lg p-4">
+              <LocationPicker
+                latitude={form.latitude || null}
+                longitude={form.longitude || null}
+                address={form.address ? `${form.address}, ${form.city}, ${form.province}` : ''}
+                onChange={(lat, lng) => setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Phone" name="phone" value={form.phone} onChange={handleChange} />

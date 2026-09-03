@@ -26,6 +26,8 @@ const {
   getBusinessStats,
   getPublicBusinesses,
   getPublicBusinessBySlug,
+  getNearbyBusinesses,
+  getRecommendations,
 } = require('../controllers/businessController');
 
 const ALLOWED_DOC_TYPES = [
@@ -73,6 +75,8 @@ const handleMulterError = (err, req, res, next) => {
 };
 
 // Public routes
+router.get('/public/nearby', getNearbyBusinesses);
+router.get('/public/recommendations', getRecommendations);
 router.get('/public', getPublicBusinesses);
 router.get('/public/slug/:slug', optionalAuth, getPublicBusinessBySlug);
 

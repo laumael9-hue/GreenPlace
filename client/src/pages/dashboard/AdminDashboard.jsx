@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import {
   Users, Building2, FileText, Settings,
-  ArrowRight, Clock, CheckCircle
+  ArrowRight, Clock, CheckCircle, Shield, User
 } from 'lucide-react';
 import StatCard from '../../components/ui/StatCard';
 import Card, { CardHeader, CardTitle } from '../../components/ui/Card';
@@ -20,20 +20,27 @@ export default function AdminDashboard() {
   const [userStats, setUserStats] = useState({ total: 0, active: 0, inactive: 0, pendingDeletion: 0, deleted: 0 });
   const [bizStats, setBizStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, suspended: 0 });
   const [pendingBusinesses, setPendingBusinesses] = useState([]);
+  const [roleStats, setRoleStats] = useState({ residents: 0, businesses: 0, admins: 0 });
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [userStatsRes, bizStatsRes, pendingBizRes] = await Promise.allSettled([
+      const [userStatsRes, bizStatsRes, pendingBizRes, residentRes, businessRes, adminRes] = await Promise.allSettled([
         api.get('/users/stats'),
         api.get('/businesses/admin/stats'),
         api.get('/businesses/admin?status=pending&limit=5'),
+        api.get('/users?role=resident&limit=1'),
+        api.get('/users?role=business&limit=1'),
+        api.get('/users?role=admin&limit=1'),
       ]);
 
       if (userStatsRes.status === 'fulfilled') setUserStats(userStatsRes.value.data);
       if (bizStatsRes.status === 'fulfilled') setBizStats(bizStatsRes.value.data);
       if (pendingBizRes.status === 'fulfilled') setPendingBusinesses(pendingBizRes.value.data.businesses);
+      if (residentRes.status === 'fulfilled') setRoleStats(prev => ({ ...prev, residents: residentRes.value.data.pagination.total }));
+      if (businessRes.status === 'fulfilled') setRoleStats(prev => ({ ...prev, businesses: businessRes.value.data.pagination.total }));
+      if (adminRes.status === 'fulfilled') setRoleStats(prev => ({ ...prev, admins: adminRes.value.data.pagination.total }));
     } catch {
       // ignore
     } finally {
@@ -75,6 +82,34 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Users by Role</CardTitle>
+              <Link to="/admin/users" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                Manage <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </CardHeader>
+          <div className="grid grid-cols-3 gap-4">
+            <Link to="/admin/users?role=resident" className="p-3 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition-colors">
+              <User className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+              <p className="text-2xl font-bold text-blue-700">{roleStats.residents}</p>
+              <p className="text-xs text-blue-600">Residents</p>
+            </Link>
+            <Link to="/admin/users?role=business" className="p-3 bg-amber-50 rounded-lg text-center hover:bg-amber-100 transition-colors">
+              <Building2 className="w-5 h-5 text-amber-600 mx-auto mb-1" />
+              <p className="text-2xl font-bold text-amber-700">{roleStats.businesses}</p>
+              <p className="text-xs text-amber-600">Business</p>
+            </Link>
+            <Link to="/admin/users?role=admin" className="p-3 bg-red-50 rounded-lg text-center hover:bg-red-100 transition-colors">
+              <Shield className="w-5 h-5 text-red-600 mx-auto mb-1" />
+              <p className="text-2xl font-bold text-red-700">{roleStats.admins}</p>
+              <p className="text-xs text-red-600">Admins</p>
+            </Link>
+          </div>
+        </Card>
+
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
