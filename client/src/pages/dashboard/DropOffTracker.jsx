@@ -29,6 +29,7 @@ export default function DropOffTracker() {
   const [selectedDropOff, setSelectedDropOff] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
   const [stats, setStats] = useState({ total: 0, pending: 0, completed: 0, totalPayout: 0 });
 
   const fetchDropOffs = useCallback(async (page = 1) => {
@@ -87,12 +88,14 @@ export default function DropOffTracker() {
 
   const handleComplete = async (id) => {
     setActionLoading(true);
+    setActionError('');
     try {
       await api.patch(`/drop-offs/${id}/complete`);
       setSelectedDropOff(null);
       fetchDropOffs(pagination.page);
     } catch (err) {
       console.error('Failed to complete drop-off:', err);
+      setActionError(err.response?.data?.error || err.message || 'Failed to complete drop-off');
     } finally {
       setActionLoading(false);
     }
@@ -100,12 +103,14 @@ export default function DropOffTracker() {
 
   const handleCancel = async (id) => {
     setActionLoading(true);
+    setActionError('');
     try {
       await api.patch(`/drop-offs/${id}/cancel`);
       setSelectedDropOff(null);
       fetchDropOffs(pagination.page);
     } catch (err) {
       console.error('Failed to cancel drop-off:', err);
+      setActionError(err.response?.data?.error || err.message || 'Failed to cancel drop-off');
     } finally {
       setActionLoading(false);
     }
@@ -136,6 +141,15 @@ export default function DropOffTracker() {
           <Plus className="w-4 h-4" /> New Drop-off
         </Button>
       </div>
+
+      {actionError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between gap-3">
+          <p className="text-sm text-red-700">{actionError}</p>
+          <button onClick={() => setActionError('')} className="p-1 text-red-400 hover:text-red-600">
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

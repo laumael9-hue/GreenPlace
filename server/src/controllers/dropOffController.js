@@ -393,11 +393,16 @@ const completeDropOff = async (req, res) => {
       return res.status(400).json({ error: 'No approved business found' });
     }
 
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: existingError } = await supabaseAdmin
       .from('drop_offs')
       .select('id, business_id, status')
       .eq('id', id)
-      .single();
+      .maybeSingle();
+
+    if (existingError) {
+      console.error('Fetch existing drop-off error:', existingError);
+      return res.status(400).json({ error: existingError.message });
+    }
 
     if (!existing) {
       return res.status(404).json({ error: 'Drop-off not found' });
@@ -429,26 +434,38 @@ const completeDropOff = async (req, res) => {
       .single();
 
     if (updateError) {
+      console.error('Update drop-off error:', updateError);
       return res.status(400).json({ error: updateError.message });
     }
 
-    // Update item actual values if provided
+    if (!dropOff) {
+      console.error('Update returned no row for id:', id);
+      return res.status(400).json({ error: 'Failed to update drop-off: no row returned' });
+    }
+
+    // Update item actual values if provided - non-critical, don't fail whole request
     if (items && Array.isArray(items)) {
       for (const item of items) {
         if (item.id && item.actualValue != null) {
-          await supabaseAdmin
-            .from('drop_off_items')
-            .update({ actual_value: parseFloat(item.actualValue) })
-            .eq('id', item.id)
-            .eq('drop_off_id', id);
+          try {
+            const { error: itemError } = await supabaseAdmin
+              .from('drop_off_items')
+              .update({ actual_value: parseFloat(item.actualValue) })
+              .eq('id', item.id)
+              .eq('drop_off_id', id);
+            if (itemError) console.error('Update item value error:', itemError);
+          } catch (itemErr) {
+            console.error('Update item exception:', itemErr);
+          }
         }
       }
     }
 
     res.json({ message: 'Drop-off completed', dropOff });
   } catch (err) {
-    console.error('Complete drop-off error:', err);
-    res.status(500).json({ error: 'Failed to complete drop-off' });
+    console.error('Complete drop-off error:', err && err.stack ? err.stack : err);
+    const message = (err && err.message) ? err.message : 'Failed to complete drop-off';
+    res.status(500).json({ error: message });
   }
 };
 
@@ -474,11 +491,16 @@ const cancelDropOff = async (req, res) => {
       return res.status(400).json({ error: 'No approved business found' });
     }
 
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: existingError } = await supabaseAdmin
       .from('drop_offs')
       .select('id, business_id, status')
       .eq('id', id)
-      .single();
+      .maybeSingle();
+
+    if (existingError) {
+      console.error('Fetch existing drop-off error:', existingError);
+      return res.status(400).json({ error: existingError.message });
+    }
 
     if (!existing) {
       return res.status(404).json({ error: 'Drop-off not found' });
@@ -498,13 +520,15 @@ const cancelDropOff = async (req, res) => {
       .eq('id', id);
 
     if (error) {
+      console.error('Cancel drop-off error:', error);
       return res.status(400).json({ error: error.message });
     }
 
     res.json({ message: 'Drop-off cancelled' });
   } catch (err) {
-    console.error('Cancel drop-off error:', err);
-    res.status(500).json({ error: 'Failed to cancel drop-off' });
+    console.error('Cancel drop-off error:', err && err.stack ? err.stack : err);
+    const message = (err && err.message) ? err.message : 'Failed to cancel drop-off';
+    res.status(500).json({ error: message });
   }
 };
 
