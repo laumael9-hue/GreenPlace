@@ -48,16 +48,21 @@ const createDropOff = async (req, res) => {
       priceMap[m.material_name.toLowerCase()] = parseFloat(m.price_per_kg);
     });
 
-    // Calculate estimated values for items
+    // Calculate estimated values for items - accept both camelCase and snake_case
     const processedItems = items.map(item => {
-      const weight = parseFloat(item.quantity);
-      if (weight <= 0) {
-        throw new Error(`Invalid weight for ${item.material_name}`);
+      const rawName = item.materialName || item.material_name;
+      if (!rawName || !rawName.trim()) {
+        throw new Error('Material name is required');
       }
-      const pricePerKg = priceMap[item.material_name.toLowerCase()] || 0;
+      const materialName = rawName.trim();
+      const weight = parseFloat(item.quantity);
+      if (isNaN(weight) || weight <= 0) {
+        throw new Error(`Invalid weight for ${materialName}`);
+      }
+      const pricePerKg = priceMap[materialName.toLowerCase()] || 0;
       const estimatedValue = Math.round(weight * pricePerKg * 100) / 100;
       return {
-        material_name: item.material_name,
+        material_name: materialName,
         quantity: weight,
         unit: item.unit || 'kg',
         estimated_value: estimatedValue,
@@ -81,22 +86,51 @@ const createDropOff = async (req, res) => {
 
     const referenceNumber = generateReferenceNumber();
 
-    // Insert drop-off
-    const { data: dropOff, error: insertError } = await supabaseAdmin
-      .from('drop_offs')
-      .insert({
-        user_id: userId || null,
-        business_id: businessId,
-        reference_number: referenceNumber,
-        status: 'scheduled',
-        total_weight_kg: totalWeight,
-        estimated_value: totalEstimatedValue,
-        guest_name: !userId ? guestName : null,
-        guest_phone: !userId ? guestPhone : null,
-        notes: notes || null,
-      })
-      .select()
-      .single();
+    // Build insert payload - only include guest fields if needed (migration-safe)
+    const insertPayload = {
+      user_id: userId || null,
+      business_id: businessId,
+      reference_number: referenceNumber,
+      status: 'scheduled',
+      total_weight_kg: totalWeight,
+      estimated_value: totalEstimatedValue,
+      notes: notes || null,
+    };
+    if (!userId) {
+      insertPayload.guest_name = guestName;
+      if (guestPhone) insertPayload.guest_phone = guestPhone;
+    }
+
+    // Insert drop-off - retry without guest fields if columns don't exist yet
+    let dropOff = null;
+    let insertError = null;
+    {
+      const result = await supabaseAdmin
+        .from('drop_offs')
+        .insert(insertPayload)
+        .select()
+        .single();
+      dropOff = result.data;
+      insertError = result.error;
+      // If guest columns don't exist (migration not run), retry without them
+      if (insertError && insertError.message && insertError.message.includes('guest_')) {
+        console.warn('Guest columns missing, retrying without them. Please run migration 010.');
+        const fallbackPayload = { ...insertPayload };
+        delete fallbackPayload.guest_name;
+        delete fallbackPayload.guest_phone;
+        // For guests without migration, store name in notes as fallback
+        if (!userId && guestName) {
+          fallbackPayload.notes = `Guest: ${guestName}${guestPhone ? ' (' + guestPhone + ')' : ''}${notes ? ' - ' + notes : ''}`;
+        }
+        const retry = await supabaseAdmin
+          .from('drop_offs')
+          .insert(fallbackPayload)
+          .select()
+          .single();
+        dropOff = retry.data;
+        insertError = retry.error;
+      }
+    }
 
     if (insertError) {
       console.error('Create drop-off error:', insertError);
@@ -123,10 +157,19 @@ const createDropOff = async (req, res) => {
     }
 
     // Increment business total_drop_offs
-    await supabaseAdmin
-      .from('businesses')
-      .update({ total_drop_offs: (await supabaseAdmin.from('businesses').select('total_drop_offs').eq('id', businessId).single()).data?.total_drop_offs + 1 || 1 })
-      .eq('id', businessId);
+    try {
+      const { data: biz } = await supabaseAdmin
+        .from('businesses')
+        .select('total_drop_offs')
+        .eq('id', businessId)
+        .single();
+      await supabaseAdmin
+        .from('businesses')
+        .update({ total_drop_offs: (biz?.total_drop_offs || 0) + 1 })
+        .eq('id', businessId);
+    } catch (countErr) {
+      console.error('Failed to update drop-off count:', countErr);
+    }
 
     res.status(201).json({
       message: 'Drop-off recorded successfully',
@@ -138,7 +181,8 @@ const createDropOff = async (req, res) => {
     });
   } catch (err) {
     console.error('Create drop-off error:', err);
-    res.status(500).json({ error: 'Failed to create drop-off' });
+    const message = err.message || 'Failed to create drop-off';
+    res.status(500).json({ error: message });
   }
 };
 
