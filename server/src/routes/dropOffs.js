@@ -10,12 +10,14 @@ const {
   completeDropOff,
   cancelDropOff,
   getBusinessMaterials,
+  searchResidents,
 } = require('../controllers/dropOffController');
 
 // Business routes
 router.post('/', authenticate, requireBusiness, createDropOff);
 router.get('/business', authenticate, requireBusiness, getBusinessDropOffs);
 router.get('/materials', authenticate, requireBusiness, getBusinessMaterials);
+router.get('/search-residents', authenticate, requireBusiness, searchResidents);
 router.patch('/:id/complete', authenticate, requireBusiness, completeDropOff);
 router.patch('/:id/cancel', authenticate, requireBusiness, cancelDropOff);
 

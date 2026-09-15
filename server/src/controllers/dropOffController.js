@@ -501,6 +501,40 @@ const getBusinessMaterials = async (req, res) => {
   }
 };
 
+// ============================================================
+// SEARCH RESIDENTS (for drop-off creation)
+// ============================================================
+
+const searchResidents = async (req, res) => {
+  try {
+    const { q = '' } = req.query;
+
+    if (!q || q.trim().length < 1) {
+      return res.json({ residents: [] });
+    }
+
+    const searchTerm = q.trim();
+
+    const { data: residents, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id, first_name, last_name, phone, email')
+      .eq('role', 'resident')
+      .is('deleted_at', null)
+      .eq('is_active', true)
+      .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+      .limit(10);
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.json({ residents: residents || [] });
+  } catch (err) {
+    console.error('Search residents error:', err);
+    res.status(500).json({ error: 'Failed to search residents' });
+  }
+};
+
 module.exports = {
   createDropOff,
   getBusinessDropOffs,
@@ -509,4 +543,5 @@ module.exports = {
   completeDropOff,
   cancelDropOff,
   getBusinessMaterials,
+  searchResidents,
 };
