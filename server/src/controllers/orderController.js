@@ -629,7 +629,7 @@ const getBusinessOrders = async (req, res) => {
         payment_method, payment_status, pickup_address, notes,
         preferred_pickup_date, preferred_pickup_time,
         confirmed_at, completed_at, cancelled_at, created_at,
-        items:order_items(id, title, price, quantity, total)
+        items:order_items(id, listing_id, title, price, quantity, total)
       `, { count: 'exact' })
       .eq('business_id', business.id)
       .order('created_at', { ascending: false });
@@ -664,11 +664,43 @@ const getBusinessOrders = async (req, res) => {
       buyer: buyersMap[o.buyer_id] || null,
     }));
 
+    // Fetch listing images for all items
+    const listingIds = [...new Set(
+      ordersWithBuyers.flatMap(o => o.items?.map(i => i.listing_id).filter(Boolean) || [])
+    )];
+
+    let imagesMap = {};
+    if (listingIds.length > 0) {
+      const { data: images } = await supabaseAdmin
+        .from('listing_images')
+        .select('listing_id, image_url, is_primary, sort_order')
+        .in('listing_id', listingIds);
+
+      if (images) {
+        images.forEach(img => {
+          if (!imagesMap[img.listing_id]) imagesMap[img.listing_id] = [];
+          imagesMap[img.listing_id].push(img);
+        });
+      }
+    }
+
+    // Attach primary image to each item
+    const finalOrders = ordersWithBuyers.map(order => ({
+      ...order,
+      items: (order.items || []).map(item => {
+        const imgs = imagesMap[item.listing_id] || [];
+        const primaryImage = imgs.find(i => i.is_primary)?.image_url
+          || imgs.sort((a, b) => a.sort_order - b.sort_order)[0]?.image_url
+          || null;
+        return { ...item, listing_image: primaryImage };
+      }),
+    }));
+
     const total = count || 0;
     const pages = Math.ceil(total / parseInt(limit));
 
     res.json({
-      orders: ordersWithBuyers,
+      orders: finalOrders,
       pagination: { page: parseInt(page), limit: parseInt(limit), total, pages },
     });
   } catch (err) {
