@@ -659,7 +659,7 @@ const getCart = async (req, res) => {
         listing:listings(
           id, title, slug, price, unit, quantity_available, status,
           seller:profiles(id, first_name, last_name),
-          business:businesses(id, name, slug),
+          business:businesses(id, name, slug, address, latitude, longitude, logo_url),
           listing_images(image_url, is_primary, sort_order)
         )
       `)

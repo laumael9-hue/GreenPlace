@@ -31,10 +31,12 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const businessRoutes = require('./routes/business');
 const marketplaceRoutes = require('./routes/marketplace');
+const orderRoutes = require('./routes/orders');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/businesses', businessRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/orders', orderRoutes);
 
 // 404 handler
 app.use((req, res) => {

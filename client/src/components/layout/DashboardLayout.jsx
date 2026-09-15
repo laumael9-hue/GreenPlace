@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileMenu from './MobileMenu';
 import { useAuth } from '../../context/AuthContext';
 import Avatar from '../ui/Avatar';
 import { Bell, Search } from 'lucide-react';
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { profile } = useAuth();
   const role = profile?.role || 'resident';
@@ -57,7 +58,7 @@ export default function DashboardLayout({ children }) {
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6"><Outlet /></main>
       </div>
     </div>
   );

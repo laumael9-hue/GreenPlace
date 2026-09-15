@@ -37,9 +37,9 @@ export function CartProvider({ children }) {
 
   const addItem = useCallback(async (listingId, quantity = 1) => {
     try {
-      await api.post('/marketplace/cart', { listingId, quantity });
+      const { data } = await api.post('/marketplace/cart', { listingId, quantity });
       await fetchCart();
-      return { success: true };
+      return { success: true, cartItem: data.cartItem };
     } catch (err) {
       const message = err.response?.data?.error || 'Failed to add item';
       return { success: false, error: message };

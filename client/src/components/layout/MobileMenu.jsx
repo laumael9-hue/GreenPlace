@@ -1,10 +1,11 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
 import {
   LayoutDashboard, MapPin, ShoppingBag, ClipboardList,
   Package, MessageCircle, User, Building2, List,
   Clock, Star, BarChart3, Users, FileText, Settings
 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import NavItem from './NavItem';
 import { useAuth } from '../../context/AuthContext';
 
@@ -43,8 +44,18 @@ const adminNav = [
 const navMap = { resident: residentNav, business: businessNav, admin: adminNav };
 
 export default function MobileMenu({ open, onClose }) {
-  const { profile } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
+  const location = useLocation();
   const items = navMap[profile?.role] || navMap.resident;
+  const prevPath = useRef(location.pathname);
+
+  useEffect(() => {
+    if (!isAuthenticated && prevPath.current !== location.pathname && open) {
+      onClose();
+    }
+    prevPath.current = location.pathname;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   if (!open) return null;
 
@@ -62,7 +73,7 @@ export default function MobileMenu({ open, onClose }) {
         </div>
         <nav className="px-3 py-4 space-y-1">
           {items.map(item => (
-            <div key={item.to} onClick={onClose}>
+            <div key={item.to}>
               <NavItem {...item} />
             </div>
           ))}

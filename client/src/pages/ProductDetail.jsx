@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2 } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2, Zap } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -18,6 +18,7 @@ const CONDITION_LABELS = {
 
 export default function ProductDetail() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { addItem } = useCart();
   const [listing, setListing] = useState(null);
@@ -55,6 +56,20 @@ export default function ProductDetail() {
     if (result.success) {
       setAddedMessage(true);
       setTimeout(() => setAddedMessage(false), 2000);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!isAuthenticated) {
+      window.location.href = '/login';
+      return;
+    }
+    setAddingToCart(true);
+    const result = await addItem(listing.id, quantity);
+    setAddingToCart(false);
+    if (result.success && result.cartItem) {
+      sessionStorage.setItem('checkoutItems', JSON.stringify([result.cartItem.id]));
+      navigate('/checkout');
     }
   };
 
@@ -277,6 +292,15 @@ export default function ProductDetail() {
                       <ShoppingBag className="w-4 h-4" />
                     )}
                     {addedMessage ? 'Added to Cart!' : 'Add to Cart'}
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    variant="primary"
+                    onClick={handleBuyNow}
+                    disabled={addingToCart}
+                  >
+                    <Zap className="w-4 h-4" />
+                    Buy Now
                   </Button>
                 </div>
               </Card>

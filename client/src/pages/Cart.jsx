@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Trash2, Minus, Plus, ArrowLeft, Package, Loader2, AlertCircle, Store, ChevronRight, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import Button from '../components/ui/Button';
@@ -8,6 +8,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 
 export default function Cart() {
+  const navigate = useNavigate();
   const { items, loading, itemCount, updateQuantity, removeItem, clearAll } = useCart();
   const [updatingId, setUpdatingId] = useState(null);
   const [removingId, setRemovingId] = useState(null);
@@ -149,6 +150,12 @@ export default function Cart() {
     setShowClearConfirm(false);
   };
 
+  const handleCheckout = () => {
+    const selected = Array.from(selectedIds);
+    sessionStorage.setItem('checkoutItems', JSON.stringify(selected));
+    navigate('/checkout');
+  };
+
   if (loading && items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -283,7 +290,11 @@ export default function Cart() {
                 </div>
 
                 <div className="mt-6 space-y-3">
-                  <Button className="w-full" disabled={selectedSummary.totalSelectedItems === 0}>
+                  <Button
+                    className="w-full"
+                    disabled={selectedSummary.totalSelectedItems === 0}
+                    onClick={handleCheckout}
+                  >
                     Proceed to Checkout
                   </Button>
                   {selectedSummary.totalSelectedItems === 0 && someSelected === false && items.length > 0 && (
@@ -291,9 +302,6 @@ export default function Cart() {
                       Select items to proceed
                     </p>
                   )}
-                  <p className="text-xs text-center text-gray-400">
-                    Checkout coming in future phase
-                  </p>
                 </div>
 
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">

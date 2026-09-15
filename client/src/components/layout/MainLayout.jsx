@@ -1,17 +1,18 @@
 import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import MobileMenu from './MobileMenu';
 import { Link } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
 
-export default function MainLayout({ children }) {
+export default function MainLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar onMenuToggle={() => setMenuOpen(!menuOpen)} menuOpen={menuOpen} />
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
-      <main>{children}</main>
+      <Outlet />
     </div>
   );
 }
@@ -56,7 +57,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-12 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
-          <p>&copy; 2024 GreenPlace. All rights reserved. | Capstone Project</p>
+          <p>&copy; 2025 GreenPlace. All rights reserved. | Capstone Project</p>
         </div>
       </div>
     </footer>

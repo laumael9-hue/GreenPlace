@@ -13,6 +13,7 @@ export default function BusinessDashboard() {
   const [business, setBusiness] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pendingOrders, setPendingOrders] = useState(0);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -28,8 +29,21 @@ export default function BusinessDashboard() {
     };
     fetchBusiness();
 
+    const fetchPendingOrders = async () => {
+      try {
+        const { data } = await api.get('/orders/business', { params: { status: 'pending', limit: 1 } });
+        setPendingOrders(data.pagination?.total || 0);
+      } catch {
+        // Ignore
+      }
+    };
+    fetchPendingOrders();
+
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') fetchBusiness();
+      if (document.visibilityState === 'visible') {
+        fetchBusiness();
+        fetchPendingOrders();
+      }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
@@ -174,7 +188,7 @@ export default function BusinessDashboard() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<ClipboardList className="w-6 h-6" />} label="Pending Orders" value="0" change="No pending orders" changeType="neutral" />
+        <StatCard icon={<ClipboardList className="w-6 h-6" />} label="Pending Orders" value={String(pendingOrders)} change={pendingOrders > 0 ? 'Needs attention' : 'No pending orders'} changeType={pendingOrders > 0 ? 'warning' : 'neutral'} />
         <StatCard icon={<List className="w-6 h-6" />} label="Active Listings" value="0" change="Create your first listing" changeType="neutral" />
         <StatCard icon={<Clock className="w-6 h-6" />} label="Drop-offs" value="0" change="No drop-offs scheduled" changeType="neutral" />
         <StatCard icon={<Star className="w-6 h-6" />} label="Avg Rating" value={business.rating_avg || '0.0'} change={`${business.rating_count || 0} reviews`} changeType="neutral" />
