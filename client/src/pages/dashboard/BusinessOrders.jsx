@@ -120,7 +120,15 @@ export default function BusinessOrders() {
                     <div className="flex items-center gap-4">
                       {/* Item Image */}
                       <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden group-hover:ring-2 group-hover:ring-primary-200 transition-all">
-                        <Package className="w-8 h-8 text-gray-300" />
+                        {firstItem?.listing_image ? (
+                          <img
+                            src={firstItem.listing_image}
+                            alt={itemTitle}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Package className="w-8 h-8 text-gray-300" />
+                        )}
                       </div>
 
                       {/* Order Info */}
