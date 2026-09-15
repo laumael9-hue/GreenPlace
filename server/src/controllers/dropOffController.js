@@ -378,9 +378,10 @@ const completeDropOff = async (req, res) => {
     const { id } = req.params;
     const { actualValue, items } = req.body;
     const userId = req.user.id;
+    console.log('[completeDropOff] Called for id:', id, 'by user:', userId);
 
     // Verify business owns this
-    const { data: myBusiness } = await supabaseAdmin
+    const { data: myBusiness, error: bizError } = await supabaseAdmin
       .from('businesses')
       .select('id')
       .eq('owner_id', userId)
@@ -389,9 +390,17 @@ const completeDropOff = async (req, res) => {
       .limit(1)
       .maybeSingle();
 
+    if (bizError) {
+      console.error('[completeDropOff] Business lookup error:', bizError);
+      return res.status(400).json({ error: bizError.message });
+    }
+
     if (!myBusiness) {
+      console.error('[completeDropOff] No approved business for user:', userId);
       return res.status(400).json({ error: 'No approved business found' });
     }
+
+    console.log('[completeDropOff] Found business:', myBusiness.id);
 
     const { data: existing, error: existingError } = await supabaseAdmin
       .from('drop_offs')
@@ -400,15 +409,19 @@ const completeDropOff = async (req, res) => {
       .maybeSingle();
 
     if (existingError) {
-      console.error('Fetch existing drop-off error:', existingError);
+      console.error('[completeDropOff] Fetch existing error:', existingError);
       return res.status(400).json({ error: existingError.message });
     }
 
     if (!existing) {
+      console.error('[completeDropOff] Drop-off not found:', id);
       return res.status(404).json({ error: 'Drop-off not found' });
     }
 
+    console.log('[completeDropOff] Existing drop-off:', existing.id, 'status:', existing.status, 'business:', existing.business_id);
+
     if (existing.business_id !== myBusiness.id) {
+      console.error('[completeDropOff] Business mismatch:', existing.business_id, '!==', myBusiness.id);
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -426,22 +439,27 @@ const completeDropOff = async (req, res) => {
       updates.actual_value = parseFloat(actualValue);
     }
 
-    const { data: dropOff, error: updateError } = await supabaseAdmin
+    console.log('[completeDropOff] Updating with:', updates);
+
+    const { data: dropOffs, error: updateError } = await supabaseAdmin
       .from('drop_offs')
       .update(updates)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
     if (updateError) {
-      console.error('Update drop-off error:', updateError);
+      console.error('[completeDropOff] Update error:', JSON.stringify(updateError));
       return res.status(400).json({ error: updateError.message });
     }
 
+    const dropOff = dropOffs && dropOffs.length > 0 ? dropOffs[0] : null;
+
     if (!dropOff) {
-      console.error('Update returned no row for id:', id);
-      return res.status(400).json({ error: 'Failed to update drop-off: no row returned' });
+      console.error('[completeDropOff] Update returned no rows for id:', id, 'dropOffs:', dropOffs);
+      return res.status(400).json({ error: 'Failed to update drop-off: no rows returned' });
     }
+
+    console.log('[completeDropOff] Updated successfully:', dropOff.id, 'status:', dropOff.status);
 
     // Update item actual values if provided - non-critical, don't fail whole request
     if (items && Array.isArray(items)) {
@@ -453,9 +471,9 @@ const completeDropOff = async (req, res) => {
               .update({ actual_value: parseFloat(item.actualValue) })
               .eq('id', item.id)
               .eq('drop_off_id', id);
-            if (itemError) console.error('Update item value error:', itemError);
+            if (itemError) console.error('[completeDropOff] Update item error:', itemError);
           } catch (itemErr) {
-            console.error('Update item exception:', itemErr);
+            console.error('[completeDropOff] Update item exception:', itemErr);
           }
         }
       }
@@ -463,7 +481,7 @@ const completeDropOff = async (req, res) => {
 
     res.json({ message: 'Drop-off completed', dropOff });
   } catch (err) {
-    console.error('Complete drop-off error:', err && err.stack ? err.stack : err);
+    console.error('[completeDropOff] UNCAUGHT ERROR:', err && err.stack ? err.stack : err);
     const message = (err && err.message) ? err.message : 'Failed to complete drop-off';
     res.status(500).json({ error: message });
   }
