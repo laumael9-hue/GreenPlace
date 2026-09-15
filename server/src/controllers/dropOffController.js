@@ -376,7 +376,7 @@ const getDropOffById = async (req, res) => {
 const completeDropOff = async (req, res) => {
   try {
     const { id } = req.params;
-    const { actualValue, items } = req.body;
+    const { actualValue, items } = req.body || {};
     const userId = req.user.id;
     console.log('[completeDropOff] Called for id:', id, 'by user:', userId);
 
