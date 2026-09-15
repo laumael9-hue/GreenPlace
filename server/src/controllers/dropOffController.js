@@ -517,7 +517,7 @@ const searchResidents = async (req, res) => {
 
     const { data: residents, error } = await supabaseAdmin
       .from('profiles')
-      .select('id, first_name, last_name, phone, email')
+      .select('id, first_name, last_name, phone')
       .eq('role', 'resident')
       .is('deleted_at', null)
       .eq('is_active', true)
