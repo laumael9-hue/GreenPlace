@@ -26,6 +26,8 @@ import OrderConfirmation from './pages/OrderConfirmation';
 import OrderHistory from './pages/OrderHistory';
 import OrderDetail from './pages/OrderDetail';
 import BusinessOrders from './pages/dashboard/BusinessOrders';
+import DropOffTracker from './pages/dashboard/DropOffTracker';
+import DropOffHistory from './pages/dashboard/DropOffHistory';
 import Landing from './pages/Landing';
 import { Leaf } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -54,7 +56,7 @@ function App() {
         <Route path="/dashboard/profile" element={<BusinessProfileManagement />} />
         <Route path="/dashboard/listings" element={<ListingManagement />} />
         <Route path="/dashboard/orders" element={<BusinessOrders />} />
-        <Route path="/dashboard/drop-offs" element={<Placeholder title="Drop-offs" desc="Manage scheduled recycling drop-offs." />} />
+        <Route path="/dashboard/drop-offs" element={<DropOffTracker />} />
         <Route path="/dashboard/reviews" element={<Placeholder title="Reviews" desc="View and respond to customer reviews." />} />
         <Route path="/dashboard/messages" element={<Placeholder title="Messages" desc="Communicate with customers." />} />
         <Route path="/dashboard/analytics" element={<Placeholder title="Analytics" desc="View business performance metrics." />} />
@@ -63,8 +65,7 @@ function App() {
       {/* Resident pages — sidebar layout */}
       <Route element={<ProtectedRoute roles={['resident']}><DashboardLayout /></ProtectedRoute>}>
         <Route path="/orders" element={<OrderHistory />} />
-        <Route path="/drop-offs" element={<Placeholder title="My Drop-offs" desc="View your recycling drop-off history." />} />
-        <Route path="/drop-offs/new" element={<Placeholder title="Schedule Drop-off" desc="Schedule a new recycling drop-off." />} />
+        <Route path="/drop-offs" element={<DropOffHistory />} />
       </Route>
 
       {/* Shared authenticated pages — sidebar layout */}
