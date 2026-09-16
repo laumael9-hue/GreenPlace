@@ -164,25 +164,26 @@ const checkout = async (req, res) => {
         return res.status(400).json({ error: 'Failed to create order items' });
       }
 
-      // Update listing quantities
-      for (const item of items) {
+      // Update listing quantities and remove from cart (cash on pickup only)
+      if (paymentMethod === 'cash_on_pickup') {
+        for (const item of items) {
+          await supabaseAdmin
+            .from('listings')
+            .update({
+              quantity_available: item.listing.quantity_available - item.quantity,
+              sold_count: (item.listing.sold_count || 0) + item.quantity,
+            })
+            .eq('id', item.listing.id);
+        }
+
+        const cartItemIdsForOrder = items.map(i => i.id);
         await supabaseAdmin
-          .from('listings')
-          .update({
-            quantity_available: item.listing.quantity_available - item.quantity,
-            sold_count: (item.listing.sold_count || 0) + item.quantity,
-          })
-          .eq('id', item.listing.id);
+          .from('cart_items')
+          .delete()
+          .in('id', cartItemIdsForOrder);
       }
 
-      // Remove purchased items from cart
-      const cartItemIdsForOrder = items.map(i => i.id);
-      await supabaseAdmin
-        .from('cart_items')
-        .delete()
-        .in('id', cartItemIdsForOrder);
-
-      // Create payment record for cash on pickup
+      // Create payment record
       if (paymentMethod === 'cash_on_pickup') {
         await supabaseAdmin
           .from('payments')
@@ -192,14 +193,26 @@ const checkout = async (req, res) => {
             method: 'cash_on_pickup',
             status: 'pending',
           });
+      } else {
+        await supabaseAdmin
+          .from('payments')
+          .insert({
+            order_id: order.id,
+            amount: total,
+            method: paymentMethod,
+            status: 'pending',
+          });
       }
 
       createdOrders.push(order);
     }
 
+    const isPayMongo = paymentMethod !== 'cash_on_pickup';
+
     res.status(201).json({
       message: 'Order(s) placed successfully',
       orders: createdOrders,
+      requiresPayment: isPayMongo,
     });
   } catch (err) {
     console.error('Checkout error:', err);

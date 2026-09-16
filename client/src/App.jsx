@@ -23,6 +23,8 @@ import BusinessProfileManagement from './pages/business/BusinessProfileManagemen
 import ListingManagement from './pages/dashboard/ListingManagement';
 import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentFailed from './pages/PaymentFailed';
 import OrderHistory from './pages/OrderHistory';
 import OrderDetail from './pages/OrderDetail';
 import BusinessOrders from './pages/dashboard/BusinessOrders';
@@ -92,6 +94,8 @@ function App() {
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/forum" element={<Placeholder title="Community Forum" desc="Join sustainability discussions with the community." />} />
         <Route path="/orders/:id/success" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
+        <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+        <Route path="/payment/failed" element={<ProtectedRoute><PaymentFailed /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

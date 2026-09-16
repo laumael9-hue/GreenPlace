@@ -14,6 +14,10 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('dev'));
+
+// Raw body for PayMongo webhook signature verification (must be before express.json)
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -32,12 +36,14 @@ const userRoutes = require('./routes/user');
 const businessRoutes = require('./routes/business');
 const marketplaceRoutes = require('./routes/marketplace');
 const orderRoutes = require('./routes/orders');
+const paymentRoutes = require('./routes/payments');
 const dropOffRoutes = require('./routes/dropOffs');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/businesses', businessRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
 app.use('/api/drop-offs', dropOffRoutes);
 
 // 404 handler

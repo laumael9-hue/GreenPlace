@@ -85,7 +85,11 @@ export default function Checkout() {
 
   const paymentOptions = [
     { value: 'cash_on_pickup', label: 'Cash on Pickup' },
+    { value: 'paymongo_gcash', label: 'GCash' },
+    { value: 'paymongo_maya', label: 'Maya' },
   ];
+
+  const isPayMongo = paymentMethod !== 'cash_on_pickup';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -111,6 +115,21 @@ export default function Checkout() {
       await refresh();
 
       const firstOrder = data.orders?.[0];
+
+      if (data.requiresPayment && firstOrder) {
+        const { data: paymentData } = await api.post('/payments/checkout', {
+          orderId: firstOrder.id,
+        });
+
+        if (paymentData.checkout_url) {
+          window.location.href = paymentData.checkout_url;
+          return;
+        }
+
+        navigate(`/orders/${firstOrder.id}/success`);
+        return;
+      }
+
       if (firstOrder) {
         navigate(`/orders/${firstOrder.id}/success`, { state: { order: firstOrder } });
       } else {
@@ -197,7 +216,9 @@ export default function Checkout() {
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 />
                 <p className="mt-2 text-xs text-gray-500">
-                  Pay with cash when you pick up your order from the seller.
+                  {isPayMongo
+                    ? 'You will be redirected to complete your payment securely.'
+                    : 'Pay with cash when you pick up your order from the seller.'}
                 </p>
               </Card>
 
@@ -392,10 +413,10 @@ export default function Checkout() {
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Placing Order...
+                        {isPayMongo ? 'Processing...' : 'Placing Order...'}
                       </>
                     ) : (
-                      'Place Order'
+                      isPayMongo ? 'Pay Now' : 'Place Order'
                     )}
                   </Button>
                 </div>
