@@ -1,18 +1,85 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, Flag, Lock, Loader2, Send } from 'lucide-react';
+import { MessageCircle, Flag, Lock, Loader2, Send, Bookmark, Share2, Smile } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
 
-function PostItem({ post, onLike, onReply, onReport, currentUserId }) {
+const REACTIONS = [
+  { type: 'thumbs_up', emoji: '\uD83D\uDC4D', label: 'Like' },
+  { type: 'heart', emoji: '\u2764\uFE0F', label: 'Love' },
+  { type: 'celebrate', emoji: '\uD83C\uDF89', label: 'Celebrate' },
+  { type: 'insightful', emoji: '\uD83D\uDCA1', label: 'Insightful' },
+  { type: 'funny', emoji: '\uD83D\uDE04', label: 'Funny' },
+];
+
+function ReactionBar({ reactionCounts, userReaction, onReact }) {
+  const [showPicker, setShowPicker] = useState(false);
+  const counts = reactionCounts || {};
+  const totalReactions = Object.values(counts).reduce((s, c) => s + c, 0);
+
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {REACTIONS.map((r) => {
+        const count = counts[r.type] || 0;
+        const isActive = userReaction === r.type;
+        if (count === 0 && !isActive) return null;
+        return (
+          <button
+            key={r.type}
+            onClick={() => onReact(r.type)}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+              isActive
+                ? 'bg-primary-100 text-primary-700 ring-1 ring-primary-300'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+            title={r.label}
+          >
+            <span>{r.emoji}</span>
+            <span>{count}</span>
+          </button>
+        );
+      })}
+      <div className="relative">
+        <button
+          onClick={() => setShowPicker(!showPicker)}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+          title="Add reaction"
+        >
+          <Smile className="w-3.5 h-3.5" />
+        </button>
+        {showPicker && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setShowPicker(false)} />
+            <div className="absolute bottom-full left-0 mb-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1.5 flex gap-1 z-20">
+              {REACTIONS.map((r) => (
+                <button
+                  key={r.type}
+                  onClick={() => { onReact(r.type); setShowPicker(false); }}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-lg"
+                  title={r.label}
+                >
+                  {r.emoji}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      {totalReactions > 0 && (
+        <span className="text-xs text-gray-400 ml-1">{totalReactions}</span>
+      )}
+    </div>
+  );
+}
+
+function PostItem({ post, onReact, onReply, onReport }) {
   const [showReply, setShowReply] = useState(false);
   const [replyBody, setReplyBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [localLiked, setLocalLiked] = useState(false);
-  const [localLikeCount, setLocalLikeCount] = useState(post.like_count || 0);
 
   const handleReply = async (e) => {
     e.preventDefault();
@@ -27,23 +94,15 @@ function PostItem({ post, onLike, onReply, onReport, currentUserId }) {
     }
   };
 
-  const handleLike = async () => {
-    try {
-      const res = await api.post(`/forum/posts/${post.id}/like`);
-      setLocalLiked(res.data.liked);
-      setLocalLikeCount(res.data.likeCount);
-    } catch (err) {
-      console.error('Error toggling like:', err);
-    }
-  };
-
   return (
     <div className={`${post.parent_id ? 'ml-8 pl-4 border-l-2 border-gray-100' : ''}`}>
       <div className="py-4">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-sm font-medium flex-shrink-0">
-            {post.author?.first_name?.[0]}{post.author?.last_name?.[0]}
-          </div>
+          <Avatar
+            src={post.author?.avatar_url}
+            name={`${post.author?.first_name || ''} ${post.author?.last_name || ''}`}
+            size="sm"
+          />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium text-gray-900 text-sm">
@@ -60,16 +119,14 @@ function PostItem({ post, onLike, onReply, onReport, currentUserId }) {
               )}
             </div>
             <div className="mt-1 text-gray-700 whitespace-pre-wrap text-sm">{post.body}</div>
+            <div className="mt-2">
+              <ReactionBar
+                reactionCounts={post.reaction_counts}
+                userReaction={post.userReaction}
+                onReact={(type) => onReact(post.id, type)}
+              />
+            </div>
             <div className="flex items-center gap-4 mt-2">
-              <button
-                onClick={handleLike}
-                className={`flex items-center gap-1 text-xs transition-colors ${
-                  localLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'
-                }`}
-              >
-                <Heart className={`w-4 h-4 ${localLiked ? 'fill-current' : ''}`} />
-                {localLikeCount}
-              </button>
               <button
                 onClick={() => setShowReply(!showReply)}
                 className="flex items-center gap-1 text-xs text-gray-400 hover:text-primary-600 transition-colors"
@@ -93,10 +150,9 @@ function PostItem({ post, onLike, onReply, onReport, currentUserId }) {
         <PostItem
           key={reply.id}
           post={{ ...reply, parent_id: post.id }}
-          onLike={onLike}
+          onReact={onReact}
           onReply={onReply}
           onReport={onReport}
-          currentUserId={currentUserId}
         />
       ))}
 
@@ -121,7 +177,7 @@ function PostItem({ post, onLike, onReply, onReport, currentUserId }) {
 
 export default function ForumThread() {
   const { slug } = useParams();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [thread, setThread] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +190,7 @@ export default function ForumThread() {
   const [reporting, setReporting] = useState(false);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [shareToast, setShareToast] = useState(false);
 
   const fetchThread = useCallback(async () => {
     try {
@@ -150,6 +207,28 @@ export default function ForumThread() {
 
   useEffect(() => { fetchThread(); }, [fetchThread]);
 
+  const handleReact = async (postId, type) => {
+    try {
+      const { data } = await api.post(`/forum/posts/${postId}/reaction`, { type });
+      setPosts(prev => prev.map(post => {
+        if (post.id === postId) {
+          return { ...post, reaction_counts: data.reactionCounts, userReaction: data.reacted ? type : null };
+        }
+        return {
+          ...post,
+          replies: (post.replies || []).map(reply => {
+            if (reply.id === postId) {
+              return { ...reply, reaction_counts: data.reactionCounts, userReaction: data.reacted ? type : null };
+            }
+            return reply;
+          }),
+        };
+      }));
+    } catch (err) {
+      console.error('Error reacting:', err);
+    }
+  };
+
   const handleReply = async (body, parentId = null) => {
     await api.post(`/forum/threads/${thread.id}/posts`, { body, parentId });
     fetchThread();
@@ -162,8 +241,36 @@ export default function ForumThread() {
     try {
       await handleReply(replyBody.trim());
       setReplyBody('');
+    } catch (err) {
+      console.error('Error posting reply:', err);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleBookmark = async () => {
+    try {
+      const { data } = await api.post(`/forum/threads/${thread.id}/bookmark`);
+      setThread(prev => ({ ...prev, isBookmarked: data.bookmarked }));
+    } catch (err) {
+      console.error('Error toggling bookmark:', err);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2000);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = window.location.href;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2000);
     }
   };
 
@@ -229,36 +336,70 @@ export default function ForumThread() {
 
       <Card>
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {thread.is_pinned && (
-                <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2 py-0.5 rounded">Pinned</span>
-              )}
-              {thread.is_locked && (
-                <span className="flex items-center gap-1 text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
-                  <Lock className="w-3 h-3" />Locked
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <Avatar
+              src={thread.author?.avatar_url}
+              name={`${thread.author?.first_name || ''} ${thread.author?.last_name || ''}`}
+              size="md"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                {thread.is_pinned && (
+                  <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2 py-0.5 rounded">Pinned</span>
+                )}
+                {thread.is_locked && (
+                  <span className="flex items-center gap-1 text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
+                    <Lock className="w-3 h-3" />Locked
+                  </span>
+                )}
+                {thread.category && (
+                  <span
+                    className="text-xs font-medium px-2 py-0.5 rounded"
+                    style={{
+                      backgroundColor: (thread.category.color || '#10B981') + '20',
+                      color: thread.category.color || '#10B981',
+                    }}
+                  >
+                    {thread.category.name}
+                  </span>
+                )}
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mt-2">{thread.title}</h1>
+              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                <span>{thread.author?.first_name} {thread.author?.last_name}</span>
+                <span>{new Date(thread.created_at).toLocaleDateString('en-US', {
+                  month: 'long', day: 'numeric', year: 'numeric',
+                })}</span>
+                <span>{thread.view_count} views</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            {isAuthenticated && (
+              <button
+                onClick={handleBookmark}
+                className={`p-2 rounded-lg transition-colors ${
+                  thread.isBookmarked
+                    ? 'text-yellow-500 bg-yellow-50'
+                    : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'
+                }`}
+                title={thread.isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+              >
+                <Bookmark className={`w-5 h-5 ${thread.isBookmarked ? 'fill-current' : ''}`} />
+              </button>
+            )}
+            <button
+              onClick={handleShare}
+              className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors relative"
+              title="Share"
+            >
+              <Share2 className="w-5 h-5" />
+              {shareToast && (
+                <span className="absolute -top-8 right-0 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                  Link copied!
                 </span>
               )}
-              {thread.category && (
-                <span
-                  className="text-xs font-medium px-2 py-0.5 rounded"
-                  style={{
-                    backgroundColor: (thread.category.color || '#10B981') + '20',
-                    color: thread.category.color || '#10B981',
-                  }}
-                >
-                  {thread.category.name}
-                </span>
-              )}
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mt-2">{thread.title}</h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-              <span>by {thread.author?.first_name} {thread.author?.last_name}</span>
-              <span>{new Date(thread.created_at).toLocaleDateString('en-US', {
-                month: 'long', day: 'numeric', year: 'numeric',
-              })}</span>
-              <span>{thread.view_count} views</span>
-            </div>
+            </button>
           </div>
         </div>
         <div className="mt-4 text-gray-700 whitespace-pre-wrap border-t border-gray-100 pt-4">{thread.body}</div>
@@ -266,7 +407,7 @@ export default function ForumThread() {
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
-          {pagination?.total || posts.length} {pagination?.total === 1 ? 'Reply' : 'Replies'}
+          {pagination?.total || posts.length} {(pagination?.total || posts.length) === 1 ? 'Reply' : 'Replies'}
         </h2>
       </div>
 
@@ -275,10 +416,9 @@ export default function ForumThread() {
           <PostItem
             key={post.id}
             post={post}
-            onLike={() => {}}
+            onReact={handleReact}
             onReply={handleReply}
             onReport={openReport}
-            currentUserId={user?.id}
           />
         ))}
       </div>
@@ -334,7 +474,7 @@ export default function ForumThread() {
       {!isAuthenticated && (
         <Card>
           <p className="text-center text-gray-500 py-4">
-            <Link to="/login" className="text-primary-600 hover:text-primary-500 font-medium">Log in</Link>
+            <Link to="/login" state={{ from: { pathname: `/forum/thread/${slug}` } }} className="text-primary-600 hover:text-primary-500 font-medium">Log in</Link>
             {' '}to join the discussion.
           </p>
         </Card>

@@ -13,7 +13,9 @@ const {
   createPost,
   updatePost,
   deletePost,
-  toggleLike,
+  toggleReaction,
+  toggleBookmark,
+  getBookmarkedThreads,
   searchForum,
   reportContent,
   moderateThread,
@@ -36,7 +38,9 @@ router.delete('/threads/:id', authenticate, deleteThread);
 router.post('/threads/:id/posts', authenticate, createPost);
 router.put('/posts/:id', authenticate, updatePost);
 router.delete('/posts/:id', authenticate, deletePost);
-router.post('/posts/:id/like', authenticate, toggleLike);
+router.post('/posts/:id/reaction', authenticate, toggleReaction);
+router.post('/threads/:id/bookmark', authenticate, toggleBookmark);
+router.get('/bookmarks', authenticate, getBookmarkedThreads);
 router.post('/report', authenticate, reportContent);
 
 // Admin moderation

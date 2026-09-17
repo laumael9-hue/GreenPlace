@@ -6,12 +6,14 @@ import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
+import Avatar from '../components/ui/Avatar';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest First' },
   { value: 'oldest', label: 'Oldest First' },
   { value: 'popular', label: 'Most Views' },
   { value: 'most_replies', label: 'Most Replies' },
+  { value: 'trending', label: 'Trending' },
 ];
 
 export default function ForumCategory() {
@@ -41,7 +43,7 @@ export default function ForumCategory() {
     try {
       setLoading(true);
       const { data } = await api.get('/forum/threads', {
-        params: { category: slug, sort, page, limit: 20 },
+        params: { category: slug, sort: sortBy, page, limit: 20 },
       });
       setThreads(data.threads || []);
       setPagination(data.pagination);
@@ -50,7 +52,7 @@ export default function ForumCategory() {
     } finally {
       setLoading(false);
     }
-  }, [slug, sort, page]);
+  }, [slug, sortBy, page]);
 
   useEffect(() => { fetchCategory(); }, [fetchCategory]);
   useEffect(() => { fetchThreads(); }, [fetchThreads]);
@@ -100,10 +102,16 @@ export default function ForumCategory() {
             <h1 className="text-2xl font-bold text-gray-900">{category.name}</h1>
             <p className="text-gray-600 mt-1">{category.description}</p>
           </div>
-          {isAuthenticated && (
+          {isAuthenticated ? (
             <Button onClick={() => setShowNewThread(true)}>
               <Plus className="w-4 h-4 mr-2" />New Thread
             </Button>
+          ) : (
+            <Link to="/login" state={{ from: { pathname: `/forum/${slug}` } }}>
+              <Button variant="outline">
+                <Plus className="w-4 h-4 mr-2" />Log in to Post
+              </Button>
+            </Link>
           )}
         </div>
       )}
@@ -133,10 +141,16 @@ export default function ForumCategory() {
           <div className="text-center py-12">
             <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">No threads in this category yet.</p>
-            {isAuthenticated && (
+            {isAuthenticated ? (
               <Button className="mt-4" onClick={() => setShowNewThread(true)}>
                 <Plus className="w-4 h-4 mr-2" />Start a Discussion
               </Button>
+            ) : (
+              <Link to="/login" state={{ from: { pathname: `/forum/${slug}` } }}>
+                <Button variant="outline" className="mt-4">
+                  <Plus className="w-4 h-4 mr-2" />Log in to Post
+                </Button>
+              </Link>
             )}
           </div>
         </Card>
@@ -145,8 +159,13 @@ export default function ForumCategory() {
           {threads.map((thread) => (
             <Link key={thread.id} to={`/forum/thread/${thread.slug}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0 flex-1">
+                <div className="flex items-start gap-3">
+                  <Avatar
+                    src={thread.author?.avatar_url}
+                    name={`${thread.author?.first_name || ''} ${thread.author?.last_name || ''}`}
+                    size="md"
+                  />
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {thread.is_pinned && (
                         <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2 py-0.5 rounded">Pinned</span>
@@ -158,9 +177,7 @@ export default function ForumCategory() {
                     <h3 className="font-medium text-gray-900 mt-1">{thread.title}</h3>
                     <p className="text-sm text-gray-500 mt-1 line-clamp-1">{thread.body}</p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
-                        {thread.author?.first_name} {thread.author?.last_name}
-                      </span>
+                      <span>{thread.author?.first_name} {thread.author?.last_name}</span>
                       <span className="flex items-center gap-1">
                         <MessageCircle className="w-3 h-3" />{thread.reply_count || 0}
                       </span>
@@ -173,7 +190,7 @@ export default function ForumCategory() {
                       </span>
                     </div>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-2" />
                 </div>
               </Card>
             </Link>

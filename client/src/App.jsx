@@ -24,6 +24,7 @@ import ListingManagement from './pages/dashboard/ListingManagement';
 import Forum from './pages/Forum';
 import ForumCategory from './pages/ForumCategory';
 import ForumThread from './pages/ForumThread';
+import ForumBookmarks from './pages/ForumBookmarks';
 import ForumModeration from './pages/admin/ForumModeration';
 import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
@@ -104,6 +105,7 @@ function App() {
         <Route path="/forum/search" element={<Forum />} />
         <Route path="/forum/:slug" element={<ForumCategory />} />
         <Route path="/forum/thread/:slug" element={<ForumThread />} />
+        <Route path="/bookmarks" element={<ProtectedRoute><ForumBookmarks /></ProtectedRoute>} />
         <Route path="/orders/:id/success" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
         <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
         <Route path="/payment/failed" element={<ProtectedRoute><PaymentFailed /></ProtectedRoute>} />

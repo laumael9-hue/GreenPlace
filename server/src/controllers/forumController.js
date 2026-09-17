@@ -1,6 +1,16 @@
 const { supabaseAdmin } = require('../config/supabase');
 const crypto = require('crypto');
 
+const VALID_REACTIONS = ['thumbs_up', 'heart', 'celebrate', 'insightful', 'funny'];
+
+const REACTION_EMOJI = {
+  thumbs_up: '\uD83D\uDC4D',
+  heart: '\u2764\uFE0F',
+  celebrate: '\uD83C\uDF89',
+  insightful: '\uD83D\uDCA1',
+  funny: '\uD83D\uDE04',
+};
+
 // ============================================================
 // UTILITY: Generate Slug
 // ============================================================
@@ -15,6 +25,29 @@ const generateSlug = (text) => {
     .slice(0, 200);
   const suffix = crypto.randomBytes(3).toString('hex');
   return `${base}-${suffix}`;
+};
+
+// ============================================================
+// UTILITY: Recalculate reaction_counts for a post
+// ============================================================
+
+const recalculateReactions = async (postId) => {
+  const { data: reactions } = await supabaseAdmin
+    .from('forum_reactions')
+    .select('reaction_type')
+    .eq('post_id', postId);
+
+  const counts = {};
+  (reactions || []).forEach(r => {
+    counts[r.reaction_type] = (counts[r.reaction_type] || 0) + 1;
+  });
+
+  await supabaseAdmin
+    .from('forum_posts')
+    .update({ reaction_counts: counts })
+    .eq('id', postId);
+
+  return counts;
 };
 
 // ============================================================
@@ -110,6 +143,9 @@ const getThreads = async (req, res) => {
       case 'most_replies':
         orderColumn = 'reply_count';
         break;
+      case 'trending':
+        orderColumn = 'last_reply_at';
+        break;
       default:
         orderColumn = 'created_at';
     }
@@ -142,6 +178,7 @@ const getThreads = async (req, res) => {
 const getThreadBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
+    const userId = req.user?.id;
 
     const { data: thread, error } = await supabaseAdmin
       .from('forum_threads')
@@ -163,13 +200,24 @@ const getThreadBySlug = async (req, res) => {
       .update({ view_count: (thread.view_count || 0) + 1 })
       .eq('id', thread.id);
 
+    let isBookmarked = false;
+    if (userId) {
+      const { data: bm } = await supabaseAdmin
+        .from('forum_bookmarks')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('thread_id', thread.id)
+        .single();
+      isBookmarked = !!bm;
+    }
+
     const { page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const { data: posts, count: postCount } = await supabaseAdmin
       .from('forum_posts')
       .select(`
-        id, body, is_edited, like_count, parent_id, created_at, updated_at,
+        id, body, is_edited, reaction_counts, parent_id, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `, { count: 'exact' })
       .eq('thread_id', thread.id)
@@ -183,7 +231,7 @@ const getThreadBySlug = async (req, res) => {
       const { data: children } = await supabaseAdmin
         .from('forum_posts')
         .select(`
-          id, body, is_edited, like_count, parent_id, created_at, updated_at,
+          id, body, is_edited, reaction_counts, parent_id, created_at, updated_at,
           author:profiles(id, first_name, last_name, avatar_url)
         `)
         .in('parent_id', rootPostIds)
@@ -191,13 +239,32 @@ const getThreadBySlug = async (req, res) => {
       childPosts = children || [];
     }
 
+    let userReactions = {};
+    if (userId) {
+      const allPostIds = [...rootPostIds, ...childPosts.map(p => p.id)];
+      if (allPostIds.length > 0) {
+        const { data: reactions } = await supabaseAdmin
+          .from('forum_reactions')
+          .select('post_id, reaction_type')
+          .eq('user_id', userId)
+          .in('post_id', allPostIds);
+        (reactions || []).forEach(r => {
+          userReactions[r.post_id] = r.reaction_type;
+        });
+      }
+    }
+
     const postsWithReplies = (posts || []).map(post => ({
       ...post,
-      replies: childPosts.filter(c => c.parent_id === post.id),
+      userReaction: userReactions[post.id] || null,
+      replies: (childPosts || []).map(c => ({
+        ...c,
+        userReaction: userReactions[c.id] || null,
+      })).filter(c => c.parent_id === post.id),
     }));
 
     res.json({
-      thread: { ...thread, view_count: (thread.view_count || 0) + 1 },
+      thread: { ...thread, view_count: (thread.view_count || 0) + 1, isBookmarked },
       posts: postsWithReplies,
       pagination: {
         page: parseInt(page),
@@ -231,14 +298,14 @@ const createThread = async (req, res) => {
       return res.status(400).json({ error: 'Category is required' });
     }
 
-    const { data: category, error: catError } = await supabaseAdmin
+    const { data: cat } = await supabaseAdmin
       .from('forum_categories')
-      .select('id')
+      .select('id, thread_count')
       .eq('id', categoryId)
       .eq('is_active', true)
       .single();
 
-    if (catError || !category) {
+    if (!cat) {
       return res.status(400).json({ error: 'Invalid category' });
     }
 
@@ -268,7 +335,7 @@ const createThread = async (req, res) => {
 
     await supabaseAdmin
       .from('forum_categories')
-      .update({ thread_count: category.thread_count ? category.thread_count + 1 : 1 })
+      .update({ thread_count: (cat.thread_count || 0) + 1 })
       .eq('id', categoryId);
 
     res.status(201).json({ thread });
@@ -427,7 +494,7 @@ const createPost = async (req, res) => {
         body: body.trim(),
       })
       .select(`
-        id, body, is_edited, like_count, parent_id, created_at,
+        id, body, is_edited, reaction_counts, parent_id, created_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
       .single();
@@ -482,7 +549,7 @@ const updatePost = async (req, res) => {
       .update({ body: body.trim(), is_edited: true })
       .eq('id', id)
       .select(`
-        id, body, is_edited, like_count, parent_id, created_at, updated_at,
+        id, body, is_edited, reaction_counts, parent_id, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
       .single();
@@ -547,17 +614,22 @@ const deletePost = async (req, res) => {
 };
 
 // ============================================================
-// REACTIONS: LIKE / UNLIKE
+// REACTIONS
 // ============================================================
 
-const toggleLike = async (req, res) => {
+const toggleReaction = async (req, res) => {
   try {
     const userId = req.user.id;
     const { id: postId } = req.params;
+    const { type } = req.body;
+
+    if (!type || !VALID_REACTIONS.includes(type)) {
+      return res.status(400).json({ error: 'Invalid reaction type' });
+    }
 
     const { data: post, error: fetchError } = await supabaseAdmin
       .from('forum_posts')
-      .select('id, like_count')
+      .select('id')
       .eq('id', postId)
       .single();
 
@@ -565,40 +637,130 @@ const toggleLike = async (req, res) => {
       return res.status(404).json({ error: 'Post not found' });
     }
 
-    const { data: existingLike } = await supabaseAdmin
-      .from('forum_post_likes')
-      .select('id')
+    const { data: existing } = await supabaseAdmin
+      .from('forum_reactions')
+      .select('id, reaction_type')
       .eq('post_id', postId)
       .eq('user_id', userId)
       .single();
 
-    if (existingLike) {
-      await supabaseAdmin
-        .from('forum_post_likes')
-        .delete()
-        .eq('id', existingLike.id);
+    if (existing) {
+      if (existing.reaction_type === type) {
+        await supabaseAdmin
+          .from('forum_reactions')
+          .delete()
+          .eq('id', existing.id);
 
-      await supabaseAdmin
-        .from('forum_posts')
-        .update({ like_count: Math.max(0, (post.like_count || 0) - 1) })
-        .eq('id', postId);
+        const counts = await recalculateReactions(postId);
+        res.json({ reacted: false, type: null, reactionCounts: counts });
+      } else {
+        await supabaseAdmin
+          .from('forum_reactions')
+          .update({ reaction_type: type })
+          .eq('id', existing.id);
 
-      res.json({ liked: false, likeCount: Math.max(0, (post.like_count || 0) - 1) });
+        const counts = await recalculateReactions(postId);
+        res.json({ reacted: true, type, reactionCounts: counts });
+      }
     } else {
       await supabaseAdmin
-        .from('forum_post_likes')
-        .insert({ post_id: postId, user_id: userId });
+        .from('forum_reactions')
+        .insert({ post_id: postId, user_id: userId, reaction_type: type });
 
-      await supabaseAdmin
-        .from('forum_posts')
-        .update({ like_count: (post.like_count || 0) + 1 })
-        .eq('id', postId);
-
-      res.json({ liked: true, likeCount: (post.like_count || 0) + 1 });
+      const counts = await recalculateReactions(postId);
+      res.json({ reacted: true, type, reactionCounts: counts });
     }
   } catch (err) {
-    console.error('Toggle like error:', err);
-    res.status(500).json({ error: 'Failed to toggle like' });
+    console.error('Toggle reaction error:', err);
+    res.status(500).json({ error: 'Failed to toggle reaction' });
+  }
+};
+
+// ============================================================
+// BOOKMARKS
+// ============================================================
+
+const toggleBookmark = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id: threadId } = req.params;
+
+    const { data: thread, error: fetchError } = await supabaseAdmin
+      .from('forum_threads')
+      .select('id')
+      .eq('id', threadId)
+      .single();
+
+    if (fetchError || !thread) {
+      return res.status(404).json({ error: 'Thread not found' });
+    }
+
+    const { data: existing } = await supabaseAdmin
+      .from('forum_bookmarks')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('thread_id', threadId)
+      .single();
+
+    if (existing) {
+      await supabaseAdmin
+        .from('forum_bookmarks')
+        .delete()
+        .eq('id', existing.id);
+      res.json({ bookmarked: false });
+    } else {
+      await supabaseAdmin
+        .from('forum_bookmarks')
+        .insert({ user_id: userId, thread_id: threadId });
+      res.json({ bookmarked: true });
+    }
+  } catch (err) {
+    console.error('Toggle bookmark error:', err);
+    res.status(500).json({ error: 'Failed to toggle bookmark' });
+  }
+};
+
+const getBookmarkedThreads = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const { data: bookmarks, count, error } = await supabaseAdmin
+      .from('forum_bookmarks')
+      .select(`
+        id, created_at,
+        thread:forum_threads(
+          id, title, slug, body, is_pinned, is_locked,
+          view_count, reply_count, last_reply_at, created_at,
+          author:profiles(id, first_name, last_name, avatar_url),
+          category:forum_categories(id, name, slug, color, icon)
+        )
+      `, { count: 'exact' })
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + parseInt(limit) - 1);
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    const threads = (bookmarks || [])
+      .map(b => b.thread ? { ...b.thread, bookmarked_at: b.created_at } : null)
+      .filter(Boolean);
+
+    res.json({
+      threads,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    console.error('Get bookmarks error:', err);
+    res.status(500).json({ error: 'Failed to fetch bookmarks' });
   }
 };
 
@@ -631,7 +793,7 @@ const searchForum = async (req, res) => {
     const { data: posts, count: postCount } = await supabaseAdmin
       .from('forum_posts')
       .select(`
-        id, body, like_count, created_at,
+        id, body, reaction_counts, created_at,
         author:profiles(id, first_name, last_name, avatar_url),
         thread:forum_threads(id, title, slug)
       `, { count: 'exact' })
@@ -696,7 +858,7 @@ const reportContent = async (req, res) => {
       return res.status(404).json({ error: 'Content not found' });
     }
 
-    const reportTarget = targetType === 'thread' ? 'post' : 'post';
+    const reportTarget = 'post';
 
     const { data: report, error } = await supabaseAdmin
       .from('reports')
@@ -933,7 +1095,9 @@ module.exports = {
   createPost,
   updatePost,
   deletePost,
-  toggleLike,
+  toggleReaction,
+  toggleBookmark,
+  getBookmarkedThreads,
   searchForum,
   reportContent,
   moderateThread,
