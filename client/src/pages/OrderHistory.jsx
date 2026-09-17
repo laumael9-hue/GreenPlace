@@ -50,6 +50,7 @@ export default function OrderHistory() {
     { value: 'ready_for_pickup', label: 'Ready' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
+    { value: 'refunded', label: 'Refunded' },
   ];
 
   return (
@@ -97,7 +98,9 @@ export default function OrderHistory() {
         ) : (
           <div className="space-y-4">
             {orders.map(order => {
-              const statusInfo = statusConfig[order.status] || statusConfig.pending;
+              const statusInfo = order.refund_status === 'refunded'
+                ? statusConfig.refunded
+                : statusConfig[order.status] || statusConfig.pending;
               const firstItem = order.items?.[0];
               const itemCount = order.items?.length || 0;
               const itemTitle = firstItem?.title || 'Item';

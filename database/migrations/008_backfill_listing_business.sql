@@ -13,4 +13,4 @@ FROM businesses b
 WHERE l.seller_id = b.owner_id
   AND l.business_id IS NULL
   AND b.status = 'approved'
-  AND b.deleted_at IS NULL;
+  AND b.deleted_at IS NULL;9c

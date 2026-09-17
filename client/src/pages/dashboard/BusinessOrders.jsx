@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Loader2, ChevronRight, User, Package, ShoppingBag } from 'lucide-react';
+import { ClipboardList, Loader2, ChevronRight, User, Package, ShoppingBag, AlertCircle } from 'lucide-react';
 import api from '../../lib/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -50,9 +50,11 @@ export default function BusinessOrders() {
     { value: 'ready_for_pickup', label: 'Ready' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
+    { value: 'refunded', label: 'Refunded' },
   ];
 
   const pendingCount = orders.filter(o => o.status === 'pending').length;
+  const refundRequestCount = orders.filter(o => o.refund_status === 'requested').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -69,6 +71,14 @@ export default function BusinessOrders() {
             <ClipboardList className="w-5 h-5 text-amber-600" />
             <p className="text-sm text-amber-700">
               You have <strong>{pendingCount}</strong> pending {pendingCount === 1 ? 'order' : 'orders'} awaiting confirmation.
+            </p>
+          </div>
+        )}
+        {refundRequestCount > 0 && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 mb-6">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <p className="text-sm text-red-700">
+              You have <strong>{refundRequestCount}</strong> refund {refundRequestCount === 1 ? 'request' : 'requests'} to review.
             </p>
           </div>
         )}
@@ -108,7 +118,9 @@ export default function BusinessOrders() {
         ) : (
           <div className="space-y-4">
             {orders.map(order => {
-              const statusInfo = statusConfig[order.status] || statusConfig.pending;
+              const statusInfo = order.refund_status === 'refunded'
+                ? statusConfig.refunded
+                : statusConfig[order.status] || statusConfig.pending;
               const firstItem = order.items?.[0];
               const itemCount = order.items?.length || 0;
               const itemTitle = firstItem?.title || 'Item';
@@ -139,6 +151,9 @@ export default function BusinessOrders() {
                             <span className={`w-2 h-2 rounded-full ${statusInfo.dot}`}></span>
                             <span className="text-xs font-medium text-gray-600">{statusInfo.label}</span>
                           </span>
+                          {order.refund_status === 'requested' && (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">Refund Requested</span>
+                          )}
                         </div>
 
                         <p className="text-sm font-medium text-gray-700 truncate">

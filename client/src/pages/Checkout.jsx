@@ -111,9 +111,6 @@ export default function Checkout() {
         preferredPickupTime,
       });
 
-      sessionStorage.removeItem('checkoutItems');
-      await refresh();
-
       const firstOrder = data.orders?.[0];
 
       if (data.requiresPayment && firstOrder) {
@@ -129,6 +126,9 @@ export default function Checkout() {
         navigate(`/orders/${firstOrder.id}/success`);
         return;
       }
+
+      sessionStorage.removeItem('checkoutItems');
+      await refresh();
 
       if (firstOrder) {
         navigate(`/orders/${firstOrder.id}/success`, { state: { order: firstOrder } });

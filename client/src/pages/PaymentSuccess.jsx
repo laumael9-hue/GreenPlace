@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle, Package, ArrowRight, Home, Loader2 } from 'lucide-react';
 import api from '../lib/api';
 import Button from '../components/ui/Button';
@@ -7,6 +7,7 @@ import Card from '../components/ui/Card';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const orderId = searchParams.get('order_id');
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,11 +20,20 @@ export default function PaymentSuccess() {
       return;
     }
 
-    const fetchStatus = async () => {
+    const fetchStatus = async (retries = 3) => {
       try {
         const { data } = await api.get(`/payments/status/${orderId}`);
+        if (data.order.payment_status === 'failed') {
+          navigate(`/payment/failed?order_id=${orderId}`, { replace: true });
+          return;
+        }
+        sessionStorage.removeItem('checkoutItems');
         setOrder(data.order);
       } catch (err) {
+        if (retries > 0) {
+          await new Promise(r => setTimeout(r, 2000));
+          return fetchStatus(retries - 1);
+        }
         setError(err.response?.data?.error || 'Failed to load payment status');
       } finally {
         setLoading(false);
