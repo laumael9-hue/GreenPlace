@@ -239,5 +239,19 @@ const handler = async (req, res) => {
 ## Current Phase Status
 
 - Phase 1-8: Complete (Auth, UI, Users, Business, Marketplace)
-- Phase 9: Orders & Payments (next)
-- Phase 10+: Drop-offs, Forum, Messaging, Notifications
+- Phase 9: Orders & Payments
+- Phase 10: Refunds, PayMongo Test Mode, Drop-offs
+- Phase 11: Receipts (Order + Drop-off, print/PDF with iframe)
+- Phase 12+: Forum, Messaging, Notifications
+
+## Receipt Pattern
+
+Receipts use a **dual-render** approach:
+- **On-screen**: Tailwind CSS classes for layout
+- **Print**: Hidden iframe with standalone HTML built from data using `PRINT_STYLES` classes
+
+Key files:
+- `client/src/pages/Receipt.jsx` — Order receipt at `/orders/:id/receipt`
+- `client/src/pages/DropOffReceipt.jsx` — Drop-off receipt at `/drop-offs/:id/receipt`
+
+Print filename is set via iframe `<title>` (e.g., `GreenPlace-Receipt-GP-xxx.pdf`).
