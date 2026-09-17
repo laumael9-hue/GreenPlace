@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Package, Loader2, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Package, Loader2, ChevronLeft, ChevronRight, MapPin, FileText } from 'lucide-react';
 import api from '../../lib/api';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
@@ -270,6 +271,16 @@ export default function DropOffHistory() {
                 <p className="text-xs text-gray-500">Notes</p>
                 <p className="text-sm text-gray-700">{selectedDropOff.notes}</p>
               </div>
+            )}
+
+            {/* View Receipt */}
+            {['received', 'processed'].includes(selectedDropOff.status) && (
+              <Link to={`/drop-offs/${selectedDropOff.id}/receipt`} className="block">
+                <button className="w-full mt-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  View Receipt
+                </button>
+              </Link>
             )}
           </div>
         )}

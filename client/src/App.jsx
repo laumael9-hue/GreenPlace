@@ -28,6 +28,7 @@ import PaymentFailed from './pages/PaymentFailed';
 import OrderHistory from './pages/OrderHistory';
 import OrderDetail from './pages/OrderDetail';
 import Receipt from './pages/Receipt';
+import DropOffReceipt from './pages/DropOffReceipt';
 import BusinessOrders from './pages/dashboard/BusinessOrders';
 import DropOffTracker from './pages/dashboard/DropOffTracker';
 import DropOffHistory from './pages/dashboard/DropOffHistory';
@@ -75,6 +76,7 @@ function App() {
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route path="/orders/:id" element={<OrderDetail />} />
         <Route path="/orders/:id/receipt" element={<Receipt />} />
+        <Route path="/drop-offs/:id/receipt" element={<DropOffReceipt />} />
         <Route path="/profile" element={<Profile />} />
       </Route>
 

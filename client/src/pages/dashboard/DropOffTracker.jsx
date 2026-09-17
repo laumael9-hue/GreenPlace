@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Package, Search, Plus, CheckCircle2, Clock, Loader2, Eye,
   DollarSign, User, ChevronLeft, ChevronRight, XCircle,
@@ -272,9 +273,11 @@ export default function DropOffTracker() {
                             <CheckCircle2 className="w-3.5 h-3.5" /> Complete
                           </Button>
                         ) : dropOff.status === 'processed' ? (
-                          <Button variant="outline" size="sm" disabled>
-                            <Package className="w-3.5 h-3.5" /> Receipt
-                          </Button>
+                          <Link to={`/drop-offs/${dropOff.id}/receipt`} onClick={(e) => e.stopPropagation()}>
+                            <Button variant="outline" size="sm">
+                              <Package className="w-3.5 h-3.5" /> Receipt
+                            </Button>
+                          </Link>
                         ) : (
                           <Button variant="ghost" size="sm" disabled>
                             <Eye className="w-3.5 h-3.5" />
