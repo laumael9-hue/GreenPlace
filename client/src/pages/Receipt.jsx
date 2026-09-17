@@ -28,7 +28,8 @@ const PRINT_STYLES = `
   .r{max-width:700px;margin:0 auto;padding:28px 36px}
   .hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid #e5e7eb;margin-bottom:16px}
   .br{display:flex;align-items:center;gap:10px}
-  .lg{width:32px;height:32px;background:#16a34a;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:14px}
+  .lg{width:32px;height:32px;background:#16a34a;border-radius:6px;display:flex;align-items:center;justify-content:center}
+  .lg svg{width:20px;height:20px;color:#fff}
   .bn{font-size:16px;font-weight:700;color:#111827}
   .bs{font-size:10px;color:#9ca3af}
   .tt{font-size:16px;font-weight:700;letter-spacing:.05em;color:#111827}
@@ -101,7 +102,7 @@ function buildPrintHtml(order, { fmt, fmtDate, fmtDateTime, isPayMongo, paymentL
   return `<!DOCTYPE html><html><head><title>GreenPlace-Receipt-${esc(order.order_number)}</title>
 <style>${PRINT_STYLES}</style></head><body><div class="r">
   <div class="hd">
-    <div class="br"><div class="lg">G</div><div><div class="bn">GreenPlace</div><div class="bs">Sustainable Living Platform</div></div></div>
+    <div class="br"><div class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 1c1 2 2 4.5 2 8 0 5.5-4.78 11-10 11Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></div><div><div class="bn">GreenPlace</div><div class="bs">Sustainable Living Platform</div></div></div>
     <div class="tt">RECEIPT</div>
   </div>
   ${testBanner}
@@ -222,7 +223,7 @@ export default function Receipt() {
           <div className="flex items-center justify-between pb-4 border-b border-gray-200 mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">G</span>
+                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 1c1 2 2 4.5 2 8 0 5.5-4.78 11-10 11Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
               </div>
               <div>
                 <p className="text-lg font-bold text-gray-900">GreenPlace</p>
