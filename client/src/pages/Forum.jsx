@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MessageCircle, ArrowRight, Loader2, TrendingUp, Clock, Bookmark } from 'lucide-react';
+import { Search, MessageCircle, ArrowRight, Loader2, TrendingUp, Clock, Bookmark, Plus } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Avatar from '../components/ui/Avatar';
+import Modal from '../components/ui/Modal';
 
 const SORT_TABS = [
   { value: 'newest', label: 'New', icon: Clock },
@@ -43,6 +44,11 @@ export default function Forum() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  const [showNewThread, setShowNewThread] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newBody, setNewBody] = useState('');
+  const [newCategoryId, setNewCategoryId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const fetchData = useCallback(async () => {
@@ -69,6 +75,28 @@ export default function Forum() {
     }
   };
 
+  const handleCreateThread = async (e) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newBody.trim() || !newCategoryId) return;
+    setSubmitting(true);
+    try {
+      const { data } = await api.post('/forum/threads', {
+        title: newTitle.trim(),
+        body: newBody.trim(),
+        categoryId: newCategoryId,
+      });
+      setNewTitle('');
+      setNewBody('');
+      setNewCategoryId('');
+      setShowNewThread(false);
+      navigate(`/forum/thread/${data.thread.slug}`);
+    } catch (err) {
+      console.error('Error creating thread:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -85,11 +113,16 @@ export default function Forum() {
           <p className="mt-2 text-gray-600">Join sustainability discussions with the Metro Cebu community.</p>
         </div>
         {isAuthenticated ? (
-          <Link to="/bookmarks">
-            <Button variant="outline" size="sm">
-              <Bookmark className="w-4 h-4 mr-2" />My Bookmarks
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setShowNewThread(true)}>
+              <Plus className="w-4 h-4 mr-2" />New Thread
             </Button>
-          </Link>
+            <Link to="/bookmarks">
+              <Button variant="outline" size="sm">
+                <Bookmark className="w-4 h-4 mr-2" />My Bookmarks
+              </Button>
+            </Link>
+          </div>
         ) : (
           <Link to="/login">
             <Button variant="outline" size="sm">Log in</Button>
@@ -206,6 +239,54 @@ export default function Forum() {
           </div>
         )}
       </div>
+
+      <Modal open={showNewThread} onClose={() => setShowNewThread(false)} title="New Thread">
+        <form onSubmit={handleCreateThread} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <select
+              value={newCategoryId}
+              onChange={(e) => setNewCategoryId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              required
+            >
+              <option value="">Select a category...</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="What's your discussion about?"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Body</label>
+            <textarea
+              value={newBody}
+              onChange={(e) => setNewBody(e.target.value)}
+              rows={6}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Share your thoughts..."
+              required
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setShowNewThread(false)}>Cancel</Button>
+            <Button type="submit" disabled={submitting || !newTitle.trim() || !newBody.trim() || !newCategoryId}>
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Create Thread
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
