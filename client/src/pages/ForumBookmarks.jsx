@@ -76,17 +76,6 @@ export default function ForumBookmarks() {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {thread.category && (
-                      <span
-                        className="text-xs font-medium px-2 py-0.5 rounded"
-                        style={{
-                          backgroundColor: (thread.category.color || '#10B981') + '20',
-                          color: thread.category.color || '#10B981',
-                        }}
-                      >
-                        {thread.category.name}
-                      </span>
-                    )}
                     <span className="text-xs text-gray-400">
                       Saved {new Date(thread.bookmarked_at).toLocaleDateString()}
                     </span>

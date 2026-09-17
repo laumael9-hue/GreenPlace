@@ -277,9 +277,7 @@ export default function ForumModeration() {
                         {thread.is_locked && (
                           <Badge variant="warning">Locked</Badge>
                         )}
-                        {thread.category && (
-                          <span className="text-xs text-gray-500">{thread.category.name}</span>
-                        )}
+
                       </div>
                       <Link to={`/forum/thread/${thread.slug}`} className="font-medium text-gray-900 hover:text-primary-600 mt-1 block">
                         {thread.title}

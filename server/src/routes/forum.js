@@ -3,8 +3,6 @@ const router = express.Router();
 const { authenticate, optionalAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/rbac');
 const {
-  getCategories,
-  getCategoryBySlug,
   getThreads,
   getThreadBySlug,
   createThread,
@@ -25,8 +23,6 @@ const {
 } = require('../controllers/forumController');
 
 // Public routes
-router.get('/categories', getCategories);
-router.get('/categories/:slug', getCategoryBySlug);
 router.get('/threads', getThreads);
 router.get('/threads/:slug', optionalAuth, getThreadBySlug);
 router.get('/search', searchForum);

@@ -323,14 +323,7 @@ export default function ForumThread() {
       <div className="flex items-center gap-2 text-sm text-gray-500">
         <Link to="/forum" className="hover:text-primary-600">Forum</Link>
         <span>/</span>
-        {thread.category && (
-          <>
-            <Link to={`/forum/${thread.category.slug}`} className="hover:text-primary-600">
-              {thread.category.name}
-            </Link>
-            <span>/</span>
-          </>
-        )}
+
         <span className="text-gray-900 font-medium truncate">{thread.title}</span>
       </div>
 
@@ -352,17 +345,7 @@ export default function ForumThread() {
                     <Lock className="w-3 h-3" />Locked
                   </span>
                 )}
-                {thread.category && (
-                  <span
-                    className="text-xs font-medium px-2 py-0.5 rounded"
-                    style={{
-                      backgroundColor: (thread.category.color || '#10B981') + '20',
-                      color: thread.category.color || '#10B981',
-                    }}
-                  >
-                    {thread.category.name}
-                  </span>
-                )}
+
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mt-2">{thread.title}</h1>
               <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">

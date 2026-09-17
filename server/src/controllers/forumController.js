@@ -3,14 +3,6 @@ const crypto = require('crypto');
 
 const VALID_REACTIONS = ['thumbs_up', 'heart', 'celebrate', 'insightful', 'funny'];
 
-const REACTION_EMOJI = {
-  thumbs_up: '\uD83D\uDC4D',
-  heart: '\u2764\uFE0F',
-  celebrate: '\uD83C\uDF89',
-  insightful: '\uD83D\uDCA1',
-  funny: '\uD83D\uDE04',
-};
-
 // ============================================================
 // UTILITY: Generate Slug
 // ============================================================
@@ -51,58 +43,13 @@ const recalculateReactions = async (postId) => {
 };
 
 // ============================================================
-// CATEGORIES
-// ============================================================
-
-const getCategories = async (req, res) => {
-  try {
-    const { data: categories, error } = await supabaseAdmin
-      .from('forum_categories')
-      .select('*')
-      .eq('is_active', true)
-      .order('sort_order');
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-
-    res.json({ categories: categories || [] });
-  } catch (err) {
-    console.error('Get forum categories error:', err);
-    res.status(500).json({ error: 'Failed to fetch forum categories' });
-  }
-};
-
-const getCategoryBySlug = async (req, res) => {
-  try {
-    const { slug } = req.params;
-
-    const { data: category, error } = await supabaseAdmin
-      .from('forum_categories')
-      .select('*')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
-
-    if (error || !category) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
-
-    res.json({ category });
-  } catch (err) {
-    console.error('Get forum category error:', err);
-    res.status(500).json({ error: 'Failed to fetch category' });
-  }
-};
-
-// ============================================================
-// THREADS - PUBLIC
+// THREADS - FEED
 // ============================================================
 
 const getThreads = async (req, res) => {
   try {
     const {
-      page = 1, limit = 20, category = '', search = '',
+      page = 1, limit = 20, search = '',
       sort = 'newest',
     } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -112,20 +59,8 @@ const getThreads = async (req, res) => {
       .select(`
         id, title, slug, body, is_pinned, is_locked,
         view_count, reply_count, last_reply_at, created_at, updated_at,
-        author:profiles(id, first_name, last_name, avatar_url),
-        category:forum_categories(id, name, slug, color, icon)
+        author:profiles(id, first_name, last_name, avatar_url)
       `, { count: 'exact' });
-
-    if (category) {
-      const { data: cat } = await supabaseAdmin
-        .from('forum_categories')
-        .select('id')
-        .eq('slug', category)
-        .single();
-      if (cat) {
-        query = query.eq('category_id', cat.id);
-      }
-    }
 
     if (search) {
       query = query.or(`title.ilike.%${search}%,body.ilike.%${search}%`);
@@ -185,8 +120,7 @@ const getThreadBySlug = async (req, res) => {
       .select(`
         id, title, slug, body, is_pinned, is_locked,
         view_count, reply_count, created_at, updated_at,
-        author:profiles(id, first_name, last_name, avatar_url),
-        category:forum_categories(id, name, slug, color, icon)
+        author:profiles(id, first_name, last_name, avatar_url)
       `)
       .eq('slug', slug)
       .single();
@@ -286,27 +220,13 @@ const getThreadBySlug = async (req, res) => {
 const createThread = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { title, body, categoryId } = req.body;
+    const { title, body } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
     }
     if (!body || !body.trim()) {
       return res.status(400).json({ error: 'Body is required' });
-    }
-    if (!categoryId) {
-      return res.status(400).json({ error: 'Category is required' });
-    }
-
-    const { data: cat } = await supabaseAdmin
-      .from('forum_categories')
-      .select('id, thread_count')
-      .eq('id', categoryId)
-      .eq('is_active', true)
-      .single();
-
-    if (!cat) {
-      return res.status(400).json({ error: 'Invalid category' });
     }
 
     const slug = generateSlug(title);
@@ -315,7 +235,6 @@ const createThread = async (req, res) => {
       .from('forum_threads')
       .insert({
         author_id: userId,
-        category_id: categoryId,
         title: title.trim(),
         slug,
         body: body.trim(),
@@ -323,8 +242,7 @@ const createThread = async (req, res) => {
       .select(`
         id, title, slug, body, is_pinned, is_locked,
         view_count, reply_count, created_at,
-        author:profiles(id, first_name, last_name, avatar_url),
-        category:forum_categories(id, name, slug, color, icon)
+        author:profiles(id, first_name, last_name, avatar_url)
       `)
       .single();
 
@@ -332,11 +250,6 @@ const createThread = async (req, res) => {
       console.error('Create thread error:', error);
       return res.status(400).json({ error: 'Failed to create thread' });
     }
-
-    await supabaseAdmin
-      .from('forum_categories')
-      .update({ thread_count: (cat.thread_count || 0) + 1 })
-      .eq('id', categoryId);
 
     res.status(201).json({ thread });
   } catch (err) {
@@ -380,8 +293,7 @@ const updateThread = async (req, res) => {
       .select(`
         id, title, slug, body, is_pinned, is_locked,
         view_count, reply_count, created_at, updated_at,
-        author:profiles(id, first_name, last_name, avatar_url),
-        category:forum_categories(id, name, slug, color, icon)
+        author:profiles(id, first_name, last_name, avatar_url)
       `)
       .single();
 
@@ -403,7 +315,7 @@ const deleteThread = async (req, res) => {
 
     const { data: thread, error: fetchError } = await supabaseAdmin
       .from('forum_threads')
-      .select('author_id, category_id')
+      .select('author_id')
       .eq('id', id)
       .single();
 
@@ -422,19 +334,6 @@ const deleteThread = async (req, res) => {
 
     if (error) {
       return res.status(400).json({ error: 'Failed to delete thread' });
-    }
-
-    const { data: cat } = await supabaseAdmin
-      .from('forum_categories')
-      .select('thread_count')
-      .eq('id', thread.category_id)
-      .single();
-
-    if (cat && cat.thread_count > 0) {
-      await supabaseAdmin
-        .from('forum_categories')
-        .update({ thread_count: cat.thread_count - 1 })
-        .eq('id', thread.category_id);
     }
 
     res.json({ message: 'Thread deleted successfully' });
@@ -733,8 +632,7 @@ const getBookmarkedThreads = async (req, res) => {
         thread:forum_threads(
           id, title, slug, body, is_pinned, is_locked,
           view_count, reply_count, last_reply_at, created_at,
-          author:profiles(id, first_name, last_name, avatar_url),
-          category:forum_categories(id, name, slug, color, icon)
+          author:profiles(id, first_name, last_name, avatar_url)
         )
       `, { count: 'exact' })
       .eq('user_id', userId)
@@ -783,8 +681,7 @@ const searchForum = async (req, res) => {
       .from('forum_threads')
       .select(`
         id, title, slug, body, view_count, reply_count, created_at,
-        author:profiles(id, first_name, last_name, avatar_url),
-        category:forum_categories(id, name, slug, color, icon)
+        author:profiles(id, first_name, last_name, avatar_url)
       `, { count: 'exact' })
       .or(`title.ilike.${searchPattern},body.ilike.${searchPattern}`)
       .order('created_at', { ascending: false })
@@ -858,13 +755,11 @@ const reportContent = async (req, res) => {
       return res.status(404).json({ error: 'Content not found' });
     }
 
-    const reportTarget = 'post';
-
     const { data: report, error } = await supabaseAdmin
       .from('reports')
       .insert({
         reporter_id: userId,
-        target_type: reportTarget,
+        target_type: 'post',
         target_id: targetId,
         reason: reason.trim(),
         description: description ? description.trim() : null,
@@ -917,8 +812,7 @@ const moderateThread = async (req, res) => {
       .eq('id', id)
       .select(`
         id, title, slug, is_pinned, is_locked,
-        author:profiles(id, first_name, last_name, avatar_url),
-        category:forum_categories(id, name, slug)
+        author:profiles(id, first_name, last_name, avatar_url)
       `)
       .single();
 
@@ -1085,8 +979,6 @@ const resolveReport = async (req, res) => {
 };
 
 module.exports = {
-  getCategories,
-  getCategoryBySlug,
   getThreads,
   getThreadBySlug,
   createThread,

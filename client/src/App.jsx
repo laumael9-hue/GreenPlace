@@ -22,7 +22,6 @@ import BusinessRegistration from './pages/business/BusinessRegistration';
 import BusinessProfileManagement from './pages/business/BusinessProfileManagement';
 import ListingManagement from './pages/dashboard/ListingManagement';
 import Forum from './pages/Forum';
-import ForumCategory from './pages/ForumCategory';
 import ForumThread from './pages/ForumThread';
 import ForumBookmarks from './pages/ForumBookmarks';
 import ForumModeration from './pages/admin/ForumModeration';
@@ -58,7 +57,6 @@ function App() {
         <Route path="/marketplace/:slug" element={<ProductDetail />} />
         <Route path="/forum" element={<Forum />} />
         <Route path="/forum/search" element={<Forum />} />
-        <Route path="/forum/:slug" element={<ForumCategory />} />
         <Route path="/forum/thread/:slug" element={<ForumThread />} />
       </Route>
 
