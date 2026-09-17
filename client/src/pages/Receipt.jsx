@@ -13,41 +13,42 @@ const paymentStatusConfig = {
 
 const PRINT_STYLES = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111827; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .receipt { max-width: 700px; margin: 0 auto; padding: 24px 32px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #e5e7eb; }
   .brand { display: flex; align-items: center; gap: 10px; }
   .logo { width: 32px; height: 32px; background: #16a34a; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; }
-  .brand-name { font-size: 16px; font-weight: 700; }
+  .brand-name { font-size: 16px; font-weight: 700; color: #111827; }
   .brand-sub { font-size: 10px; color: #9ca3af; }
-  .title { font-size: 16px; font-weight: 700; letter-spacing: 0.05em; }
-  .banner { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .title { font-size: 16px; font-weight: 700; letter-spacing: 0.05em; color: #111827; }
+  .banner { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; }
   .banner-title { font-size: 12px; font-weight: 700; color: #92400e; }
   .banner-text { font-size: 10px; color: #a16207; }
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; }
-  .info-label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
-  .info-value { font-size: 12px; font-weight: 500; }
-  .info-sub { font-size: 10px; color: #6b7280; margin-top: 1px; }
-  .info-right { text-align: right; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-  th { font-size: 9px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; padding: 4px 0; border-bottom: 1px solid #e5e7eb; }
-  th:nth-child(2) { text-align: center; }
-  th:nth-child(3), th:nth-child(4) { text-align: right; }
-  td { font-size: 12px; padding: 5px 0; border-bottom: 1px solid #f9fafb; }
-  td:nth-child(2) { text-align: center; }
-  td:nth-child(3), td:nth-child(4) { text-align: right; }
-  .totals { display: flex; justify-content: flex-end; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .mb-section { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; }
+  .label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .value { font-size: 12px; font-weight: 500; color: #111827; }
+  .value-bold { font-size: 12px; font-weight: 700; color: #111827; }
+  .sub { font-size: 10px; color: #6b7280; margin-top: 1px; }
+  .text-right { text-align: right; }
+  .section-title { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  th { font-size: 9px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; padding: 5px 0; border-bottom: 1px solid #e5e7eb; }
+  th.c { text-align: center; } th.r { text-align: right; }
+  td { font-size: 12px; padding: 6px 0; border-bottom: 1px solid #f9fafb; color: #111827; }
+  td.c { text-align: center; } td.r { text-align: right; }
+  td.bold { font-weight: 500; }
+  .totals { display: flex; justify-content: flex-end; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; }
   .totals-box { width: 220px; }
-  .totals-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
-  .totals-label { color: #6b7280; }
-  .totals-divider { border-top: 1px solid #e5e7eb; margin: 4px 0; padding-top: 4px; }
+  .totals-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; color: #111827; }
+  .totals-muted { color: #6b7280; }
+  .totals-divider { border-top: 1px solid #e5e7eb; margin: 5px 0; padding-top: 5px; }
   .totals-total { font-size: 14px; font-weight: 700; color: #16a34a; }
-  .payment-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 3px; }
-  .payment-label { color: #6b7280; }
-  .payment-value { font-weight: 500; }
-  .payment-ref { font-size: 10px; font-family: monospace; background: #f9fafb; padding: 2px 6px; border-radius: 3px; }
-  .section-title { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-  .footer { text-align: center; padding-top: 12px; border-top: 1px solid #f3f4f6; }
+  .pay-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 3px; }
+  .pay-label { color: #6b7280; }
+  .pay-value { font-weight: 500; color: #111827; }
+  .pay-ref { font-size: 10px; font-family: monospace; background: #f9fafb; padding: 2px 6px; border-radius: 3px; color: #374151; }
+  .footer { text-align: center; padding-top: 14px; border-top: 1px solid #f3f4f6; }
   .footer p { font-size: 10px; color: #9ca3af; }
   .footer .sub { font-size: 9px; color: #d1d5db; margin-top: 2px; }
   @page { margin: 0.4in; size: A4; }
@@ -79,7 +80,6 @@ export default function Receipt() {
     if (!printArea || !order) return;
 
     const fileName = `GreenPlace-Receipt-${order.order_number || 'Receipt'}`;
-
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:none;';
     document.body.appendChild(iframe);
@@ -91,37 +91,12 @@ export default function Receipt() {
 
     iframe.contentWindow.focus();
     iframe.contentWindow.print();
-
     setTimeout(() => { document.body.removeChild(iframe); }, 1500);
   }, [order]);
 
-  const formatCurrency = (amount) => {
-    return parseFloat(amount || 0).toLocaleString('en-PH', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-PH', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleString('en-PH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const fmt = (amount) => parseFloat(amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+  const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
   const isPayMongo = order?.payment_method?.startsWith('paymongo_');
   const paymentLabel = order?.payment_method?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '—';
@@ -153,6 +128,7 @@ export default function Receipt() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Screen header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to={`/orders/${order.id}`} className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium">
@@ -166,120 +142,132 @@ export default function Receipt() {
         </div>
       </div>
 
+      {/* Receipt — Tailwind for screen, iframe uses PRINT_STYLES for print */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        <div className="print-area bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="receipt">
-            <div className="header">
-              <div className="brand">
-                <div className="logo">G</div>
-                <div>
-                  <div className="brand-name">GreenPlace</div>
-                  <div className="brand-sub">Sustainable Living Platform</div>
-                </div>
-              </div>
-              <div className="title">RECEIPT</div>
-            </div>
+        <div className="print-area bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-8">
 
-            {isPayMongo && (
-              <div className="banner">
-                <div>
-                  <div className="banner-title">TEST MODE</div>
-                  <div className="banner-text">This is a test transaction — no real payment was processed.</div>
-                </div>
-              </div>
-            )}
-
-            <div className="info-grid">
-              <div>
-                <div className="info-label">Receipt No.</div>
-                <div className="info-value" style={{ fontWeight: 700 }}>{order.order_number}</div>
-              </div>
-              <div className="info-right">
-                <div className="info-label">Date</div>
-                <div className="info-value">{formatDate(order.created_at)}</div>
-              </div>
-            </div>
-
-            <div className="info-grid">
-              <div>
-                <div className="info-label">Bill To</div>
-                <div className="info-value">{order.buyer?.first_name} {order.buyer?.last_name}</div>
-                {order.buyer?.email && <div className="info-sub">{order.buyer.email}</div>}
-                {order.buyer?.phone && <div className="info-sub">{order.buyer.phone}</div>}
+          {/* Header */}
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">G</span>
               </div>
               <div>
-                <div className="info-label">Sold By</div>
-                <div className="info-value">{order.business?.name}</div>
-                {order.business?.address && <div className="info-sub">{order.business.address}</div>}
-                {order.business?.phone && <div className="info-sub">{order.business.phone}</div>}
+                <p className="text-lg font-bold text-gray-900">GreenPlace</p>
+                <p className="text-xs text-gray-400">Sustainable Living Platform</p>
               </div>
             </div>
+            <h2 className="text-lg font-bold text-gray-900 tracking-wide">RECEIPT</h2>
+          </div>
 
-            <div className="section-title">Items</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Qty</th>
-                  <th>Price</th>
-                  <th>Total</th>
+          {/* TEST MODE */}
+          {isPayMongo && (
+            <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-2 mb-4">
+              <p className="text-sm font-bold text-amber-800">TEST MODE</p>
+              <p className="text-xs text-amber-700">This is a test transaction — no real payment was processed.</p>
+            </div>
+          )}
+
+          {/* Receipt No + Date */}
+          <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100 mb-4">
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Receipt No.</p>
+              <p className="text-sm font-bold text-gray-900">{order.order_number}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Date</p>
+              <p className="text-sm text-gray-700">{fmtDate(order.created_at)}</p>
+            </div>
+          </div>
+
+          {/* Bill To + Sold By */}
+          <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100 mb-4">
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Bill To</p>
+              <p className="text-sm font-medium text-gray-900">{order.buyer?.first_name} {order.buyer?.last_name}</p>
+              {order.buyer?.email && <p className="text-xs text-gray-500 mt-0.5">{order.buyer.email}</p>}
+              {order.buyer?.phone && <p className="text-xs text-gray-500">{order.buyer.phone}</p>}
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Sold By</p>
+              <p className="text-sm font-medium text-gray-900">{order.business?.name}</p>
+              {order.business?.address && <p className="text-xs text-gray-500 mt-0.5">{order.business.address}</p>}
+              {order.business?.phone && <p className="text-xs text-gray-500">{order.business.phone}</p>}
+            </div>
+          </div>
+
+          {/* Items */}
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Items</p>
+          <table className="w-full mb-4">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left text-[10px] font-semibold text-gray-500 uppercase pb-1.5">Item</th>
+                <th className="text-center text-[10px] font-semibold text-gray-500 uppercase pb-1.5 w-14">Qty</th>
+                <th className="text-right text-[10px] font-semibold text-gray-500 uppercase pb-1.5 w-24">Price</th>
+                <th className="text-right text-[10px] font-semibold text-gray-500 uppercase pb-1.5 w-24">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.items?.map((item) => (
+                <tr key={item.id} className="border-b border-gray-50">
+                  <td className="py-2 text-sm font-medium text-gray-900">{item.title}</td>
+                  <td className="py-2 text-sm text-gray-600 text-center">{item.quantity}</td>
+                  <td className="py-2 text-sm text-gray-600 text-right">₱{fmt(item.price)}</td>
+                  <td className="py-2 text-sm font-medium text-gray-900 text-right">₱{fmt(item.total)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {order.items?.map((item) => (
-                  <tr key={item.id}>
-                    <td style={{ fontWeight: 500 }}>{item.title}</td>
-                    <td>{item.quantity}</td>
-                    <td>₱{formatCurrency(item.price)}</td>
-                    <td style={{ fontWeight: 500 }}>₱{formatCurrency(item.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
 
-            <div className="totals">
-              <div className="totals-box">
-                <div className="totals-row">
-                  <span className="totals-label">Subtotal</span>
-                  <span>₱{formatCurrency(order.subtotal)}</span>
-                </div>
-                <div className="totals-row">
-                  <span className="totals-label">Shipping</span>
-                  <span style={{ color: '#16a34a', fontWeight: 500 }}>Free</span>
-                </div>
-                <div className="totals-divider totals-row">
-                  <span style={{ fontWeight: 700 }}>Total</span>
-                  <span className="totals-total">₱{formatCurrency(order.total)}</span>
-                </div>
+          {/* Totals */}
+          <div className="flex justify-end mb-4 pb-4 border-b border-gray-100">
+            <div className="w-52 space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-700">₱{fmt(order.subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Shipping</span>
+                <span className="text-green-600 font-medium">Free</span>
+              </div>
+              <div className="border-t border-gray-200 pt-2 flex justify-between">
+                <span className="text-sm font-bold text-gray-900">Total</span>
+                <span className="text-base font-bold text-primary-600">₱{fmt(order.total)}</span>
               </div>
             </div>
+          </div>
 
-            <div className="section-title">Payment Details</div>
-            <div className="payment-row">
-              <span className="payment-label">Method</span>
-              <span className="payment-value">{paymentLabel}</span>
+          {/* Payment Details */}
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Payment Details</p>
+          <div className="space-y-1.5 mb-4 pb-4 border-b border-gray-100">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Method</span>
+              <span className="font-medium text-gray-900">{paymentLabel}</span>
             </div>
-            <div className="payment-row">
-              <span className="payment-label">Status</span>
-              <span className="payment-value">{paymentStatusConfig[order.payment_status]?.label || order.payment_status}</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Status</span>
+              <span className={`font-medium ${paymentStatusConfig[order.payment_status]?.color || 'text-gray-600'}`}>
+                {paymentStatusConfig[order.payment_status]?.label || order.payment_status}
+              </span>
             </div>
             {isPayMongo && transactionRef && (
-              <div className="payment-row">
-                <span className="payment-label">Transaction Reference</span>
-                <span className="payment-ref">{transactionRef}</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Transaction Reference</span>
+                <span className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded">{transactionRef}</span>
               </div>
             )}
             {latestPayment?.paid_at && (
-              <div className="payment-row">
-                <span className="payment-label">Paid At</span>
-                <span>{formatDateTime(latestPayment.paid_at)}</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Paid At</span>
+                <span className="text-gray-700">{fmtDateTime(latestPayment.paid_at)}</span>
               </div>
             )}
+          </div>
 
-            <div className="footer">
-              <p>Thank you for supporting sustainable living in Metro Cebu.</p>
-              <p className="sub">GreenPlace — Connecting communities with eco-friendly waste management</p>
-            </div>
+          {/* Footer */}
+          <div className="text-center pt-2">
+            <p className="text-xs text-gray-400">Thank you for supporting sustainable living in Metro Cebu.</p>
+            <p className="text-[10px] text-gray-300 mt-0.5">GreenPlace — Connecting communities with eco-friendly waste management</p>
           </div>
         </div>
       </div>

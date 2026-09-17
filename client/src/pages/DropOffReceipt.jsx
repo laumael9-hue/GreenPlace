@@ -12,45 +12,49 @@ const statusLabels = {
   cancelled: 'Cancelled',
 };
 
+const statusColors = {
+  scheduled: 'text-yellow-600',
+  in_transit: 'text-blue-600',
+  received: 'text-blue-600',
+  processed: 'text-green-600',
+  cancelled: 'text-red-600',
+};
+
 const PRINT_STYLES = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111827; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .receipt { max-width: 700px; margin: 0 auto; padding: 24px 32px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #e5e7eb; }
   .brand { display: flex; align-items: center; gap: 10px; }
   .logo { width: 32px; height: 32px; background: #16a34a; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; }
-  .brand-name { font-size: 16px; font-weight: 700; }
+  .brand-name { font-size: 16px; font-weight: 700; color: #111827; }
   .brand-sub { font-size: 10px; color: #9ca3af; }
-  .title { font-size: 16px; font-weight: 700; letter-spacing: 0.05em; }
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; }
-  .info-label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
-  .info-value { font-size: 12px; font-weight: 500; }
-  .info-sub { font-size: 10px; color: #6b7280; margin-top: 1px; }
-  .info-right { text-align: right; }
-  .status-line { margin-top: 6px; }
-  .status-label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+  .title { font-size: 16px; font-weight: 700; letter-spacing: 0.05em; color: #111827; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .mb-section { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; }
+  .label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .value { font-size: 12px; font-weight: 500; color: #111827; }
+  .value-bold { font-size: 12px; font-weight: 700; color: #111827; }
+  .sub { font-size: 10px; color: #6b7280; margin-top: 1px; }
+  .text-right { text-align: right; }
+  .status-line { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; }
   .status-value { font-size: 12px; font-weight: 700; }
-  .status-processed { color: #16a34a; }
-  .status-received { color: #2563eb; }
-  .status-scheduled { color: #d97706; }
-  .status-cancelled { color: #dc2626; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-  th { font-size: 9px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; padding: 4px 0; border-bottom: 1px solid #e5e7eb; }
-  th:nth-child(2) { text-align: center; }
-  th:nth-child(3), th:nth-child(4) { text-align: right; }
-  td { font-size: 12px; padding: 5px 0; border-bottom: 1px solid #f9fafb; }
-  td:nth-child(2) { text-align: center; }
-  td:nth-child(3), td:nth-child(4) { text-align: right; }
-  .totals { display: flex; justify-content: flex-end; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; }
+  .section-title { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  th { font-size: 9px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; padding: 5px 0; border-bottom: 1px solid #e5e7eb; }
+  th.c { text-align: center; } th.r { text-align: right; }
+  td { font-size: 12px; padding: 6px 0; border-bottom: 1px solid #f9fafb; color: #111827; }
+  td.c { text-align: center; } td.r { text-align: right; }
+  td.bold { font-weight: 500; }
+  .totals { display: flex; justify-content: flex-end; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; }
   .totals-box { width: 220px; }
-  .totals-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
-  .totals-label { color: #6b7280; }
-  .totals-divider { border-top: 1px solid #e5e7eb; margin: 4px 0; padding-top: 4px; }
+  .totals-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; color: #111827; }
+  .totals-muted { color: #6b7280; }
+  .totals-divider { border-top: 1px solid #e5e7eb; margin: 5px 0; padding-top: 5px; }
   .totals-total { font-size: 14px; font-weight: 700; color: #16a34a; }
-  .notes-box { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; }
-  .section-title { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .notes-box { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; }
   .notes-text { font-size: 12px; color: #374151; }
-  .footer { text-align: center; padding-top: 12px; border-top: 1px solid #f3f4f6; }
+  .footer { text-align: center; padding-top: 14px; border-top: 1px solid #f3f4f6; }
   .footer p { font-size: 10px; color: #9ca3af; }
   .footer .sub { font-size: 9px; color: #d1d5db; margin-top: 2px; }
   @page { margin: 0.4in; size: A4; }
@@ -82,7 +86,6 @@ export default function DropOffReceipt() {
     if (!printArea || !dropOff) return;
 
     const fileName = `GreenPlace-DropOff-${dropOff.reference_number || 'Receipt'}`;
-
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:none;';
     document.body.appendChild(iframe);
@@ -94,28 +97,14 @@ export default function DropOffReceipt() {
 
     iframe.contentWindow.focus();
     iframe.contentWindow.print();
-
     setTimeout(() => { document.body.removeChild(iframe); }, 1500);
   }, [dropOff]);
 
-  const formatCurrency = (amount) => {
-    return parseFloat(amount || 0).toLocaleString('en-PH', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-PH', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
+  const fmt = (amount) => parseFloat(amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '—';
 
   const statusLabel = statusLabels[dropOff?.status] || 'Pending';
+  const statusColor = statusColors[dropOff?.status] || 'text-yellow-600';
   const residentName = dropOff?.resident
     ? `${dropOff.resident.first_name} ${dropOff.resident.last_name}`
     : dropOff?.guest_name || '—';
@@ -146,6 +135,7 @@ export default function DropOffReceipt() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Screen header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/drop-offs" className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium">
@@ -159,107 +149,117 @@ export default function DropOffReceipt() {
         </div>
       </div>
 
+      {/* Receipt */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        <div className="print-area bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="receipt">
-            <div className="header">
-              <div className="brand">
-                <div className="logo">G</div>
-                <div>
-                  <div className="brand-name">GreenPlace</div>
-                  <div className="brand-sub">Sustainable Living Platform</div>
-                </div>
-              </div>
-              <div className="title">DROP-OFF RECEIPT</div>
-            </div>
+        <div className="print-area bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-8">
 
-            <div className="info-grid">
-              <div>
-                <div className="info-label">Receipt No.</div>
-                <div className="info-value" style={{ fontWeight: 700, fontFamily: 'monospace' }}>{dropOff.reference_number}</div>
-              </div>
-              <div className="info-right">
-                <div className="info-label">Date</div>
-                <div className="info-value">{formatDate(dropOff.created_at)}</div>
-              </div>
-            </div>
-
-            <div className="status-line">
-              <div className="status-label">Status</div>
-              <div className={`status-value status-${dropOff.status}`}>{statusLabel}</div>
-            </div>
-
-            <div className="info-grid">
-              <div>
-                <div className="info-label">Submitted By</div>
-                <div className="info-value">{residentName}</div>
-                {residentPhone && <div className="info-sub">{residentPhone}</div>}
+          {/* Header */}
+          <div className="flex items-center justify-between pb-4 border-b border-gray-200 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">G</span>
               </div>
               <div>
-                <div className="info-label">Facility</div>
-                <div className="info-value">{dropOff.business?.name}</div>
-                {dropOff.business?.address && <div className="info-sub">{dropOff.business.address}</div>}
-                {dropOff.business?.phone && <div className="info-sub">{dropOff.business.phone}</div>}
+                <p className="text-lg font-bold text-gray-900">GreenPlace</p>
+                <p className="text-xs text-gray-400">Sustainable Living Platform</p>
               </div>
             </div>
+            <h2 className="text-lg font-bold text-gray-900 tracking-wide">DROP-OFF RECEIPT</h2>
+          </div>
 
-            <div className="section-title">Materials</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Material</th>
-                  <th>Quantity</th>
-                  <th>Est. Value</th>
-                  <th>Actual Value</th>
+          {/* Receipt No + Date */}
+          <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100 mb-4">
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Receipt No.</p>
+              <p className="text-sm font-bold text-gray-900 font-mono">{dropOff.reference_number}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Date</p>
+              <p className="text-sm text-gray-700">{fmtDate(dropOff.created_at)}</p>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="pb-4 border-b border-gray-100 mb-4">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Status</p>
+            <p className={`text-sm font-bold ${statusColor}`}>{statusLabel}</p>
+          </div>
+
+          {/* Submitted By + Facility */}
+          <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100 mb-4">
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Submitted By</p>
+              <p className="text-sm font-medium text-gray-900">{residentName}</p>
+              {residentPhone && <p className="text-xs text-gray-500 mt-0.5">{residentPhone}</p>}
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Facility</p>
+              <p className="text-sm font-medium text-gray-900">{dropOff.business?.name}</p>
+              {dropOff.business?.address && <p className="text-xs text-gray-500 mt-0.5">{dropOff.business.address}</p>}
+              {dropOff.business?.phone && <p className="text-xs text-gray-500">{dropOff.business.phone}</p>}
+            </div>
+          </div>
+
+          {/* Materials */}
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Materials</p>
+          <table className="w-full mb-4">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left text-[10px] font-semibold text-gray-500 uppercase pb-1.5">Material</th>
+                <th className="text-center text-[10px] font-semibold text-gray-500 uppercase pb-1.5 w-20">Quantity</th>
+                <th className="text-right text-[10px] font-semibold text-gray-500 uppercase pb-1.5 w-24">Est. Value</th>
+                <th className="text-right text-[10px] font-semibold text-gray-500 uppercase pb-1.5 w-24">Actual Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(dropOff.drop_off_items || []).map((item) => (
+                <tr key={item.id} className="border-b border-gray-50">
+                  <td className="py-2 text-sm font-medium text-gray-900">{item.material_name}</td>
+                  <td className="py-2 text-sm text-gray-600 text-center">{parseFloat(item.quantity).toFixed(1)} {item.unit}</td>
+                  <td className="py-2 text-sm text-gray-600 text-right">₱{fmt(item.estimated_value)}</td>
+                  <td className="py-2 text-sm font-medium text-gray-900 text-right">₱{fmt(item.actual_value || item.estimated_value)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {(dropOff.drop_off_items || []).map((item) => (
-                  <tr key={item.id}>
-                    <td style={{ fontWeight: 500 }}>{item.material_name}</td>
-                    <td>{parseFloat(item.quantity).toFixed(1)} {item.unit}</td>
-                    <td>₱{formatCurrency(item.estimated_value)}</td>
-                    <td style={{ fontWeight: 500 }}>₱{formatCurrency(item.actual_value || item.estimated_value)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
 
-            <div className="totals">
-              <div className="totals-box">
-                <div className="totals-row">
-                  <span className="totals-label">Total Weight</span>
-                  <span>{parseFloat(dropOff.total_weight_kg || 0).toFixed(1)} kg</span>
-                </div>
-                <div className="totals-row">
-                  <span className="totals-label">Estimated Value</span>
-                  <span>₱{formatCurrency(dropOff.estimated_value)}</span>
-                </div>
-                <div className="totals-divider totals-row">
-                  <span style={{ fontWeight: 700 }}>Actual Payout</span>
-                  <span className="totals-total">₱{formatCurrency(dropOff.actual_value || dropOff.estimated_value)}</span>
-                </div>
+          {/* Totals */}
+          <div className="flex justify-end mb-4 pb-4 border-b border-gray-100">
+            <div className="w-52 space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Total Weight</span>
+                <span className="text-gray-700">{parseFloat(dropOff.total_weight_kg || 0).toFixed(1)} kg</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Estimated Value</span>
+                <span className="text-gray-700">₱{fmt(dropOff.estimated_value)}</span>
+              </div>
+              <div className="border-t border-gray-200 pt-2 flex justify-between">
+                <span className="text-sm font-bold text-gray-900">Actual Payout</span>
+                <span className="text-base font-bold text-primary-600">₱{fmt(dropOff.actual_value || dropOff.estimated_value)}</span>
               </div>
             </div>
+          </div>
 
-            {dropOff.notes && (
-              <div className="notes-box">
-                <div className="section-title">Notes</div>
-                <div className="notes-text">{dropOff.notes}</div>
-              </div>
-            )}
-
-            {dropOff.business_notes && (
-              <div className="notes-box">
-                <div className="section-title">Facility Notes</div>
-                <div className="notes-text">{dropOff.business_notes}</div>
-              </div>
-            )}
-
-            <div className="footer">
-              <p>Thank you for recycling and supporting sustainable living in Metro Cebu.</p>
-              <p className="sub">GreenPlace — Connecting communities with eco-friendly waste management</p>
+          {/* Notes */}
+          {dropOff.notes && (
+            <div className="pb-4 border-b border-gray-100 mb-4">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Notes</p>
+              <p className="text-sm text-gray-700">{dropOff.notes}</p>
             </div>
+          )}
+
+          {dropOff.business_notes && (
+            <div className="pb-4 border-b border-gray-100 mb-4">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Facility Notes</p>
+              <p className="text-sm text-gray-700">{dropOff.business_notes}</p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="text-center pt-2">
+            <p className="text-xs text-gray-400">Thank you for recycling and supporting sustainable living in Metro Cebu.</p>
+            <p className="text-[10px] text-gray-300 mt-0.5">GreenPlace — Connecting communities with eco-friendly waste management</p>
           </div>
         </div>
       </div>
