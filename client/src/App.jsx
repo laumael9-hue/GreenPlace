@@ -21,6 +21,10 @@ import BusinessManagement from './pages/admin/BusinessManagement';
 import BusinessRegistration from './pages/business/BusinessRegistration';
 import BusinessProfileManagement from './pages/business/BusinessProfileManagement';
 import ListingManagement from './pages/dashboard/ListingManagement';
+import Forum from './pages/Forum';
+import ForumCategory from './pages/ForumCategory';
+import ForumThread from './pages/ForumThread';
+import ForumModeration from './pages/admin/ForumModeration';
 import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import PaymentSuccess from './pages/PaymentSuccess';
@@ -86,7 +90,7 @@ function App() {
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/businesses" element={<BusinessManagement />} />
         <Route path="/admin/listings" element={<Placeholder title="Marketplace Moderation" desc="Review and moderate marketplace listings." />} />
-        <Route path="/admin/forum" element={<Placeholder title="Forum Moderation" desc="Moderate forum threads and posts." />} />
+        <Route path="/admin/forum" element={<ForumModeration />} />
         <Route path="/admin/reports" element={<Placeholder title="Reports" desc="Review content and user reports." />} />
         <Route path="/admin/settings" element={<Placeholder title="System Settings" desc="Configure application settings." />} />
       </Route>
@@ -96,7 +100,10 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-        <Route path="/forum" element={<Placeholder title="Community Forum" desc="Join sustainability discussions with the community." />} />
+        <Route path="/forum" element={<Forum />} />
+        <Route path="/forum/search" element={<Forum />} />
+        <Route path="/forum/:slug" element={<ForumCategory />} />
+        <Route path="/forum/thread/:slug" element={<ForumThread />} />
         <Route path="/orders/:id/success" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
         <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
         <Route path="/payment/failed" element={<ProtectedRoute><PaymentFailed /></ProtectedRoute>} />
