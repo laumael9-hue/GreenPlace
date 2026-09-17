@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
+const { checkPendingPaymentStatus } = require('./paymentController');
 const crypto = require('crypto');
 
 // ============================================================
@@ -237,13 +238,18 @@ const getOrders = async (req, res) => {
         payment_method, payment_status, pickup_address,
         preferred_pickup_date, preferred_pickup_time,
         confirmed_at, completed_at, cancelled_at, created_at,
+        refund_status,
         business:businesses(id, name, slug, logo_url),
         items:order_items(id, listing_id, title, price, quantity, total)
       `, { count: 'exact' })
       .eq('buyer_id', userId)
       .order('created_at', { ascending: false });
 
-    if (status) {
+    if (status === 'refunded') {
+      query = query.eq('refund_status', 'refunded');
+    } else if (status === 'cancelled') {
+      query = query.eq('status', 'cancelled').eq('refund_status', 'none');
+    } else if (status) {
       query = query.eq('status', status);
     }
 
@@ -253,6 +259,36 @@ const getOrders = async (req, res) => {
 
     if (error) {
       return res.status(400).json({ error: error.message });
+    }
+
+    // Auto-check pending PayMongo payments
+    const pendingOrders = (orders || []).filter(
+      o => o.payment_status === 'pending' && o.payment_method?.startsWith('paymongo_')
+    );
+
+    if (pendingOrders.length > 0) {
+      const checks = await Promise.all(
+        pendingOrders.map(async (order) => {
+          const { data: payment } = await supabaseAdmin
+            .from('payments')
+            .select('id, paymongo_payment_id, amount, method, status, paid_at')
+            .eq('order_id', order.id)
+            .single();
+
+          return checkPendingPaymentStatus(payment, order.id)
+            .then(result => ({ orderId: order.id, ...result }));
+        })
+      );
+
+      for (const check of checks) {
+        if (check.updated) {
+          const order = orders.find(o => o.id === check.orderId);
+          if (order) {
+            order.payment_status = check.payment_status;
+            if (check.order_status) order.status = check.order_status;
+          }
+        }
+      }
     }
 
     // Fetch listing images for all items
@@ -323,6 +359,7 @@ const getOrderById = async (req, res) => {
         pickup_latitude, pickup_longitude, notes,
         preferred_pickup_date, preferred_pickup_time,
         confirmed_at, completed_at, cancelled_at, cancellation_reason,
+        refund_status, refund_reason, refund_requested_at, refunded_at,
         created_at, updated_at,
         buyer_id, business_id
       `)
@@ -340,10 +377,11 @@ const getOrderById = async (req, res) => {
     // Use req.user.profile for buyer (already loaded by auth middleware)
     const buyer = { id: userId, first_name: req.user.profile?.first_name, last_name: req.user.profile?.last_name, email: req.user.profile?.email, phone: req.user.profile?.phone };
 
-    const [businessResult, itemsResult, paymentsResult] = await Promise.all([
+    const [businessResult, itemsResult, paymentsResult, refundsResult] = await Promise.all([
       supabaseAdmin.from('businesses').select('id, name, slug, logo_url, phone, address, latitude, longitude').eq('id', order.business_id).single(),
       supabaseAdmin.from('order_items').select('id, title, price, quantity, total, listing_id, seller_id').eq('order_id', order.id),
-      supabaseAdmin.from('payments').select('id, amount, method, status, paid_at, created_at').eq('order_id', order.id),
+      supabaseAdmin.from('payments').select('id, amount, method, status, paid_at, created_at, paymongo_payment_id').eq('order_id', order.id),
+      supabaseAdmin.from('refunds').select('id, amount, reason, status, images, requested_by, processed_by, created_at').eq('order_id', order.id).order('created_at', { ascending: false }).limit(1),
     ]);
 
     const business = businessResult.data;
@@ -416,8 +454,10 @@ const getOrderById = async (req, res) => {
       };
     });
 
+    const latestRefund = refundsResult.data?.[0] || null;
+
     res.json({
-      order: { ...order, buyer, business, items: enrichedItems, payments },
+      order: { ...order, buyer, business, items: enrichedItems, payments, refund: latestRefund },
     });
   } catch (err) {
     console.error('Get order error:', err);
@@ -642,12 +682,17 @@ const getBusinessOrders = async (req, res) => {
         payment_method, payment_status, pickup_address, notes,
         preferred_pickup_date, preferred_pickup_time,
         confirmed_at, completed_at, cancelled_at, created_at,
+        refund_status, refund_reason,
         items:order_items(id, listing_id, title, price, quantity, total)
       `, { count: 'exact' })
       .eq('business_id', business.id)
       .order('created_at', { ascending: false });
 
-    if (status) {
+    if (status === 'refunded') {
+      query = query.eq('refund_status', 'refunded');
+    } else if (status === 'cancelled') {
+      query = query.eq('status', 'cancelled').eq('refund_status', 'none');
+    } else if (status) {
       query = query.eq('status', status);
     }
 

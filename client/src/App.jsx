@@ -27,6 +27,7 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentFailed from './pages/PaymentFailed';
 import OrderHistory from './pages/OrderHistory';
 import OrderDetail from './pages/OrderDetail';
+import Receipt from './pages/Receipt';
 import BusinessOrders from './pages/dashboard/BusinessOrders';
 import DropOffTracker from './pages/dashboard/DropOffTracker';
 import DropOffHistory from './pages/dashboard/DropOffHistory';
@@ -73,6 +74,7 @@ function App() {
       {/* Shared authenticated pages — sidebar layout */}
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route path="/orders/:id" element={<OrderDetail />} />
+        <Route path="/orders/:id/receipt" element={<Receipt />} />
         <Route path="/profile" element={<Profile />} />
       </Route>
 
