@@ -222,6 +222,161 @@ const checkout = async (req, res) => {
 };
 
 // ============================================================
+// WALK-IN ORDER: Business creates order for walk-in guest
+// ============================================================
+
+const createWalkInOrder = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { guestName, guestPhone, items, notes, paymentMethod = 'cash_on_pickup' } = req.body;
+
+    if (!guestName || !guestName.trim()) {
+      return res.status(400).json({ error: 'Guest name is required' });
+    }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'At least one item is required' });
+    }
+
+    const validPaymentMethods = ['cash_on_pickup', 'paymongo_gcash', 'paymongo_maya', 'paymongo_card'];
+    if (!validPaymentMethods.includes(paymentMethod)) {
+      return res.status(400).json({ error: 'Invalid payment method' });
+    }
+
+    // Get business for this user
+    const { data: business } = await supabaseAdmin
+      .from('businesses')
+      .select('id, address, latitude, longitude')
+      .eq('owner_id', userId)
+      .single();
+
+    if (!business) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+
+    // Look up listings directly
+    const listingIds = items.map(i => i.listingId);
+    const { data: listings, error: listingsError } = await supabaseAdmin
+      .from('listings')
+      .select('id, title, price, quantity_available, status, seller_id')
+      .in('id', listingIds);
+
+    if (listingsError) {
+      return res.status(400).json({ error: listingsError.message });
+    }
+
+    // Validate all items
+    const listingsMap = {};
+    (listings || []).forEach(l => { listingsMap[l.id] = l; });
+
+    const unavailableItems = items.filter(i => {
+      const listing = listingsMap[i.listingId];
+      return !listing || listing.status !== 'active' || i.quantity > listing.quantity_available;
+    });
+
+    if (unavailableItems.length > 0) {
+      const titles = unavailableItems.map(i => listingsMap[i.listingId]?.title || 'Unknown');
+      return res.status(400).json({ error: `Some items are unavailable: ${titles.join(', ')}` });
+    }
+
+    // Build order items
+    let subtotal = 0;
+    const orderItems = items.map(i => {
+      const listing = listingsMap[i.listingId];
+      const itemTotal = parseFloat(listing.price) * i.quantity;
+      subtotal += itemTotal;
+      return {
+        listing_id: listing.id,
+        seller_id: listing.seller_id,
+        title: listing.title,
+        price: parseFloat(listing.price),
+        quantity: i.quantity,
+        total: Math.round(itemTotal * 100) / 100,
+      };
+    });
+
+    subtotal = Math.round(subtotal * 100) / 100;
+    const total = subtotal;
+
+    // Create order
+    const orderNumber = generateOrderNumber();
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .insert({
+        buyer_id: null,
+        business_id: business.id,
+        order_number: orderNumber,
+        status: 'completed',
+        subtotal,
+        shipping_fee: 0,
+        total,
+        payment_method: paymentMethod,
+        payment_status: 'paid',
+        pickup_address: business.address,
+        pickup_latitude: business.latitude,
+        pickup_longitude: business.longitude,
+        completed_at: new Date().toISOString(),
+        notes: notes || null,
+        guest_name: guestName.trim(),
+        guest_phone: guestPhone?.trim() || null,
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error('Create walk-in order error:', orderError);
+      return res.status(400).json({ error: 'Failed to create order' });
+    }
+
+    // Create order items
+    const orderItemsWithOrderId = orderItems.map(item => ({
+      ...item,
+      order_id: order.id,
+    }));
+
+    const { error: itemsError } = await supabaseAdmin
+      .from('order_items')
+      .insert(orderItemsWithOrderId);
+
+    if (itemsError) {
+      console.error('Create walk-in order items error:', itemsError);
+      return res.status(400).json({ error: 'Failed to create order items' });
+    }
+
+    // Decrement listing quantities
+    for (const i of items) {
+      const listing = listingsMap[i.listingId];
+      await supabaseAdmin
+        .from('listings')
+        .update({
+          quantity_available: listing.quantity_available - i.quantity,
+          sold_count: (listing.sold_count || 0) + i.quantity,
+        })
+        .eq('id', listing.id);
+    }
+
+    // Create payment record
+    await supabaseAdmin
+      .from('payments')
+      .insert({
+        order_id: order.id,
+        amount: total,
+        method: paymentMethod,
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+      });
+
+    res.status(201).json({
+      message: 'Walk-in order created successfully',
+      order,
+    });
+  } catch (err) {
+    console.error('Create walk-in order error:', err);
+    res.status(500).json({ error: 'Failed to create walk-in order' });
+  }
+};
+
+// ============================================================
 // GET ORDERS: Buyer's order history
 // ============================================================
 
@@ -375,7 +530,12 @@ const getOrderById = async (req, res) => {
     }
 
     // Use req.user.profile for buyer (already loaded by auth middleware)
-    const buyer = { id: userId, first_name: req.user.profile?.first_name, last_name: req.user.profile?.last_name, email: req.user.profile?.email, phone: req.user.profile?.phone };
+    let buyer = { id: userId, first_name: req.user.profile?.first_name, last_name: req.user.profile?.last_name, email: req.user.profile?.email, phone: req.user.profile?.phone };
+
+    // For walk-in orders, use guest info instead
+    if (!order.buyer_id && order.guest_name) {
+      buyer = { id: null, first_name: order.guest_name, last_name: null, phone: order.guest_phone, email: null };
+    }
 
     const [businessResult, itemsResult, paymentsResult, refundsResult] = await Promise.all([
       supabaseAdmin.from('businesses').select('id, name, slug, logo_url, phone, address, latitude, longitude').eq('id', order.business_id).single(),
@@ -415,7 +575,7 @@ const getOrderById = async (req, res) => {
     });
 
     // Check authorization: buyer, business owner, or admin
-    const isBuyer = order.buyer_id === userId;
+    const isBuyer = order.buyer_id && order.buyer_id === userId;
     const isBusinessOwner = userRole === 'business';
     const isAdmin = userRole === 'admin';
 
@@ -705,7 +865,7 @@ const getBusinessOrders = async (req, res) => {
     }
 
     // Fetch buyer info for each order separately
-    const buyerIds = [...new Set((orders || []).map(o => o.buyer_id))];
+    const buyerIds = [...new Set((orders || []).map(o => o.buyer_id).filter(Boolean))];
     let buyersMap = {};
     if (buyerIds.length > 0) {
       const { data: buyers } = await supabaseAdmin
@@ -717,10 +877,13 @@ const getBusinessOrders = async (req, res) => {
       }
     }
 
-    const ordersWithBuyers = (orders || []).map(o => ({
-      ...o,
-      buyer: buyersMap[o.buyer_id] || null,
-    }));
+    const ordersWithBuyers = (orders || []).map(o => {
+      let buyer = buyersMap[o.buyer_id] || null;
+      if (!buyer && o.guest_name) {
+        buyer = { id: null, first_name: o.guest_name, last_name: null, phone: o.guest_phone };
+      }
+      return { ...o, buyer };
+    });
 
     // Fetch listing images for all items
     const listingIds = [...new Set(
@@ -769,6 +932,7 @@ const getBusinessOrders = async (req, res) => {
 
 module.exports = {
   checkout,
+  createWalkInOrder,
   getOrders,
   getOrderById,
   updateOrderStatus,

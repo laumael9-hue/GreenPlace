@@ -785,6 +785,159 @@ const getRefunds = async (req, res) => {
 };
 
 // ============================================================
+// REQUEST BUSINESS REFUND: Business refunds any order
+// ============================================================
+
+const requestWalkInRefund = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.profile?.role;
+    const { orderId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ error: 'Refund reason is required' });
+    }
+
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .select('id, buyer_id, business_id, status, payment_status, payment_method, total')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError || !order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Verify business ownership or admin
+    if (userRole !== 'admin') {
+      const { data: business } = await supabaseAdmin
+        .from('businesses')
+        .select('id')
+        .eq('owner_id', userId)
+        .single();
+
+      if (!business || business.id !== order.business_id) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+      }
+    }
+
+    if (order.status !== 'completed') {
+      return res.status(400).json({ error: 'Only completed orders can be refunded' });
+    }
+
+    // Check no existing pending/refunded refund
+    const { data: existingRefund } = await supabaseAdmin
+      .from('refunds')
+      .select('id')
+      .eq('order_id', orderId)
+      .in('status', ['pending', 'refunded'])
+      .single();
+
+    if (existingRefund) {
+      return res.status(400).json({ error: 'A refund already exists for this order' });
+    }
+
+    // Process PayMongo refund for non-cash orders
+    let paymongoRefundId = null;
+    if (order.payment_method !== 'cash_on_pickup' && order.payment_status === 'paid') {
+      const { data: payment } = await supabaseAdmin
+        .from('payments')
+        .select('id, paymongo_payment_id, amount')
+        .eq('order_id', orderId)
+        .single();
+
+      if (payment?.paymongo_payment_id) {
+        try {
+          const amountInCentavos = Math.round(parseFloat(order.total) * 100);
+          const paymongoRefund = await paymongoService.refundPayment(
+            payment.paymongo_payment_id,
+            amountInCentavos,
+            'requested_by_customer'
+          );
+          paymongoRefundId = paymongoRefund.id;
+        } catch (refundErr) {
+          console.error('PayMongo refund failed:', refundErr?.response?.data || refundErr.message);
+          return res.status(500).json({ error: 'Failed to process payment refund. Please try again.' });
+        }
+      }
+    }
+
+    // Create refund record — immediately refunded (auto-approved)
+    const { data: refund, error: refundError } = await supabaseAdmin
+      .from('refunds')
+      .insert({
+        order_id: orderId,
+        amount: order.total,
+        reason: reason.trim(),
+        status: 'refunded',
+        paymongo_refund_id: paymongoRefundId,
+        requested_by: userId,
+        processed_by: userId,
+        images: [],
+      })
+      .select()
+      .single();
+
+    if (refundError) {
+      console.error('Create business refund error:', refundError);
+      return res.status(400).json({ error: 'Failed to process refund' });
+    }
+
+    // Update order
+    await supabaseAdmin
+      .from('orders')
+      .update({
+        refund_status: 'refunded',
+        refund_reason: reason.trim(),
+        refund_requested_at: new Date().toISOString(),
+        payment_status: 'refunded',
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        refunded_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    // Update payment
+    await supabaseAdmin
+      .from('payments')
+      .update({ status: 'refunded' })
+      .eq('order_id', orderId);
+
+    // Restore listing quantities
+    const { data: orderItems } = await supabaseAdmin
+      .from('order_items')
+      .select('listing_id, quantity')
+      .eq('order_id', orderId);
+
+    if (orderItems) {
+      for (const item of orderItems) {
+        const { data: listing } = await supabaseAdmin
+          .from('listings')
+          .select('quantity_available, sold_count')
+          .eq('id', item.listing_id)
+          .single();
+
+        if (listing) {
+          await supabaseAdmin
+            .from('listings')
+            .update({
+              quantity_available: listing.quantity_available + item.quantity,
+              sold_count: Math.max(0, (listing.sold_count || 0) - item.quantity),
+            })
+            .eq('id', item.listing_id);
+        }
+      }
+    }
+
+    res.json({ message: 'Refund processed successfully', refund });
+  } catch (err) {
+    console.error('Request business refund error:', err);
+    res.status(500).json({ error: 'Failed to process refund' });
+  }
+};
+
+// ============================================================
 // CANCEL REFUND REQUEST: Buyer cancels a pending refund
 // ============================================================
 
@@ -838,6 +991,7 @@ module.exports = {
   requestRefund,
   editRefund,
   processRefund,
+  requestWalkInRefund,
   cancelRefund,
   getRefunds,
 };

@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const { requireBusiness, requireResident } = require('../middleware/rbac');
 const {
   checkout,
+  createWalkInOrder,
   getOrders,
   getOrderById,
   updateOrderStatus,
@@ -16,6 +17,7 @@ router.post('/checkout', authenticate, requireResident, checkout);
 router.get('/', authenticate, requireResident, getOrders);
 
 // Business routes
+router.post('/walk-in', authenticate, requireBusiness, createWalkInOrder);
 router.get('/business', authenticate, requireBusiness, getBusinessOrders);
 
 // Shared routes (buyer or business owner)

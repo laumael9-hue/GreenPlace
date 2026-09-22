@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { authenticate } = require('../middleware/auth');
-const { requireResident } = require('../middleware/rbac');
+const { requireResident, requireBusiness } = require('../middleware/rbac');
 const {
   createCheckout,
   handleWebhook,
@@ -12,6 +12,7 @@ const {
   requestRefund,
   editRefund,
   processRefund,
+  requestWalkInRefund,
   cancelRefund,
   getRefunds,
 } = require('../controllers/paymentController');
@@ -58,6 +59,8 @@ router.put('/refund/:orderId', authenticate, requireResident, editRefund);
 router.post('/refund/:refundId/process', authenticate, processRefund);
 
 router.post('/refund/:refundId/cancel', authenticate, requireResident, cancelRefund);
+
+router.post('/refund-walkin/:orderId', authenticate, requireBusiness, requestWalkInRefund);
 
 router.get('/refunds', authenticate, getRefunds);
 

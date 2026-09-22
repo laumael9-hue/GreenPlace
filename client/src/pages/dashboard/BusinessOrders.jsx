@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Loader2, ChevronRight, User, Package, ShoppingBag, AlertCircle } from 'lucide-react';
+import { ClipboardList, Loader2, ChevronRight, User, Package, ShoppingBag, AlertCircle, Plus } from 'lucide-react';
 import api from '../../lib/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import NewOrderModal from './NewOrderModal';
 
 const statusConfig = {
   pending: { variant: 'warning', label: 'Pending', dot: 'bg-amber-400' },
@@ -20,6 +21,7 @@ export default function BusinessOrders() {
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 1 });
   const [filter, setFilter] = useState('');
+  const [showNewOrder, setShowNewOrder] = useState(false);
 
   const fetchOrders = useCallback(async (page = 1) => {
     setLoading(true);
@@ -60,8 +62,15 @@ export default function BusinessOrders() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Incoming Orders</h1>
-          <p className="mt-1 text-gray-500">{pagination.total} total orders</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Incoming Orders</h1>
+              <p className="mt-1 text-gray-500">{pagination.total} total orders</p>
+            </div>
+            <Button onClick={() => setShowNewOrder(true)}>
+              <Plus className="w-4 h-4" /> New Order
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -216,6 +225,12 @@ export default function BusinessOrders() {
           </div>
         )}
       </div>
+
+      <NewOrderModal
+        open={showNewOrder}
+        onClose={() => setShowNewOrder(false)}
+        onCreated={() => { setShowNewOrder(false); fetchOrders(1); }}
+      />
     </div>
   );
 }

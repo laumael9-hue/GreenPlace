@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Printer, AlertTriangle } from 'lucide-react';
 import api from '../lib/api';
 import Button from '../components/ui/Button';
+import { paymentMethodLabels } from '../lib/utilities';
 
 const paymentStatusLabels = {
   pending: 'Pending',
@@ -158,7 +159,7 @@ export default function Receipt() {
   }, [id]);
 
   const isPayMongo = order?.payment_method?.startsWith('paymongo_');
-  const paymentLabel = order?.payment_method?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '—';
+  const paymentLabel = paymentMethodLabels[order?.payment_method] || order?.payment_method?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '—';
   const latestPayment = order?.payments?.[0];
   const transactionRef = latestPayment?.paymongo_payment_id || null;
 

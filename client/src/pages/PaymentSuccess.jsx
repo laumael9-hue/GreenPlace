@@ -4,6 +4,7 @@ import { CheckCircle, Package, ArrowRight, Home, Loader2 } from 'lucide-react';
 import api from '../lib/api';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import { paymentMethodLabels } from '../lib/utilities';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -106,8 +107,8 @@ export default function PaymentSuccess() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Payment</span>
-                <span className="text-sm font-medium text-gray-900 capitalize">
-                  {order.payment_method?.replace(/_/g, ' ')}
+                <span className="text-sm font-medium text-gray-900">
+                  {paymentMethodLabels[order.payment_method] || order.payment_method?.replace(/_/g, ' ')}
                 </span>
               </div>
               <div className="flex items-center justify-between">

@@ -2,6 +2,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { CheckCircle, Package, ArrowRight, Home } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import { paymentMethodLabels } from '../lib/utilities';
 
 export default function OrderConfirmation() {
   const location = useLocation();
@@ -44,7 +45,7 @@ export default function OrderConfirmation() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">Payment</span>
-              <span className="text-sm font-medium text-gray-900 capitalize">{order.payment_method?.replace(/_/g, ' ')}</span>
+              <span className="text-sm font-medium text-gray-900">{paymentMethodLabels[order.payment_method] || order.payment_method?.replace(/_/g, ' ')}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">Total</span>

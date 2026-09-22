@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { paymentMethodLabels } from '../lib/utilities';
 import Badge from '../components/ui/Badge';
 import Card, { CardHeader, CardTitle } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -41,6 +42,8 @@ export default function OrderDetail() {
   const [viewingImages, setViewingImages] = useState(null);
   const [viewingIndex, setViewingIndex] = useState(0);
   const [showRefundDetailModal, setShowRefundDetailModal] = useState(false);
+  const [showWalkInRefundModal, setShowWalkInRefundModal] = useState(false);
+  const [walkInRefundReason, setWalkInRefundReason] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -150,6 +153,22 @@ export default function OrderDetail() {
     }
   };
 
+  const handleWalkInRefund = async () => {
+    if (!walkInRefundReason.trim()) return;
+    setActionLoading(true);
+    try {
+      await api.post(`/payments/refund-walkin/${id}`, { reason: walkInRefundReason.trim() });
+      const { data } = await api.get(`/orders/${id}`);
+      setOrder(data.order);
+      setShowWalkInRefundModal(false);
+      setWalkInRefundReason('');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to process refund');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getNextStatus = (currentStatus) => {
     const map = {
       pending: 'confirmed',
@@ -162,7 +181,8 @@ export default function OrderDetail() {
 
   const canCancel = order && ['pending', 'confirmed', 'processing', 'ready_for_pickup'].includes(order.status);
   const canUpdateStatus = role === 'business' && order && getNextStatus(order.status);
-  const canRequestRefund = role === 'resident' && order && order.status === 'completed' && order.payment_status === 'paid' && order.refund_status !== 'requested' && order.refund_status !== 'refunded';
+  const canRequestRefund = role === 'resident' && order && order.buyer_id && order.status === 'completed' && order.payment_status === 'paid' && order.refund_status !== 'requested' && order.refund_status !== 'refunded';
+  const canRefundBusiness = role === 'business' && order && order.status === 'completed' && order.refund_status !== 'refunded';
   const refundRequested = order && order.refund_status === 'requested';
   const isRefunded = order && order.refund_status === 'refunded';
   const currentStepIndex = statusTimeline.indexOf(order?.status);
@@ -210,6 +230,12 @@ export default function OrderDetail() {
               <p className="text-sm text-gray-500 mt-1">
                 Placed on {new Date(order.created_at).toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
+              {!order.buyer_id && order.guest_name && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Walk-in: <span className="font-medium text-gray-700">{order.guest_name}</span>
+                  {order.guest_phone && <span className="text-gray-400 ml-2">({order.guest_phone})</span>}
+                </p>
+              )}
             </div>
             <Badge variant={statusInfo.variant} className="text-sm px-3 py-1">
               {statusInfo.label}
@@ -345,7 +371,7 @@ export default function OrderDetail() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Method</span>
-                  <span className="font-medium text-gray-900 capitalize">{order.payment_method?.replace(/_/g, ' ')}</span>
+                  <span className="font-medium text-gray-900">{paymentMethodLabels[order.payment_method] || order.payment_method?.replace(/_/g, ' ')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Status</span>
@@ -388,7 +414,7 @@ export default function OrderDetail() {
             )}
 
             {/* Actions */}
-            {(canUpdateStatus || canCancel || canRequestRefund || refundRequested || isRefunded || (role === 'business' && refundRequested)) && (
+            {(canUpdateStatus || canCancel || canRequestRefund || canRefundBusiness || refundRequested || isRefunded || (role === 'business' && refundRequested)) && (
               <Card>
                 <CardHeader>
                   <CardTitle>Actions</CardTitle>
@@ -425,6 +451,17 @@ export default function OrderDetail() {
                     >
                       <RotateCcw className="w-4 h-4" />
                       Request Refund
+                    </Button>
+                  )}
+                  {canRefundBusiness && (
+                    <Button
+                      variant="danger"
+                      className="w-full"
+                      onClick={() => setShowWalkInRefundModal(true)}
+                      disabled={actionLoading}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Refund Order
                     </Button>
                   )}
                   {refundRequested && role === 'resident' && (
@@ -670,6 +707,26 @@ export default function OrderDetail() {
               </Button>
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* Business Refund Modal */}
+      <Modal open={showWalkInRefundModal} onClose={() => { setShowWalkInRefundModal(false); setWalkInRefundReason(''); }} title="Refund Order">
+        <p className="text-gray-600 mb-2">Process a refund for this order. The order will be cancelled and listing quantities restored.</p>
+        <p className="text-xs text-gray-400 mb-4">For cash orders, the refund is handled in person. For online payments, the refund will be processed back to the original payment method.</p>
+        <textarea
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          rows={3}
+          placeholder="Reason for refund (required)"
+          value={walkInRefundReason}
+          onChange={(e) => setWalkInRefundReason(e.target.value)}
+        />
+        <div className="flex gap-3 justify-end mt-4">
+          <Button variant="secondary" onClick={() => { setShowWalkInRefundModal(false); setWalkInRefundReason(''); }}>Cancel</Button>
+          <Button variant="danger" onClick={handleWalkInRefund} disabled={actionLoading || !walkInRefundReason.trim()}>
+            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Process Refund
+          </Button>
         </div>
       </Modal>
 
