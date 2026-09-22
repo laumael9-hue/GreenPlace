@@ -136,7 +136,7 @@ const getThreads = async (req, res) => {
       .select(`
         id, title, slug, body, images, is_pinned, is_locked, is_announcement,
         view_count, reply_count, last_reply_at, created_at, updated_at,
-        author:profiles(id, first_name, last_name, avatar_url)
+        author:profiles!forum_threads_author_id_fkey(id, first_name, last_name, avatar_url)
       `, { count: 'exact' });
 
     if (search) {
@@ -198,7 +198,7 @@ const getThreadBySlug = async (req, res) => {
       .select(`
         id, title, slug, body, images, is_pinned, is_locked, is_announcement,
         view_count, reply_count, created_at, updated_at,
-        author:profiles(id, first_name, last_name, avatar_url)
+        author:profiles!forum_threads_author_id_fkey(id, first_name, last_name, avatar_url)
       `)
       .eq('slug', slug)
       .single();
@@ -327,7 +327,7 @@ const createThread = async (req, res) => {
       .select(`
         id, title, slug, body, images, is_pinned, is_locked, is_announcement,
         view_count, reply_count, created_at,
-        author:profiles(id, first_name, last_name, avatar_url)
+        author:profiles!forum_threads_author_id_fkey(id, first_name, last_name, avatar_url)
       `)
       .single();
 
@@ -384,7 +384,7 @@ const updateThread = async (req, res) => {
       .select(`
         id, title, slug, body, images, is_pinned, is_locked, is_announcement,
         view_count, reply_count, created_at, updated_at,
-        author:profiles(id, first_name, last_name, avatar_url)
+        author:profiles!forum_threads_author_id_fkey(id, first_name, last_name, avatar_url)
       `)
       .single();
 
@@ -738,7 +738,7 @@ const getBookmarkedThreads = async (req, res) => {
         thread:forum_threads(
           id, title, slug, body, images, is_pinned, is_locked, is_announcement,
           view_count, reply_count, last_reply_at, created_at,
-          author:profiles(id, first_name, last_name, avatar_url)
+          author:profiles!forum_threads_author_id_fkey(id, first_name, last_name, avatar_url)
         )
       `, { count: 'exact' })
       .eq('user_id', userId)
@@ -788,7 +788,7 @@ const searchForum = async (req, res) => {
       .select(`
         id, title, slug, body, images, is_pinned, is_locked, is_announcement,
         view_count, reply_count, created_at,
-        author:profiles(id, first_name, last_name, avatar_url)
+        author:profiles!forum_threads_author_id_fkey(id, first_name, last_name, avatar_url)
       `, { count: 'exact' })
       .or(`title.ilike.${searchPattern},body.ilike.${searchPattern}`)
       .order('created_at', { ascending: false })
@@ -920,7 +920,7 @@ const moderateThread = async (req, res) => {
       .eq('id', id)
       .select(`
         id, title, slug, is_pinned, is_locked, is_announcement,
-        author:profiles(id, first_name, last_name, avatar_url)
+        author:profiles!forum_threads_author_id_fkey(id, first_name, last_name, avatar_url)
       `)
       .single();
 
