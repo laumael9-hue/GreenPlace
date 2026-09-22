@@ -25,6 +25,7 @@ import Forum from './pages/Forum';
 import ForumThread from './pages/ForumThread';
 import ForumBookmarks from './pages/ForumBookmarks';
 import ForumModeration from './pages/admin/ForumModeration';
+import ListingModeration from './pages/admin/ListingModeration';
 import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import PaymentSuccess from './pages/PaymentSuccess';
@@ -93,7 +94,7 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/businesses" element={<BusinessManagement />} />
-        <Route path="/admin/listings" element={<Placeholder title="Marketplace Moderation" desc="Review and moderate marketplace listings." />} />
+        <Route path="/admin/listings" element={<ListingModeration />} />
         <Route path="/admin/forum" element={<ForumModeration />} />
         <Route path="/admin/reports" element={<ForumModeration />} />
         <Route path="/admin/settings" element={<Placeholder title="System Settings" desc="Configure application settings." />} />

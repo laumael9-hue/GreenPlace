@@ -955,7 +955,7 @@ const reportContent = async (req, res) => {
     const userId = req.user.id;
     const { targetType, targetId, reason, description } = req.body;
 
-    const validTypes = ['thread', 'post'];
+    const validTypes = ['thread', 'post', 'listing'];
     if (!targetType || !validTypes.includes(targetType)) {
       return res.status(400).json({ error: 'Invalid target type' });
     }
@@ -970,6 +970,13 @@ const reportContent = async (req, res) => {
     if (targetType === 'thread') {
       const { data } = await supabaseAdmin
         .from('forum_threads')
+        .select('id')
+        .eq('id', targetId)
+        .single();
+      exists = !!data;
+    } else if (targetType === 'listing') {
+      const { data } = await supabaseAdmin
+        .from('listings')
         .select('id')
         .eq('id', targetId)
         .single();
@@ -1128,8 +1135,7 @@ const getReports = async (req, res) => {
         status, resolution_note, reviewed_at, created_at,
         reporter:profiles!reports_reporter_id_fkey(id, first_name, last_name, avatar_url),
         reviewer:profiles!reports_reviewed_by_fkey(id, first_name, last_name)
-      `, { count: 'exact' })
-      .eq('target_type', 'post');
+      `, { count: 'exact' });
 
     if (status) {
       query = query.eq('status', status);
@@ -1169,6 +1175,16 @@ const getReports = async (req, res) => {
         target = data
           ? { ...data, thread: { title: data.title, slug: data.slug } }
           : null;
+      } else if (report.target_type === 'listing') {
+        const { data } = await supabaseAdmin
+          .from('listings')
+          .select(`
+            id, title, description, price, status, slug, created_at,
+            seller:profiles(id, first_name, last_name)
+          `)
+          .eq('id', report.target_id)
+          .single();
+        target = data ? { ...data, body: data.description } : null;
       }
       return { ...report, target };
     }));

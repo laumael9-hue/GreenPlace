@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2, Zap, Flag } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
+import Modal from '../components/ui/Modal';
 
 const CONDITION_LABELS = {
   new: 'New',
@@ -19,7 +20,7 @@ const CONDITION_LABELS = {
 export default function ProductDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { addItem } = useCart();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,11 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedMessage, setAddedMessage] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [reportError, setReportError] = useState('');
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -70,6 +76,41 @@ export default function ProductDetail() {
     if (result.success && result.cartItem) {
       sessionStorage.setItem('checkoutItems', JSON.stringify([result.cartItem.id]));
       navigate('/checkout');
+    }
+  };
+
+  const openReport = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setReportReason('');
+    setReportDescription('');
+    setReportError('');
+    setShowReport(true);
+  };
+
+  const handleReport = async (e) => {
+    e.preventDefault();
+    if (!reportReason.trim()) return;
+    setReporting(true);
+    setReportError('');
+    try {
+      await api.post('/forum/report', {
+        targetType: 'listing',
+        targetId: listing.id,
+        reason: reportReason.trim(),
+        description: reportDescription.trim() || undefined,
+      });
+      setShowReport(false);
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        navigate('/login');
+        return;
+      }
+      setReportError(err?.response?.data?.error || 'Failed to submit report. Please try again.');
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -182,11 +223,22 @@ export default function ProductDetail() {
 
           {/* Product Info */}
           <div className="space-y-6">
-            <div>
-              {listing.category && (
-                <Badge variant="neutral" className="mb-2">{listing.category.name}</Badge>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                {listing.category && (
+                  <Badge variant="neutral" className="mb-2">{listing.category.name}</Badge>
+                )}
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{listing.title}</h1>
+              </div>
+              {(!user || listing.seller?.id !== user.id) && (
+                <button
+                  onClick={openReport}
+                  className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-orange-500 transition-colors mt-1"
+                >
+                  <Flag className="w-4 h-4" />
+                  Report
+                </button>
               )}
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{listing.title}</h1>
             </div>
 
             {/* Price */}
@@ -360,6 +412,50 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      <Modal open={showReport} onClose={() => setShowReport(false)} title="Report Listing">
+        <form onSubmit={handleReport} className="space-y-4">
+          {reportError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {reportError}
+            </p>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              required
+            >
+              <option value="">Select a reason...</option>
+              <option value="spam">Spam</option>
+              <option value="harassment">Harassment</option>
+              <option value="misinformation">Misinformation</option>
+              <option value="inappropriate">Inappropriate Content</option>
+              <option value="off-topic">Off-Topic</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details (optional)</label>
+            <textarea
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              placeholder="Provide more context..."
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setShowReport(false)}>Cancel</Button>
+            <Button type="submit" variant="danger" disabled={reporting || !reportReason.trim()}>
+              {reporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Flag className="w-4 h-4 mr-2" />}
+              Submit Report
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -924,6 +924,145 @@ const getCartCount = async (req, res) => {
   }
 };
 
+// ============================================================
+// LISTINGS - ADMIN MODERATION
+// ============================================================
+
+const logListingAudit = async (adminId, action, targetId, details = {}) => {
+  try {
+    await supabaseAdmin.from('admin_audit_log').insert({
+      admin_id: adminId,
+      action,
+      target_id: targetId,
+      target_type: 'listing',
+      details,
+    });
+  } catch (err) {
+    console.error('Audit log error:', err);
+  }
+};
+
+const getAdminListings = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = '', status = '' } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    let query = supabaseAdmin
+      .from('listings')
+      .select(`
+        id, title, slug, price, unit, status, city, created_at,
+        category:categories(id, name),
+        seller:profiles(id, first_name, last_name),
+        business:businesses(id, name),
+        listing_images(id, image_url, is_primary, sort_order)
+      `, { count: 'exact' });
+
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data: listings, count, error } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + parseInt(limit) - 1);
+
+    if (error) {
+      console.error('Get admin listings error:', error);
+      return res.status(400).json({ error: error.message });
+    }
+
+    const ids = (listings || []).map(l => l.id);
+    const reportCounts = {};
+    if (ids.length > 0) {
+      const { data: reports } = await supabaseAdmin
+        .from('reports')
+        .select('target_id')
+        .eq('target_type', 'listing')
+        .in('target_id', ids);
+      (reports || []).forEach(r => {
+        reportCounts[r.target_id] = (reportCounts[r.target_id] || 0) + 1;
+      });
+    }
+
+    const enriched = (listings || []).map(l => ({
+      ...l,
+      primary_image: (l.listing_images || []).find(img => img.is_primary)?.image_url
+        || (l.listing_images || [])[0]?.image_url
+        || null,
+      report_count: reportCounts[l.id] || 0,
+      listing_images: undefined,
+    }));
+
+    res.json({
+      listings: enriched,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    console.error('Get admin listings error:', err);
+    res.status(500).json({ error: 'Failed to fetch listings' });
+  }
+};
+
+const updateAdminListingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, reason } = req.body;
+
+    const allowedStatuses = ['draft', 'active', 'sold', 'archived'];
+    if (!status || !allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const { data: existing } = await supabaseAdmin
+      .from('listings')
+      .select('id, title, status')
+      .eq('id', id)
+      .single();
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    const updates = { status };
+    if (status === 'active') {
+      updates.published_at = new Date().toISOString();
+    }
+
+    const { data: updated, error } = await supabaseAdmin
+      .from('listings')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    await logListingAudit(req.user.id, `${status}_listing`, id, {
+      title: existing.title,
+      previous_status: existing.status,
+      reason: reason || null,
+    });
+
+    res.json({
+      message: `Listing ${status === 'archived' ? 'archived' : 'updated'} successfully`,
+      listing: updated,
+    });
+  } catch (err) {
+    console.error('Update listing status error:', err);
+    res.status(500).json({ error: 'Failed to update listing status' });
+  }
+};
+
 module.exports = {
   getCategories,
   getCategoryBySlug,
@@ -935,6 +1074,8 @@ module.exports = {
   deleteListing,
   publishListing,
   getMyListings,
+  getAdminListings,
+  updateAdminListingStatus,
   uploadListingImage,
   deleteListingImage,
   getCart,

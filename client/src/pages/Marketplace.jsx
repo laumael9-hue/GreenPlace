@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Filter, ChevronDown, ChevronUp, X, ShoppingBag, Tag, Loader2, Package } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, Filter, ChevronDown, ChevronUp, X, ShoppingBag, Tag, Loader2, Package, Flag } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
+import Modal from '../components/ui/Modal';
 
 const CEBU_CITIES = [
   'Cebu City', 'Mandaue City', 'Lapu-Lapu City', 'Talisay City',
@@ -34,8 +35,9 @@ const CONDITION_LABELS = {
 };
 
 export default function Marketplace() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { addItem } = useCart();
+  const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,12 @@ export default function Marketplace() {
   const [total, setTotal] = useState(0);
   const [addingToCart, setAddingToCart] = useState(null);
   const debounceRef = useRef(null);
+  const [showReport, setShowReport] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [reportError, setReportError] = useState('');
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -126,6 +134,43 @@ export default function Marketplace() {
     setAddingToCart(listingId);
     await addItem(listingId, 1);
     setAddingToCart(null);
+  };
+
+  const openReport = (listingId) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setReportTarget(listingId);
+    setReportReason('');
+    setReportDescription('');
+    setReportError('');
+    setShowReport(true);
+  };
+
+  const handleReport = async (e) => {
+    e.preventDefault();
+    if (!reportReason.trim()) return;
+    setReporting(true);
+    setReportError('');
+    try {
+      await api.post('/forum/report', {
+        targetType: 'listing',
+        targetId: reportTarget,
+        reason: reportReason.trim(),
+        description: reportDescription.trim() || undefined,
+      });
+      setShowReport(false);
+      setReportTarget(null);
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        navigate('/login');
+        return;
+      }
+      setReportError(err?.response?.data?.error || 'Failed to submit report. Please try again.');
+    } finally {
+      setReporting(false);
+    }
   };
 
   return (
@@ -327,6 +372,8 @@ export default function Marketplace() {
                   listing={listing}
                   onAddToCart={handleAddToCart}
                   addingToCart={addingToCart}
+                  onReport={openReport}
+                  currentUser={user}
                 />
               ))}
             </div>
@@ -355,11 +402,55 @@ export default function Marketplace() {
           </>
         )}
       </div>
+
+      <Modal open={showReport} onClose={() => setShowReport(false)} title="Report Listing">
+        <form onSubmit={handleReport} className="space-y-4">
+          {reportError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {reportError}
+            </p>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              required
+            >
+              <option value="">Select a reason...</option>
+              <option value="spam">Spam</option>
+              <option value="harassment">Harassment</option>
+              <option value="misinformation">Misinformation</option>
+              <option value="inappropriate">Inappropriate Content</option>
+              <option value="off-topic">Off-Topic</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details (optional)</label>
+            <textarea
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              placeholder="Provide more context..."
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setShowReport(false)}>Cancel</Button>
+            <Button type="submit" variant="danger" disabled={reporting || !reportReason.trim()}>
+              {reporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Flag className="w-4 h-4 mr-2" />}
+              Submit Report
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
 
-function ListingCard({ listing, onAddToCart, addingToCart }) {
+function ListingCard({ listing, onAddToCart, addingToCart, onReport, currentUser }) {
   const isAdding = addingToCart === listing.id;
   const seller = listing.seller;
   const business = listing.business;
@@ -430,18 +521,33 @@ function ListingCard({ listing, onAddToCart, addingToCart }) {
               <p className="text-[10px] text-gray-400">per {listing.unit}</p>
             )}
           </div>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => onAddToCart(listing.id)}
-            disabled={isAdding || listing.quantity_available < 1}
-          >
-            {isAdding ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <ShoppingBag className="w-4 h-4" />
+          <div className="flex items-center gap-1.5">
+            {(!currentUser || listing.seller?.id !== currentUser.id) && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onReport(listing.id);
+                }}
+                className="p-1.5 text-gray-400 hover:text-orange-500 transition-colors"
+                title="Report listing"
+              >
+                <Flag className="w-4 h-4" />
+              </button>
             )}
-          </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => onAddToCart(listing.id)}
+              disabled={isAdding || listing.quantity_available < 1}
+            >
+              {isAdding ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ShoppingBag className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -206,15 +206,32 @@ export default function ForumModeration() {
                       )}
                       {report.target && (
                         <>
-                          <p className="text-sm text-gray-700">
-                            {report.target_type === 'thread'
-                              ? <>Reported thread: {report.target.thread?.title}</>
-                              : <>Reported post in: {report.target.thread?.title}</>}
-                          </p>
-                          <p className="text-sm text-gray-700 line-clamp-2">{report.target.body}</p>
-                          <p className="text-xs text-gray-500">
-                            by {report.target.author?.first_name} {report.target.author?.last_name}
-                          </p>
+                          {report.target_type === 'listing' ? (
+                            <>
+                              <p className="text-sm text-gray-700">
+                                Reported listing: {report.target.title}
+                                {report.target.status && (
+                                  <span className="ml-1.5 text-xs text-gray-400">({report.target.status})</span>
+                                )}
+                              </p>
+                              <p className="text-sm text-gray-700 line-clamp-2">{report.target.body}</p>
+                              <p className="text-xs text-gray-500">
+                                by {report.target.seller?.first_name} {report.target.seller?.last_name}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm text-gray-700">
+                                {report.target_type === 'thread'
+                                  ? <>Reported thread: {report.target.thread?.title}</>
+                                  : <>Reported post in: {report.target.thread?.title}</>}
+                              </p>
+                              <p className="text-sm text-gray-700 line-clamp-2">{report.target.body}</p>
+                              <p className="text-xs text-gray-500">
+                                by {report.target.author?.first_name} {report.target.author?.last_name}
+                              </p>
+                            </>
+                          )}
                         </>
                       )}
                       {report.resolution_note && (

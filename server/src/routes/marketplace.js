@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const router = express.Router();
 const { authenticate, optionalAuth } = require('../middleware/auth');
-const { requireBusiness, requireResident } = require('../middleware/rbac');
+const { requireBusiness, requireResident, requireAdmin } = require('../middleware/rbac');
 const {
   getCategories,
   getCategoryBySlug,
@@ -14,6 +14,8 @@ const {
   deleteListing,
   publishListing,
   getMyListings,
+  getAdminListings,
+  updateAdminListingStatus,
   uploadListingImage,
   deleteListingImage,
   getCart,
@@ -57,6 +59,10 @@ router.get('/categories/:slug', getCategoryBySlug);
 router.get('/listings', getListings);
 router.get('/listings/slug/:slug', optionalAuth, getListingBySlug);
 router.get('/listings/:id', optionalAuth, getListingById);
+
+// Admin moderation
+router.get('/admin/listings', authenticate, requireAdmin, getAdminListings);
+router.patch('/admin/listings/:id/status', authenticate, requireAdmin, updateAdminListingStatus);
 
 // Seller routes (business users)
 router.post('/listings', authenticate, requireBusiness, createListing);
