@@ -92,6 +92,20 @@ export default function ForumBookmarks() {
                     </div>
                     <h3 className="font-medium text-gray-900 mt-1 text-base">{thread.title}</h3>
                     <p className="text-sm text-gray-500 mt-1 line-clamp-2">{thread.body}</p>
+                    {thread.images && thread.images.length > 0 && (
+                      <div className="mt-2 flex gap-1.5">
+                        {thread.images.slice(0, 4).map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt=""
+                            className={`h-16 rounded-lg object-cover ${
+                              thread.images.length === 1 ? 'w-28' : 'w-16'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
                       <span className="flex items-center gap-1">
                         <MessageCircle className="w-3.5 h-3.5" />

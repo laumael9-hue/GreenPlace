@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MessageCircle, Flag, Lock, Loader2, Send, Bookmark, Share2, Smile } from 'lucide-react';
+import {
+  MessageCircle, Flag, Lock, Loader2, Send, Bookmark, Share2, Smile,
+  Image as ImageIcon, X, ChevronLeft, ChevronRight,
+} from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
@@ -15,6 +18,133 @@ const REACTIONS = [
   { type: 'insightful', emoji: '\uD83D\uDCA1', label: 'Insightful' },
   { type: 'funny', emoji: '\uD83D\uDE04', label: 'Funny' },
 ];
+
+const MAX_IMAGES = 4;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+function ImageGallery({ images, onOpen, compact = false }) {
+  if (!images || images.length === 0) return null;
+  return (
+    <div className={`mt-3 grid gap-1 rounded-xl overflow-hidden ${
+      images.length === 1 ? 'grid-cols-1 max-w-md' : 'grid-cols-2'
+    }`}>
+      {images.slice(0, MAX_IMAGES).map((url, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); onOpen(i); }}
+          className="group relative"
+        >
+          <img
+            src={url}
+            alt=""
+            className={`w-full object-cover transition-opacity hover:opacity-90 ${
+              compact ? 'h-24' : 'h-40'
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Lightbox({ images, index, onClose, onNavigate }) {
+  if (!images || images.length === 0) return null;
+  return (
+    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={onClose}>
+      <button
+        className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
+        onClick={onClose}
+        title="Close"
+      >
+        <X className="w-6 h-6" />
+      </button>
+      {images.length > 1 && (
+        <>
+          <button
+            className="absolute left-4 text-white/80 hover:text-white p-2"
+            onClick={(e) => { e.stopPropagation(); onNavigate(index - 1); }}
+            title="Previous"
+          >
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+          <button
+            className="absolute right-4 text-white/80 hover:text-white p-2"
+            onClick={(e) => { e.stopPropagation(); onNavigate(index + 1); }}
+            title="Next"
+          >
+            <ChevronRight className="w-8 h-8" />
+          </button>
+        </>
+      )}
+      <img
+        src={images[index]}
+        alt=""
+        className="max-h-[85vh] max-w-[90vw] object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+      <span className="absolute bottom-4 text-white/60 text-sm">
+        {index + 1} / {images.length}
+      </span>
+    </div>
+  );
+}
+
+function ImagePickerButton({ files, onFilesSelected, disabled }) {
+  const inputRef = useRef(null);
+  const full = files.length >= MAX_IMAGES;
+
+  const handleChange = (e) => {
+    const incoming = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (incoming.length > 0) onFilesSelected(incoming);
+  };
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_TYPES.join(',')}
+        multiple
+        onChange={handleChange}
+        className="hidden"
+        disabled={disabled || full}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={disabled || full}
+        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        title={full ? 'Photo limit reached' : 'Add photos'}
+      >
+        <ImageIcon className="w-5 h-5" />
+      </button>
+    </>
+  );
+}
+
+function ImagePreviews({ previews, onRemove }) {
+  if (previews.length === 0) return null;
+  return (
+    <div className="flex gap-2 mb-2">
+      {previews.map((preview, i) => (
+        <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden group">
+          <img src={preview} alt="" className="w-full h-full object-cover" />
+          <button
+            type="button"
+            onClick={() => onRemove(i)}
+            className="absolute top-0.5 right-0.5 w-4 h-4 bg-gray-900/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Remove photo"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function ReactionBar({ reactionCounts, userReaction, onReact }) {
   const [showPicker, setShowPicker] = useState(false);
@@ -76,18 +206,48 @@ function ReactionBar({ reactionCounts, userReaction, onReact }) {
   );
 }
 
-function PostItem({ post, onReact, onReply, onReport }) {
+function PostItem({ post, onReact, onReply, onReport, onOpenLightbox, isAuthenticated }) {
   const [showReply, setShowReply] = useState(false);
   const [replyBody, setReplyBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [replyFiles, setReplyFiles] = useState([]);
+  const [replyPreviews, setReplyPreviews] = useState([]);
+  const [replyError, setReplyError] = useState('');
+
+  const addFiles = (incoming) => {
+    setReplyError('');
+    const remaining = MAX_IMAGES - replyFiles.length;
+    if (incoming.length > remaining) {
+      setReplyError(`Max ${MAX_IMAGES} photos.`);
+      return;
+    }
+    for (const file of incoming) {
+      if (file.size > MAX_IMAGE_SIZE) { setReplyError('Each photo must be under 5MB.'); return; }
+      if (!ACCEPTED_TYPES.includes(file.type)) { setReplyError('Only JPG, PNG, WebP.'); return; }
+    }
+    setReplyFiles(prev => [...prev, ...incoming]);
+    incoming.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => setReplyPreviews(prev => [...prev, reader.result]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removePreview = (index) => {
+    setReplyFiles(prev => prev.filter((_, i) => i !== index));
+    setReplyPreviews(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleReply = async (e) => {
     e.preventDefault();
-    if (!replyBody.trim()) return;
+    if (!replyBody.trim() && replyFiles.length === 0) return;
     setSubmitting(true);
     try {
-      await onReply(replyBody.trim(), post.id);
+      await onReply(replyBody.trim() || '(image)', post.id, replyFiles);
       setReplyBody('');
+      setReplyFiles([]);
+      setReplyPreviews([]);
+      setReplyError('');
       setShowReply(false);
     } finally {
       setSubmitting(false);
@@ -119,6 +279,11 @@ function PostItem({ post, onReact, onReply, onReport }) {
               )}
             </div>
             <div className="mt-1 text-gray-700 whitespace-pre-wrap text-sm">{post.body}</div>
+            <ImageGallery
+              images={post.images}
+              compact
+              onOpen={(i) => onOpenLightbox(post.images, i)}
+            />
             <div className="mt-2">
               <ReactionBar
                 reactionCounts={post.reaction_counts}
@@ -153,22 +318,33 @@ function PostItem({ post, onReact, onReply, onReport }) {
           onReact={onReact}
           onReply={onReply}
           onReport={onReport}
+          onOpenLightbox={onOpenLightbox}
+          isAuthenticated={isAuthenticated}
         />
       ))}
 
-      {showReply && (
-        <form onSubmit={handleReply} className="ml-11 mb-4 flex gap-2">
-          <input
-            type="text"
-            value={replyBody}
-            onChange={(e) => setReplyBody(e.target.value)}
-            placeholder="Write a reply..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            autoFocus
-          />
-          <Button type="submit" size="sm" disabled={submitting || !replyBody.trim()}>
-            <Send className="w-4 h-4" />
-          </Button>
+      {showReply && isAuthenticated && (
+        <form onSubmit={handleReply} className="ml-11 mb-4">
+          <ImagePreviews previews={replyPreviews} onRemove={removePreview} />
+          {replyError && <p className="text-xs text-red-500 mb-1">{replyError}</p>}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={replyBody}
+              onChange={(e) => setReplyBody(e.target.value)}
+              placeholder="Write a reply..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              autoFocus
+            />
+            <ImagePickerButton
+              files={replyFiles}
+              onFilesSelected={addFiles}
+              disabled={submitting}
+            />
+            <Button type="submit" size="sm" disabled={submitting || (!replyBody.trim() && replyFiles.length === 0)}>
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
         </form>
       )}
     </div>
@@ -191,6 +367,10 @@ export default function ForumThread() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [shareToast, setShareToast] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
+  const [rootFiles, setRootFiles] = useState([]);
+  const [rootPreviews, setRootPreviews] = useState([]);
+  const [rootError, setRootError] = useState('');
 
   const fetchThread = useCallback(async () => {
     try {
@@ -229,23 +409,78 @@ export default function ForumThread() {
     }
   };
 
-  const handleReply = async (body, parentId = null) => {
-    await api.post(`/forum/threads/${thread.id}/posts`, { body, parentId });
+  const uploadImages = async (files) => {
+    const urls = [];
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('image', file);
+      const { data } = await api.post('/forum/upload-image', formData);
+      urls.push(data.image_url);
+    }
+    return urls;
+  };
+
+  const addRootFiles = (incoming) => {
+    setRootError('');
+    const remaining = MAX_IMAGES - rootFiles.length;
+    if (incoming.length > remaining) {
+      setRootError(`Max ${MAX_IMAGES} photos.`);
+      return;
+    }
+    for (const file of incoming) {
+      if (file.size > MAX_IMAGE_SIZE) { setRootError('Each photo must be under 5MB.'); return; }
+      if (!ACCEPTED_TYPES.includes(file.type)) { setRootError('Only JPG, PNG, WebP.'); return; }
+    }
+    setRootFiles(prev => [...prev, ...incoming]);
+    incoming.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => setRootPreviews(prev => [...prev, reader.result]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeRootPreview = (index) => {
+    setRootFiles(prev => prev.filter((_, i) => i !== index));
+    setRootPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleReply = async (body, parentId = null, files = []) => {
+    let images = [];
+    if (files.length > 0) {
+      images = await uploadImages(files);
+    }
+    await api.post(`/forum/threads/${thread.id}/posts`, { body, parentId, images });
     fetchThread();
   };
 
   const handleRootReply = async (e) => {
     e.preventDefault();
-    if (!replyBody.trim()) return;
+    if (!replyBody.trim() && rootFiles.length === 0) return;
     setSubmitting(true);
     try {
-      await handleReply(replyBody.trim());
+      await handleReply(replyBody.trim() || '(image)', null, rootFiles);
       setReplyBody('');
+      setRootFiles([]);
+      setRootPreviews([]);
+      setRootError('');
     } catch (err) {
       console.error('Error posting reply:', err);
+      setRootError(err.response?.data?.error || 'Failed to post reply.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const openLightbox = (images, index) => {
+    setLightbox({ images, index });
+  };
+
+  const navigateLightbox = (newIndex) => {
+    setLightbox(prev => {
+      if (!prev) return prev;
+      const len = prev.images.length;
+      return { ...prev, index: ((newIndex % len) + len) % len };
+    });
   };
 
   const handleBookmark = async () => {
@@ -386,6 +621,10 @@ export default function ForumThread() {
           </div>
         </div>
         <div className="mt-4 text-gray-700 whitespace-pre-wrap border-t border-gray-100 pt-4">{thread.body}</div>
+        <ImageGallery
+          images={thread.images}
+          onOpen={(i) => openLightbox(thread.images, i)}
+        />
       </Card>
 
       <div className="flex items-center justify-between">
@@ -402,6 +641,8 @@ export default function ForumThread() {
             onReact={handleReact}
             onReply={handleReply}
             onReport={openReport}
+            onOpenLightbox={openLightbox}
+            isAuthenticated={isAuthenticated}
           />
         ))}
       </div>
@@ -428,6 +669,8 @@ export default function ForumThread() {
         <Card>
           <h3 className="font-medium text-gray-900 mb-3">Post a Reply</h3>
           <form onSubmit={handleRootReply}>
+            <ImagePreviews previews={rootPreviews} onRemove={removeRootPreview} />
+            {rootError && <p className="text-xs text-red-500 mb-1">{rootError}</p>}
             <textarea
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
@@ -435,8 +678,13 @@ export default function ForumThread() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Share your thoughts..."
             />
-            <div className="flex justify-end mt-3">
-              <Button type="submit" disabled={submitting || !replyBody.trim()}>
+            <div className="flex items-center justify-between mt-3">
+              <ImagePickerButton
+                files={rootFiles}
+                onFilesSelected={addRootFiles}
+                disabled={submitting}
+              />
+              <Button type="submit" disabled={submitting || (!replyBody.trim() && rootFiles.length === 0)}>
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
                 Post Reply
               </Button>
@@ -461,6 +709,15 @@ export default function ForumThread() {
             {' '}to join the discussion.
           </p>
         </Card>
+      )}
+
+      {lightbox && (
+        <Lightbox
+          images={lightbox.images}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onNavigate={navigateLightbox}
+        />
       )}
 
       <Modal open={showReport} onClose={() => setShowReport(false)} title="Report Content">

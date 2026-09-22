@@ -2,6 +2,8 @@ const { supabaseAdmin } = require('../config/supabase');
 const crypto = require('crypto');
 
 const VALID_REACTIONS = ['thumbs_up', 'heart', 'celebrate', 'insightful', 'funny'];
+const BUCKET_FORUM = 'forum-images';
+const MAX_IMAGES = 4;
 
 // ============================================================
 // UTILITY: Generate Slug
@@ -17,6 +19,81 @@ const generateSlug = (text) => {
     .slice(0, 200);
   const suffix = crypto.randomBytes(3).toString('hex');
   return `${base}-${suffix}`;
+};
+
+// ============================================================
+// UTILITY: Validate images array from request body
+// Returns { images } on success or { error } on failure
+// ============================================================
+
+const validateImages = (raw) => {
+  if (raw === undefined || raw === null) return { images: [] };
+  let images = raw;
+  if (typeof images === 'string') {
+    try { images = JSON.parse(images); } catch { return { error: 'Invalid images format' }; }
+  }
+  if (!Array.isArray(images)) return { error: 'Images must be an array' };
+  if (images.length > MAX_IMAGES) return { error: `A maximum of ${MAX_IMAGES} images is allowed` };
+  for (const url of images) {
+    if (typeof url !== 'string' || !url.startsWith('http')) {
+      return { error: 'Invalid image URL' };
+    }
+  }
+  return { images };
+};
+
+// ============================================================
+// UTILITY: Remove images from storage (called on delete)
+// ============================================================
+
+const removeStoredImages = async (imageUrls) => {
+  if (!Array.isArray(imageUrls) || imageUrls.length === 0) return;
+  const paths = imageUrls
+    .map(url => {
+      try {
+        const parts = new URL(url).pathname.split('/').filter(Boolean);
+        const idx = parts.indexOf(BUCKET_FORUM);
+        if (idx === -1) return null;
+        return parts.slice(idx + 1).join('/');
+      } catch { return null; }
+    })
+    .filter(Boolean);
+  if (paths.length > 0) {
+    await supabaseAdmin.storage.from(BUCKET_FORUM).remove(paths);
+  }
+};
+
+// ============================================================
+// IMAGE UPLOAD
+// ============================================================
+
+const uploadForumImage = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const file = req.file;
+    const ext = (file.originalname.split('.').pop() || 'jpg').toLowerCase();
+    const filePath = `forum/${userId}/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(BUCKET_FORUM)
+      .upload(filePath, file.buffer, { contentType: file.mimetype, upsert: false });
+
+    if (uploadError) {
+      console.error('Forum image upload error:', uploadError);
+      return res.status(400).json({ error: 'Failed to upload image' });
+    }
+
+    const { data: urlData } = supabaseAdmin.storage.from(BUCKET_FORUM).getPublicUrl(filePath);
+
+    res.status(201).json({ message: 'Image uploaded successfully', image_url: urlData.publicUrl });
+  } catch (err) {
+    console.error('Upload forum image error:', err);
+    res.status(500).json({ error: 'Failed to upload image' });
+  }
 };
 
 // ============================================================
@@ -57,7 +134,7 @@ const getThreads = async (req, res) => {
     let query = supabaseAdmin
       .from('forum_threads')
       .select(`
-        id, title, slug, body, is_pinned, is_locked,
+        id, title, slug, body, images, is_pinned, is_locked,
         view_count, reply_count, last_reply_at, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `, { count: 'exact' });
@@ -118,7 +195,7 @@ const getThreadBySlug = async (req, res) => {
     const { data: thread, error } = await supabaseAdmin
       .from('forum_threads')
       .select(`
-        id, title, slug, body, is_pinned, is_locked,
+        id, title, slug, body, images, is_pinned, is_locked,
         view_count, reply_count, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
@@ -151,7 +228,7 @@ const getThreadBySlug = async (req, res) => {
     const { data: posts, count: postCount } = await supabaseAdmin
       .from('forum_posts')
       .select(`
-        id, body, is_edited, reaction_counts, parent_id, created_at, updated_at,
+        id, body, images, is_edited, reaction_counts, parent_id, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `, { count: 'exact' })
       .eq('thread_id', thread.id)
@@ -165,7 +242,7 @@ const getThreadBySlug = async (req, res) => {
       const { data: children } = await supabaseAdmin
         .from('forum_posts')
         .select(`
-          id, body, is_edited, reaction_counts, parent_id, created_at, updated_at,
+          id, body, images, is_edited, reaction_counts, parent_id, created_at, updated_at,
           author:profiles(id, first_name, last_name, avatar_url)
         `)
         .in('parent_id', rootPostIds)
@@ -229,6 +306,9 @@ const createThread = async (req, res) => {
       return res.status(400).json({ error: 'Body is required' });
     }
 
+    const imgResult = validateImages(req.body.images);
+    if (imgResult.error) return res.status(400).json({ error: imgResult.error });
+
     const slug = generateSlug(title);
 
     const { data: thread, error } = await supabaseAdmin
@@ -238,9 +318,10 @@ const createThread = async (req, res) => {
         title: title.trim(),
         slug,
         body: body.trim(),
+        images: imgResult.images,
       })
       .select(`
-        id, title, slug, body, is_pinned, is_locked,
+        id, title, slug, body, images, is_pinned, is_locked,
         view_count, reply_count, created_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
@@ -282,6 +363,12 @@ const updateThread = async (req, res) => {
     if (title && title.trim()) updates.title = title.trim();
     if (body && body.trim()) updates.body = body.trim();
 
+    if (req.body.images !== undefined) {
+      const imgResult = validateImages(req.body.images);
+      if (imgResult.error) return res.status(400).json({ error: imgResult.error });
+      updates.images = imgResult.images;
+    }
+
     if (updates.title) {
       updates.slug = generateSlug(updates.title);
     }
@@ -291,7 +378,7 @@ const updateThread = async (req, res) => {
       .update(updates)
       .eq('id', id)
       .select(`
-        id, title, slug, body, is_pinned, is_locked,
+        id, title, slug, body, images, is_pinned, is_locked,
         view_count, reply_count, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
@@ -315,7 +402,7 @@ const deleteThread = async (req, res) => {
 
     const { data: thread, error: fetchError } = await supabaseAdmin
       .from('forum_threads')
-      .select('author_id')
+      .select('author_id, images')
       .eq('id', id)
       .single();
 
@@ -335,6 +422,8 @@ const deleteThread = async (req, res) => {
     if (error) {
       return res.status(400).json({ error: 'Failed to delete thread' });
     }
+
+    await removeStoredImages(thread.images);
 
     res.json({ message: 'Thread deleted successfully' });
   } catch (err) {
@@ -356,6 +445,9 @@ const createPost = async (req, res) => {
     if (!body || !body.trim()) {
       return res.status(400).json({ error: 'Body is required' });
     }
+
+    const imgResult = validateImages(req.body.images);
+    if (imgResult.error) return res.status(400).json({ error: imgResult.error });
 
     const { data: thread, error: threadError } = await supabaseAdmin
       .from('forum_threads')
@@ -391,9 +483,10 @@ const createPost = async (req, res) => {
         author_id: userId,
         parent_id: parentId || null,
         body: body.trim(),
+        images: imgResult.images,
       })
       .select(`
-        id, body, is_edited, reaction_counts, parent_id, created_at,
+        id, body, images, is_edited, reaction_counts, parent_id, created_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
       .single();
@@ -443,12 +536,19 @@ const updatePost = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to update this post' });
     }
 
+    const updates = { body: body.trim(), is_edited: true };
+    if (req.body.images !== undefined) {
+      const imgResult = validateImages(req.body.images);
+      if (imgResult.error) return res.status(400).json({ error: imgResult.error });
+      updates.images = imgResult.images;
+    }
+
     const { data: updated, error } = await supabaseAdmin
       .from('forum_posts')
-      .update({ body: body.trim(), is_edited: true })
+      .update(updates)
       .eq('id', id)
       .select(`
-        id, body, is_edited, reaction_counts, parent_id, created_at, updated_at,
+        id, body, images, is_edited, reaction_counts, parent_id, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
       .single();
@@ -471,7 +571,7 @@ const deletePost = async (req, res) => {
 
     const { data: post, error: fetchError } = await supabaseAdmin
       .from('forum_posts')
-      .select('author_id, thread_id')
+      .select('author_id, thread_id, images')
       .eq('id', id)
       .single();
 
@@ -491,6 +591,8 @@ const deletePost = async (req, res) => {
     if (error) {
       return res.status(400).json({ error: 'Failed to delete post' });
     }
+
+    await removeStoredImages(post.images);
 
     const { data: thread } = await supabaseAdmin
       .from('forum_threads')
@@ -630,7 +732,7 @@ const getBookmarkedThreads = async (req, res) => {
       .select(`
         id, created_at,
         thread:forum_threads(
-          id, title, slug, body, is_pinned, is_locked,
+          id, title, slug, body, images, is_pinned, is_locked,
           view_count, reply_count, last_reply_at, created_at,
           author:profiles(id, first_name, last_name, avatar_url)
         )
@@ -680,7 +782,7 @@ const searchForum = async (req, res) => {
     const { data: threads, count: threadCount } = await supabaseAdmin
       .from('forum_threads')
       .select(`
-        id, title, slug, body, view_count, reply_count, created_at,
+        id, title, slug, body, images, view_count, reply_count, created_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `, { count: 'exact' })
       .or(`title.ilike.${searchPattern},body.ilike.${searchPattern}`)
@@ -690,7 +792,7 @@ const searchForum = async (req, res) => {
     const { data: posts, count: postCount } = await supabaseAdmin
       .from('forum_posts')
       .select(`
-        id, body, reaction_counts, created_at,
+        id, body, images, reaction_counts, created_at,
         author:profiles(id, first_name, last_name, avatar_url),
         thread:forum_threads(id, title, slug)
       `, { count: 'exact' })
@@ -843,6 +945,12 @@ const moderatePost = async (req, res) => {
     }
 
     if (action === 'delete') {
+      const { data: fullPost } = await supabaseAdmin
+        .from('forum_posts')
+        .select('images')
+        .eq('id', id)
+        .single();
+
       const { error } = await supabaseAdmin
         .from('forum_posts')
         .delete()
@@ -851,6 +959,8 @@ const moderatePost = async (req, res) => {
       if (error) {
         return res.status(400).json({ error: 'Failed to delete post' });
       }
+
+      await removeStoredImages(fullPost?.images);
 
       const { data: thread } = await supabaseAdmin
         .from('forum_threads')
@@ -909,7 +1019,7 @@ const getReports = async (req, res) => {
         const { data } = await supabaseAdmin
           .from('forum_posts')
           .select(`
-            id, body, created_at,
+            id, body, images, created_at,
             author:profiles(id, first_name, last_name),
             thread:forum_threads(id, title, slug)
           `)
@@ -979,6 +1089,7 @@ const resolveReport = async (req, res) => {
 };
 
 module.exports = {
+  uploadForumImage,
   getThreads,
   getThreadBySlug,
   createThread,

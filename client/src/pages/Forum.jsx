@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Clock, TrendingUp, Bookmark, Plus, Loader2, MessageCircle, Share2 } from 'lucide-react';
+import { Search, Clock, TrendingUp, Bookmark, Plus, Loader2, MessageCircle, Share2, Image as ImageIcon, X } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
@@ -13,6 +13,9 @@ const SORT_TABS = [
   { value: 'trending', label: 'Trending', icon: TrendingUp },
   { value: 'popular', label: 'Top', icon: TrendingUp },
 ];
+
+const MAX_IMAGES = 4;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function getReactionSummary(reactionCounts) {
   if (!reactionCounts || typeof reactionCounts !== 'object') return 0;
@@ -47,6 +50,20 @@ function PostCard({ thread }) {
             </div>
             <h3 className="font-medium text-gray-900 mt-1 text-base">{thread.title}</h3>
             <p className="text-sm text-gray-500 mt-1 line-clamp-2">{thread.body}</p>
+            {thread.images && thread.images.length > 0 && (
+              <div className={`mt-2 grid gap-1 rounded-xl overflow-hidden ${
+                thread.images.length === 1 ? 'grid-cols-1 max-w-sm' : 'grid-cols-2'
+              }`}>
+                {thread.images.slice(0, 4).map((url, i) => (
+                  <img
+                    key={i}
+                    src={url}
+                    alt=""
+                    className="w-full h-32 object-cover"
+                  />
+                ))}
+              </div>
+            )}
             <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
               <span className="flex items-center gap-1">
                 <MessageCircle className="w-3.5 h-3.5" />
@@ -79,6 +96,11 @@ export default function Forum() {
   const [showNewThread, setShowNewThread] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newBody, setNewBody] = useState('');
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const fileInputRef = useRef(null);
   const [submitting, setSubmitting] = useState(false);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
@@ -105,22 +127,84 @@ export default function Forum() {
     }
   };
 
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (files.length === 0) return;
+    setImageError('');
+
+    const remaining = MAX_IMAGES - imageFiles.length;
+    if (files.length > remaining) {
+      setImageError(`You can only add ${MAX_IMAGES} photos.`);
+      return;
+    }
+
+    for (const file of files) {
+      if (file.size > MAX_IMAGE_SIZE) {
+        setImageError('Each photo must be less than 5MB.');
+        return;
+      }
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+        setImageError('Only JPG, PNG, and WebP are allowed.');
+        return;
+      }
+    }
+
+    setImageFiles(prev => [...prev, ...files]);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreviews(prev => [...prev, reader.result]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setImageError('');
+  };
+
+  const closeNewThreadModal = () => {
+    setShowNewThread(false);
+    setImageFiles([]);
+    setImagePreviews([]);
+    setImageError('');
+  };
+
   const handleCreateThread = async (e) => {
     e.preventDefault();
     if (!newTitle.trim() || !newBody.trim()) return;
     setSubmitting(true);
     try {
+      let uploadedUrls = [];
+      if (imageFiles.length > 0) {
+        setUploadingImages(true);
+        for (const file of imageFiles) {
+          const formData = new FormData();
+          formData.append('image', file);
+          const { data } = await api.post('/forum/upload-image', formData);
+          uploadedUrls.push(data.image_url);
+        }
+        setUploadingImages(false);
+      }
+
       const { data } = await api.post('/forum/threads', {
         title: newTitle.trim(),
         body: newBody.trim(),
+        images: uploadedUrls,
       });
       setNewTitle('');
       setNewBody('');
+      setImageFiles([]);
+      setImagePreviews([]);
+      setImageError('');
       setShowNewThread(false);
       navigate(`/forum/thread/${data.thread.slug}`);
     } catch (err) {
       console.error('Error creating thread:', err);
+      setImageError(err.response?.data?.error || 'Failed to create post.');
     } finally {
+      setUploadingImages(false);
       setSubmitting(false);
     }
   };
@@ -235,7 +319,7 @@ export default function Forum() {
       )}
 
       {/* New Thread Modal */}
-      <Modal open={showNewThread} onClose={() => setShowNewThread(false)} title="New Post">
+      <Modal open={showNewThread} onClose={closeNewThreadModal} title="New Post">
         <form onSubmit={handleCreateThread} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
@@ -259,11 +343,59 @@ export default function Forum() {
               required
             />
           </div>
+
+          {/* Photo previews */}
+          {imagePreviews.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {imagePreviews.map((preview, i) => (
+                <div key={i} className="relative aspect-square rounded-lg overflow-hidden group">
+                  <img src={preview} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-1 right-1 w-5 h-5 bg-gray-900/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove photo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {imageError && (
+            <p className="text-xs text-red-500">{imageError}</p>
+          )}
+
+          {/* Photo picker */}
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              multiple
+              onChange={handleImageSelect}
+              className="hidden"
+              disabled={imageFiles.length >= MAX_IMAGES}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={imageFiles.length >= MAX_IMAGES}
+              className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
+              <ImageIcon className="w-4 h-4" />
+              {imageFiles.length >= MAX_IMAGES
+                ? 'Photo limit reached'
+                : `Add photos (${imageFiles.length}/${MAX_IMAGES})`}
+            </button>
+          </div>
+
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => setShowNewThread(false)}>Cancel</Button>
-            <Button type="submit" disabled={submitting || !newTitle.trim() || !newBody.trim()}>
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Post
+            <Button type="button" variant="outline" onClick={closeNewThreadModal}>Cancel</Button>
+            <Button type="submit" disabled={submitting || uploadingImages || !newTitle.trim() || !newBody.trim()}>
+              {submitting || uploadingImages ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {uploadingImages ? 'Uploading…' : 'Post'}
             </Button>
           </div>
         </form>
