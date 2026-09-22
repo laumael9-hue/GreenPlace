@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Clock, TrendingUp, Bookmark, Plus, Loader2, MessageCircle, Share2, Image as ImageIcon, X } from 'lucide-react';
+import { Search, Clock, TrendingUp, Bookmark, Plus, Loader2, MessageCircle, Share2, Image as ImageIcon, X, Megaphone } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
@@ -27,7 +27,9 @@ function PostCard({ thread }) {
 
   return (
     <Link to={`/forum/thread/${thread.slug}`}>
-      <Card className="hover:shadow-md transition-all cursor-pointer">
+      <Card className={`hover:shadow-md transition-all cursor-pointer ${
+        thread.is_announcement ? 'border-red-200 bg-red-50/40' : ''
+      }`}>
         <div className="flex items-start gap-3">
           <Avatar
             src={thread.author?.avatar_url}
@@ -44,6 +46,12 @@ function PostCard({ thread }) {
                   month: 'short', day: 'numeric',
                 })}
               </span>
+              {thread.is_announcement && (
+                <span className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                  <Megaphone className="w-3 h-3" />
+                  Announcement
+                </span>
+              )}
               {thread.is_pinned && (
                 <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">Pinned</span>
               )}
@@ -88,7 +96,7 @@ function PostCard({ thread }) {
 }
 
 export default function Forum() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, role } = useAuth();
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -96,6 +104,7 @@ export default function Forum() {
   const [showNewThread, setShowNewThread] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newBody, setNewBody] = useState('');
+  const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -169,6 +178,7 @@ export default function Forum() {
     setImageFiles([]);
     setImagePreviews([]);
     setImageError('');
+    setIsAnnouncement(false);
   };
 
   const handleCreateThread = async (e) => {
@@ -192,12 +202,14 @@ export default function Forum() {
         title: newTitle.trim(),
         body: newBody.trim(),
         images: uploadedUrls,
+        ...(role === 'admin' && isAnnouncement ? { isAnnouncement: true } : {}),
       });
       setNewTitle('');
       setNewBody('');
       setImageFiles([]);
       setImagePreviews([]);
       setImageError('');
+      setIsAnnouncement(false);
       setShowNewThread(false);
       navigate(`/forum/thread/${data.thread.slug}`);
     } catch (err) {
@@ -319,7 +331,7 @@ export default function Forum() {
       )}
 
       {/* New Thread Modal */}
-      <Modal open={showNewThread} onClose={closeNewThreadModal} title="New Post">
+      <Modal open={showNewThread} onClose={closeNewThreadModal} title={role === 'admin' && isAnnouncement ? 'New Announcement' : 'New Post'}>
         <form onSubmit={handleCreateThread} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
@@ -365,6 +377,23 @@ export default function Forum() {
 
           {imageError && (
             <p className="text-xs text-red-500">{imageError}</p>
+          )}
+
+          {/* Admin announcement toggle */}
+          {role === 'admin' && (
+            <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+              <input
+                type="checkbox"
+                checked={isAnnouncement}
+                onChange={(e) => setIsAnnouncement(e.target.checked)}
+                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+              />
+              <span className="flex items-center gap-2 text-sm">
+                <Megaphone className="w-4 h-4 text-red-500" />
+                <span className="font-medium text-gray-700">Post as announcement</span>
+                <span className="text-gray-400">— shown at the top of the feed</span>
+              </span>
+            </label>
           )}
 
           {/* Photo picker */}

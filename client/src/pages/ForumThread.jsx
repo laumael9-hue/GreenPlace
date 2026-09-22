@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   MessageCircle, Flag, Lock, Loader2, Send, Bookmark, Share2, Smile,
-  Image as ImageIcon, X, ChevronLeft, ChevronRight,
+  Image as ImageIcon, X, ChevronLeft, ChevronRight, Megaphone,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -562,7 +562,7 @@ export default function ForumThread() {
         <span className="text-gray-900 font-medium truncate">{thread.title}</span>
       </div>
 
-      <Card>
+      <Card className={thread.is_announcement ? 'border-red-200 bg-red-50/40' : ''}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <Avatar
@@ -572,6 +572,11 @@ export default function ForumThread() {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
+                {thread.is_announcement && (
+                  <span className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                    <Megaphone className="w-3 h-3" />Announcement
+                  </span>
+                )}
                 {thread.is_pinned && (
                   <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2 py-0.5 rounded">Pinned</span>
                 )}

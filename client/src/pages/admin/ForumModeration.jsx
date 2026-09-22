@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  MessageCircle, Flag, Eye, Pin, Lock, Unlock, Loader2, ChevronLeft, ChevronRight,
+  MessageCircle, Flag, Eye, Pin, Lock, Unlock, Loader2, ChevronLeft, ChevronRight, Megaphone,
 } from 'lucide-react';
 import api from '../../lib/api';
 import Card from '../../components/ui/Card';
@@ -104,6 +104,9 @@ export default function ForumModeration() {
       } else if (action === 'lock') {
         const thread = threads.find(t => t.id === threadId);
         await api.put(`/forum/threads/${threadId}/moderate`, { isLocked: !thread?.is_locked });
+      } else if (action === 'announce') {
+        const thread = threads.find(t => t.id === threadId);
+        await api.put(`/forum/threads/${threadId}/moderate`, { isAnnouncement: !thread?.is_announcement });
       }
       fetchThreads(threadPagination.page);
     } catch (err) {
@@ -271,6 +274,9 @@ export default function ForumModeration() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {thread.is_announcement && (
+                          <Badge variant="danger">Announcement</Badge>
+                        )}
                         {thread.is_pinned && (
                           <Badge variant="info">Pinned</Badge>
                         )}
@@ -289,6 +295,18 @@ export default function ForumModeration() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleModerateThread(thread.id, 'announce')}
+                        disabled={actionLoading}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          thread.is_announcement
+                            ? 'bg-red-100 text-red-700'
+                            : 'text-gray-400 hover:bg-gray-100'
+                        }`}
+                        title={thread.is_announcement ? 'Remove announcement' : 'Mark as announcement'}
+                      >
+                        <Megaphone className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleModerateThread(thread.id, 'pin')}
                         disabled={actionLoading}

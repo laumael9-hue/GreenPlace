@@ -134,7 +134,7 @@ const getThreads = async (req, res) => {
     let query = supabaseAdmin
       .from('forum_threads')
       .select(`
-        id, title, slug, body, images, is_pinned, is_locked,
+        id, title, slug, body, images, is_pinned, is_locked, is_announcement,
         view_count, reply_count, last_reply_at, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `, { count: 'exact' });
@@ -163,6 +163,7 @@ const getThreads = async (req, res) => {
     }
 
     const { data: threads, count, error } = await query
+      .order('is_announcement', { ascending: false })
       .order('is_pinned', { ascending: false })
       .order(orderColumn, { ascending: orderAsc })
       .range(offset, offset + parseInt(limit) - 1);
@@ -195,7 +196,7 @@ const getThreadBySlug = async (req, res) => {
     const { data: thread, error } = await supabaseAdmin
       .from('forum_threads')
       .select(`
-        id, title, slug, body, images, is_pinned, is_locked,
+        id, title, slug, body, images, is_pinned, is_locked, is_announcement,
         view_count, reply_count, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
@@ -297,7 +298,7 @@ const getThreadBySlug = async (req, res) => {
 const createThread = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { title, body } = req.body;
+    const { title, body, isAnnouncement } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
@@ -305,6 +306,8 @@ const createThread = async (req, res) => {
     if (!body || !body.trim()) {
       return res.status(400).json({ error: 'Body is required' });
     }
+
+    const isAdmin = req.user.profile?.role === 'admin';
 
     const imgResult = validateImages(req.body.images);
     if (imgResult.error) return res.status(400).json({ error: imgResult.error });
@@ -319,9 +322,10 @@ const createThread = async (req, res) => {
         slug,
         body: body.trim(),
         images: imgResult.images,
+        is_announcement: isAdmin && isAnnouncement === true,
       })
       .select(`
-        id, title, slug, body, images, is_pinned, is_locked,
+        id, title, slug, body, images, is_pinned, is_locked, is_announcement,
         view_count, reply_count, created_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
@@ -378,7 +382,7 @@ const updateThread = async (req, res) => {
       .update(updates)
       .eq('id', id)
       .select(`
-        id, title, slug, body, images, is_pinned, is_locked,
+        id, title, slug, body, images, is_pinned, is_locked, is_announcement,
         view_count, reply_count, created_at, updated_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
@@ -732,7 +736,7 @@ const getBookmarkedThreads = async (req, res) => {
       .select(`
         id, created_at,
         thread:forum_threads(
-          id, title, slug, body, images, is_pinned, is_locked,
+          id, title, slug, body, images, is_pinned, is_locked, is_announcement,
           view_count, reply_count, last_reply_at, created_at,
           author:profiles(id, first_name, last_name, avatar_url)
         )
@@ -782,7 +786,8 @@ const searchForum = async (req, res) => {
     const { data: threads, count: threadCount } = await supabaseAdmin
       .from('forum_threads')
       .select(`
-        id, title, slug, body, images, view_count, reply_count, created_at,
+        id, title, slug, body, images, is_pinned, is_locked, is_announcement,
+        view_count, reply_count, created_at,
         author:profiles(id, first_name, last_name, avatar_url)
       `, { count: 'exact' })
       .or(`title.ilike.${searchPattern},body.ilike.${searchPattern}`)
@@ -888,7 +893,7 @@ const reportContent = async (req, res) => {
 const moderateThread = async (req, res) => {
   try {
     const { id } = req.params;
-    const { isPinned, isLocked } = req.body;
+    const { isPinned, isLocked, isAnnouncement } = req.body;
 
     const { data: thread, error: fetchError } = await supabaseAdmin
       .from('forum_threads')
@@ -903,6 +908,7 @@ const moderateThread = async (req, res) => {
     const updates = {};
     if (typeof isPinned === 'boolean') updates.is_pinned = isPinned;
     if (typeof isLocked === 'boolean') updates.is_locked = isLocked;
+    if (typeof isAnnouncement === 'boolean') updates.is_announcement = isAnnouncement;
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ error: 'No moderation action provided' });
@@ -913,7 +919,7 @@ const moderateThread = async (req, res) => {
       .update(updates)
       .eq('id', id)
       .select(`
-        id, title, slug, is_pinned, is_locked,
+        id, title, slug, is_pinned, is_locked, is_announcement,
         author:profiles(id, first_name, last_name, avatar_url)
       `)
       .single();
