@@ -1204,10 +1204,106 @@ const getReports = async (req, res) => {
   }
 };
 
+const logModerationAudit = async (adminId, action, targetType, targetId, details = {}) => {
+  try {
+    await supabaseAdmin.from('admin_audit_log').insert({
+      admin_id: adminId,
+      action,
+      target_id: targetId,
+      target_type: targetType,
+      details,
+    });
+  } catch (err) {
+    console.error('Moderation audit log error:', err);
+  }
+};
+
+const CONTENT_ACTIONS = {
+  post: ['none', 'remove'],
+  thread: ['none', 'lock', 'remove'],
+  listing: ['none', 'archive'],
+};
+
+const executeContentAction = async (targetType, targetId, action) => {
+  if (action === 'remove' && targetType === 'post') {
+    const { data: post } = await supabaseAdmin
+      .from('forum_posts')
+      .select('id, thread_id, images')
+      .eq('id', targetId)
+      .single();
+
+    if (post) {
+      const { error } = await supabaseAdmin
+        .from('forum_posts')
+        .delete()
+        .eq('id', targetId);
+      if (error) throw new Error('Failed to remove post');
+
+      await removeStoredImages(post.images);
+
+      const { data: thread } = await supabaseAdmin
+        .from('forum_threads')
+        .select('reply_count')
+        .eq('id', post.thread_id)
+        .single();
+
+      if (thread && thread.reply_count > 0) {
+        await supabaseAdmin
+          .from('forum_threads')
+          .update({ reply_count: thread.reply_count - 1 })
+          .eq('id', post.thread_id);
+      }
+    }
+    return;
+  }
+
+  if (targetType === 'thread') {
+    if (action === 'lock') {
+      const { error } = await supabaseAdmin
+        .from('forum_threads')
+        .update({ is_locked: true })
+        .eq('id', targetId);
+      if (error) throw new Error('Failed to lock thread');
+    } else if (action === 'remove') {
+      const { data: thread } = await supabaseAdmin
+        .from('forum_threads')
+        .select('id, images')
+        .eq('id', targetId)
+        .single();
+
+      if (thread) {
+        const { error } = await supabaseAdmin
+          .from('forum_threads')
+          .delete()
+          .eq('id', targetId);
+        if (error) throw new Error('Failed to remove thread');
+        await removeStoredImages(thread.images);
+      }
+    }
+    return;
+  }
+
+  if (targetType === 'listing' && action === 'archive') {
+    const { data: listing } = await supabaseAdmin
+      .from('listings')
+      .select('id, status')
+      .eq('id', targetId)
+      .single();
+
+    if (listing && listing.status !== 'archived') {
+      const { error } = await supabaseAdmin
+        .from('listings')
+        .update({ status: 'archived' })
+        .eq('id', targetId);
+      if (error) throw new Error('Failed to archive listing');
+    }
+  }
+};
+
 const resolveReport = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, resolutionNote } = req.body;
+    const { status, resolutionNote, contentAction = 'none' } = req.body;
 
     const validStatuses = ['reviewed', 'resolved', 'dismissed'];
     if (!status || !validStatuses.includes(status)) {
@@ -1216,12 +1312,44 @@ const resolveReport = async (req, res) => {
 
     const { data: report, error: fetchError } = await supabaseAdmin
       .from('reports')
-      .select('id')
+      .select('id, target_type, target_id')
       .eq('id', id)
       .single();
 
     if (fetchError || !report) {
       return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const allowedActions = CONTENT_ACTIONS[report.target_type] || ['none'];
+    if (!allowedActions.includes(contentAction)) {
+      return res.status(400).json({ error: 'Invalid content action for this report type' });
+    }
+
+    if (contentAction !== 'none' && status !== 'resolved') {
+      return res.status(400).json({ error: 'Content action only applies when resolving' });
+    }
+
+    if (contentAction !== 'none') {
+      try {
+        await executeContentAction(report.target_type, report.target_id, contentAction);
+      } catch (actionErr) {
+        console.error('Content action error:', actionErr);
+        return res.status(400).json({ error: actionErr.message || 'Failed to apply content action' });
+      }
+
+      const auditActions = {
+        'post:remove': 'remove_post',
+        'thread:lock': 'lock_thread',
+        'thread:remove': 'remove_thread',
+        'listing:archive': 'archive_listing',
+      };
+      await logModerationAudit(
+        req.user.id,
+        auditActions[`${report.target_type}:${contentAction}`] || `${contentAction}_${report.target_type}`,
+        report.target_type,
+        report.target_id,
+        { report_id: report.id, resolution_note: resolutionNote || null }
+      );
     }
 
     const { data: updated, error } = await supabaseAdmin
@@ -1240,7 +1368,25 @@ const resolveReport = async (req, res) => {
       return res.status(400).json({ error: 'Failed to resolve report' });
     }
 
-    res.json({ report: updated });
+    let autoResolved = 0;
+    if (contentAction === 'remove' || contentAction === 'archive') {
+      const { data: siblings } = await supabaseAdmin
+        .from('reports')
+        .update({
+          status: 'resolved',
+          resolution_note: 'Content action taken',
+          reviewed_by: req.user.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('target_type', report.target_type)
+        .eq('target_id', report.target_id)
+        .eq('status', 'pending')
+        .neq('id', id)
+        .select('id');
+      autoResolved = (siblings || []).length;
+    }
+
+    res.json({ report: updated, auto_resolved: autoResolved });
   } catch (err) {
     console.error('Resolve report error:', err);
     res.status(500).json({ error: 'Failed to resolve report' });

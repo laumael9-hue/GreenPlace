@@ -30,7 +30,9 @@ export default function ForumModeration() {
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [resolveStatus, setResolveStatus] = useState('resolved');
+  const [resolveAction, setResolveAction] = useState('none');
   const [resolveNote, setResolveNote] = useState('');
+  const [resolveError, setResolveError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchReports = useCallback(async (page = 1) => {
@@ -80,20 +82,40 @@ export default function ForumModeration() {
     e.preventDefault();
     if (!selectedReport) return;
     setActionLoading(true);
+    setResolveError('');
     try {
       await api.put(`/forum/admin/reports/${selectedReport.id}`, {
         status: resolveStatus,
+        contentAction: resolveStatus === 'resolved' ? resolveAction : 'none',
         resolutionNote: resolveNote.trim() || undefined,
       });
       setShowResolveModal(false);
       setSelectedReport(null);
       setResolveNote('');
+      setResolveAction('none');
       fetchReports(reportPagination.page);
     } catch (err) {
       console.error('Failed to resolve report:', err);
+      setResolveError(err?.response?.data?.error || 'Failed to resolve report. Please try again.');
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const contentActionOptions = {
+    post: [
+      { value: 'none', label: 'No content action' },
+      { value: 'remove', label: 'Remove post (permanent)', danger: true },
+    ],
+    thread: [
+      { value: 'none', label: 'No content action' },
+      { value: 'lock', label: 'Lock thread (keep visible)' },
+      { value: 'remove', label: 'Remove thread (permanent)', danger: true },
+    ],
+    listing: [
+      { value: 'none', label: 'No content action' },
+      { value: 'archive', label: 'Archive listing (hidden, restorable)' },
+    ],
   };
 
   const handleModerateThread = async (threadId, action) => {
@@ -204,7 +226,7 @@ export default function ForumModeration() {
                       {report.description && (
                         <p className="mt-1 text-sm text-gray-600">{report.description}</p>
                       )}
-                      {report.target && (
+                      {report.target ? (
                         <>
                           {report.target_type === 'listing' ? (
                             <>
@@ -233,6 +255,10 @@ export default function ForumModeration() {
                             </>
                           )}
                         </>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">
+                          Content no longer exists (previously removed).
+                        </p>
                       )}
                       {report.resolution_note && (
                         <div className="mt-2 p-3 bg-green-50 rounded-lg">
@@ -244,7 +270,14 @@ export default function ForumModeration() {
                     {report.status === 'pending' && (
                       <Button
                         size="sm"
-                        onClick={() => { setSelectedReport(report); setShowResolveModal(true); }}
+                        onClick={() => {
+                          setSelectedReport(report);
+                          setResolveStatus('resolved');
+                          setResolveAction('none');
+                          setResolveNote('');
+                          setResolveError('');
+                          setShowResolveModal(true);
+                        }}
                       >
                         Review
                       </Button>
@@ -391,17 +424,55 @@ export default function ForumModeration() {
 
       <Modal open={showResolveModal} onClose={() => setShowResolveModal(false)} title="Resolve Report">
         <form onSubmit={handleResolve} className="space-y-4">
+          {resolveError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {resolveError}
+            </p>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
             <select
               value={resolveStatus}
-              onChange={(e) => setResolveStatus(e.target.value)}
+              onChange={(e) => {
+                setResolveStatus(e.target.value);
+                if (e.target.value !== 'resolved') setResolveAction('none');
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
             >
               <option value="reviewed">Mark as Reviewed</option>
               <option value="resolved">Resolve</option>
               <option value="dismissed">Dismiss</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Content Action</label>
+            <select
+              value={resolveStatus === 'resolved' ? resolveAction : 'none'}
+              onChange={(e) => setResolveAction(e.target.value)}
+              disabled={resolveStatus !== 'resolved'}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
+            >
+              {(contentActionOptions[selectedReport?.target_type] || contentActionOptions.post).map((opt) => (
+                <option key={opt.value} value={opt.value} className={opt.danger ? 'text-red-600' : ''}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {resolveStatus === 'resolved' && resolveAction === 'remove' && (
+              <p className="mt-1.5 text-xs text-red-600">
+                This permanently deletes the content. Other pending reports on it will be auto-resolved.
+              </p>
+            )}
+            {resolveStatus === 'resolved' && resolveAction === 'archive' && (
+              <p className="mt-1.5 text-xs text-orange-600">
+                The listing will be hidden from the marketplace (restorable). Other pending reports on it will be auto-resolved.
+              </p>
+            )}
+            {resolveStatus === 'resolved' && resolveAction === 'lock' && (
+              <p className="mt-1.5 text-xs text-gray-500">
+                The thread stays visible but no new replies can be posted.
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Resolution Note (optional)</label>
@@ -415,7 +486,11 @@ export default function ForumModeration() {
           </div>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => setShowResolveModal(false)}>Cancel</Button>
-            <Button type="submit" disabled={actionLoading}>
+            <Button
+              type="submit"
+              variant={resolveStatus === 'resolved' && resolveAction !== 'none' ? 'danger' : 'primary'}
+              disabled={actionLoading}
+            >
               {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Submit
             </Button>
