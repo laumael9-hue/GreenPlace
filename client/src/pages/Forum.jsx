@@ -19,6 +19,8 @@ const MAX_IMAGES = 4;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function PostCard({ thread, onReact, onReport }) {
+  const { user } = useAuth();
+  const isOwnThread = !!user && thread.author?.id === user.id;
   return (
     <Link to={`/forum/thread/${thread.slug}`}>
       <Card className={`hover:shadow-md transition-all cursor-pointer ${
@@ -82,18 +84,20 @@ function PostCard({ thread, onReact, onReport }) {
                 <Share2 className="w-3.5 h-3.5" />
                 Share
               </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onReport(thread.id);
-                }}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
-              >
-                <Flag className="w-3.5 h-3.5" />
-                Report
-              </button>
+              {!isOwnThread && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onReport(thread.id);
+                  }}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                  Report
+                </button>
+              )}
             </div>
           </div>
         </div>

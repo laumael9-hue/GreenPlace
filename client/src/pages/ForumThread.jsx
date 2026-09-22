@@ -140,6 +140,7 @@ function ImagePreviews({ previews, onRemove }) {
 }
 
 function PostItem({ post, onReact, onReply, onReport, onOpenLightbox, isAuthenticated }) {
+  const { user } = useAuth();
   const [showReply, setShowReply] = useState(false);
   const [replyBody, setReplyBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -232,13 +233,15 @@ function PostItem({ post, onReact, onReply, onReport, onOpenLightbox, isAuthenti
                 <MessageCircle className="w-4 h-4" />
                 Reply
               </button>
-              <button
-                onClick={() => onReport(post.id, 'post')}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
-              >
-                <Flag className="w-4 h-4" />
-                Report
-              </button>
+              {(!user || post.author?.id !== user.id) && (
+                <button
+                  onClick={() => onReport(post.id, 'post')}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                >
+                  <Flag className="w-4 h-4" />
+                  Report
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -286,7 +289,7 @@ function PostItem({ post, onReact, onReply, onReport, onOpenLightbox, isAuthenti
 
 export default function ForumThread() {
   const { slug } = useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [thread, setThread] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -591,13 +594,15 @@ export default function ForumThread() {
                 </span>
               )}
             </button>
-            <button
-              onClick={() => openReport(thread.id, 'thread')}
-              className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
-              title="Report"
-            >
-              <Flag className="w-5 h-5" />
-            </button>
+            {thread && (!user || thread.author?.id !== user.id) && (
+              <button
+                onClick={() => openReport(thread.id, 'thread')}
+                className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+                title="Report"
+              >
+                <Flag className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
         <div className="mt-4 text-gray-700 whitespace-pre-wrap border-t border-gray-100 pt-4">{thread.body}</div>
