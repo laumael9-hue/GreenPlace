@@ -58,6 +58,7 @@ function App() {
         <Route path="/forum" element={<Forum />} />
         <Route path="/forum/search" element={<Forum />} />
         <Route path="/forum/thread/:slug" element={<ForumThread />} />
+        <Route path="/bookmarks" element={<ProtectedRoute><ForumBookmarks /></ProtectedRoute>} />
       </Route>
 
       {/* Dashboard pages — sidebar layout (must come before MainLayout catch-all) */}
@@ -103,7 +104,6 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-        <Route path="/bookmarks" element={<ProtectedRoute><ForumBookmarks /></ProtectedRoute>} />
         <Route path="/orders/:id/success" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
         <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
         <Route path="/payment/failed" element={<ProtectedRoute><PaymentFailed /></ProtectedRoute>} />

@@ -3,7 +3,7 @@ import { Leaf } from 'lucide-react';
 import {
   LayoutDashboard, MapPin, ShoppingBag, ClipboardList,
   Package, MessageCircle, User, Building2, List,
-  Clock, Star, BarChart3, Users, FileText, Settings, Shield
+  Clock, Star, BarChart3, Users, FileText, Settings, Shield, Bookmark
 } from 'lucide-react';
 import NavItem from './NavItem';
 
@@ -14,6 +14,7 @@ const residentNav = [
   { to: '/orders', icon: <ClipboardList className="w-5 h-5" />, label: 'My Orders' },
   { to: '/drop-offs', icon: <Package className="w-5 h-5" />, label: 'Drop-offs' },
   { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
+  { to: '/bookmarks', icon: <Bookmark className="w-5 h-5" />, label: 'Saved Posts' },
   { to: '/profile', icon: <User className="w-5 h-5" />, label: 'Profile' },
 ];
 
@@ -25,6 +26,7 @@ const businessNav = [
   { to: '/dashboard/drop-offs', icon: <Clock className="w-5 h-5" />, label: 'Drop-offs' },
   { to: '/dashboard/reviews', icon: <Star className="w-5 h-5" />, label: 'Reviews' },
   { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
+  { to: '/bookmarks', icon: <Bookmark className="w-5 h-5" />, label: 'Saved Posts' },
   { to: '/dashboard/messages', icon: <MessageCircle className="w-5 h-5" />, label: 'Messages' },
   { to: '/dashboard/analytics', icon: <BarChart3 className="w-5 h-5" />, label: 'Analytics' },
 ];
@@ -35,6 +37,7 @@ const adminNav = [
   { to: '/admin/businesses', icon: <Building2 className="w-5 h-5" />, label: 'Businesses' },
   { to: '/admin/listings', icon: <List className="w-5 h-5" />, label: 'Listings' },
   { to: '/admin/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
+  { to: '/bookmarks', icon: <Bookmark className="w-5 h-5" />, label: 'Saved Posts' },
   { to: '/admin/reports', icon: <FileText className="w-5 h-5" />, label: 'Reports' },
   { to: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings' },
 ];
