@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, Clock, TrendingUp, Bookmark, Plus, Loader2, MessageCircle, Share2, Image as ImageIcon, X, Megaphone } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -114,6 +114,15 @@ export default function Forum() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.newAnnouncement && role === 'admin') {
+      setIsAnnouncement(true);
+      setShowNewThread(true);
+      navigate('/forum', { replace: true, state: null });
+    }
+  }, [location.state, role, navigate]);
 
   const fetchThreads = useCallback(async () => {
     try {
@@ -243,9 +252,20 @@ export default function Forum() {
             </Link>
           )}
           {isAuthenticated ? (
-            <Button onClick={() => setShowNewThread(true)} size="sm">
-              <Plus className="w-4 h-4 mr-1" />New Post
-            </Button>
+            <>
+              {role === 'admin' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setIsAnnouncement(true); setShowNewThread(true); }}
+                >
+                  <Megaphone className="w-4 h-4 mr-1" />New Announcement
+                </Button>
+              )}
+              <Button onClick={() => setShowNewThread(true)} size="sm">
+                <Plus className="w-4 h-4 mr-1" />New Post
+              </Button>
+            </>
           ) : (
             <Link to="/login">
               <Button variant="outline" size="sm">Log in</Button>

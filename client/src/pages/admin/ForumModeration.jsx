@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   MessageCircle, Flag, Eye, Pin, Lock, Unlock, Loader2, ChevronLeft, ChevronRight, Megaphone,
 } from 'lucide-react';
@@ -18,6 +18,7 @@ const reportStatusConfig = {
 };
 
 export default function ForumModeration() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('reports');
   const [reports, setReports] = useState([]);
   const [threads, setThreads] = useState([]);
@@ -118,9 +119,15 @@ export default function ForumModeration() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Forum Moderation</h1>
-        <p className="text-gray-600 mt-1">Manage reports and moderate forum content.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Forum Moderation</h1>
+          <p className="text-gray-600 mt-1">Manage reports and moderate forum content.</p>
+        </div>
+        <Button onClick={() => navigate('/forum', { state: { newAnnouncement: true } })}>
+          <Megaphone className="w-4 h-4 mr-1.5" />
+          New Announcement
+        </Button>
       </div>
 
       <div className="flex gap-1 border-b border-gray-200">
