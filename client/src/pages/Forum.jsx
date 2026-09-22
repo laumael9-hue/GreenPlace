@@ -7,6 +7,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
+import ReactionBar from '../components/ui/ReactionBar';
 
 const SORT_TABS = [
   { value: 'newest', label: 'New', icon: Clock },
@@ -17,14 +18,7 @@ const SORT_TABS = [
 const MAX_IMAGES = 4;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-function getReactionSummary(reactionCounts) {
-  if (!reactionCounts || typeof reactionCounts !== 'object') return 0;
-  return Object.values(reactionCounts).reduce((sum, c) => sum + c, 0);
-}
-
-function PostCard({ thread }) {
-  const totalReactions = getReactionSummary(thread.reaction_counts);
-
+function PostCard({ thread, onReact }) {
   return (
     <Link to={`/forum/thread/${thread.slug}`}>
       <Card className={`hover:shadow-md transition-all cursor-pointer ${
@@ -72,17 +66,18 @@ function PostCard({ thread }) {
                 ))}
               </div>
             )}
+            <div className="mt-3">
+              <ReactionBar
+                reactionCounts={thread.reaction_counts}
+                userReaction={thread.userReaction}
+                onReact={(type) => onReact(thread.id, type)}
+              />
+            </div>
             <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
               <span className="flex items-center gap-1">
                 <MessageCircle className="w-3.5 h-3.5" />
                 {thread.reply_count || 0}
               </span>
-              {totalReactions > 0 && (
-                <span className="flex items-center gap-1">
-                  <span className="text-sm leading-none">+</span>
-                  {totalReactions}
-                </span>
-              )}
               <span className="flex items-center gap-1">
                 <Share2 className="w-3.5 h-3.5" />
                 Share
@@ -137,6 +132,23 @@ export default function Forum() {
   }, [sortBy, page]);
 
   useEffect(() => { fetchThreads(); }, [fetchThreads]);
+
+  const handleThreadReact = async (threadId, type) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const { data } = await api.post(`/forum/threads/${threadId}/reaction`, { type });
+      setThreads(prev => prev.map(t => (
+        t.id === threadId
+          ? { ...t, reaction_counts: data.reactionCounts, userReaction: data.reacted ? type : null }
+          : t
+      )));
+    } catch (err) {
+      console.error('Error reacting:', err);
+    }
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -332,7 +344,7 @@ export default function Forum() {
       ) : (
         <div className="space-y-4">
           {threads.map((thread) => (
-            <PostCard key={thread.id} thread={thread} />
+            <PostCard key={thread.id} thread={thread} onReact={handleThreadReact} />
           ))}
         </div>
       )}

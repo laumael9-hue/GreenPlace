@@ -14,6 +14,7 @@ const {
   updatePost,
   deletePost,
   toggleReaction,
+  toggleThreadReaction,
   toggleBookmark,
   getBookmarkedThreads,
   searchForum,
@@ -51,7 +52,7 @@ const handleMulterError = (err, req, res, next) => {
 };
 
 // Public routes
-router.get('/threads', getThreads);
+router.get('/threads', optionalAuth, getThreads);
 router.get('/threads/:slug', optionalAuth, getThreadBySlug);
 router.get('/search', searchForum);
 
@@ -61,6 +62,7 @@ router.post('/threads', authenticate, createThread);
 router.put('/threads/:id', authenticate, updateThread);
 router.delete('/threads/:id', authenticate, deleteThread);
 router.post('/threads/:id/posts', authenticate, createPost);
+router.post('/threads/:id/reaction', authenticate, toggleThreadReaction);
 router.put('/posts/:id', authenticate, updatePost);
 router.delete('/posts/:id', authenticate, deletePost);
 router.post('/posts/:id/reaction', authenticate, toggleReaction);

@@ -120,6 +120,31 @@ const recalculateReactions = async (postId) => {
 };
 
 // ============================================================
+// UTILITY: Thread reaction counts (+ optional user's reaction)
+// ============================================================
+
+const getThreadReactionData = async (threadIds, userId) => {
+  const countsByThread = {};
+  const userByThread = {};
+  if (!threadIds || threadIds.length === 0) return { countsByThread, userByThread };
+
+  const { data } = await supabaseAdmin
+    .from('forum_thread_reactions')
+    .select('thread_id, reaction_type, user_id')
+    .in('thread_id', threadIds);
+
+  (data || []).forEach(r => {
+    if (!countsByThread[r.thread_id]) countsByThread[r.thread_id] = {};
+    countsByThread[r.thread_id][r.reaction_type] = (countsByThread[r.thread_id][r.reaction_type] || 0) + 1;
+    if (userId && r.user_id === userId) {
+      userByThread[r.thread_id] = r.reaction_type;
+    }
+  });
+
+  return { countsByThread, userByThread };
+};
+
+// ============================================================
 // THREADS - FEED
 // ============================================================
 
@@ -173,8 +198,18 @@ const getThreads = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
+    const threadList = threads || [];
+    const { countsByThread, userByThread } = await getThreadReactionData(
+      threadList.map(t => t.id),
+      req.user?.id
+    );
+
     res.json({
-      threads: threads || [],
+      threads: threadList.map(t => ({
+        ...t,
+        reaction_counts: countsByThread[t.id] || {},
+        userReaction: userByThread[t.id] || null,
+      })),
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -222,6 +257,8 @@ const getThreadBySlug = async (req, res) => {
         .single();
       isBookmarked = !!bm;
     }
+
+    const { countsByThread, userByThread } = await getThreadReactionData([thread.id], userId);
 
     const { page = 1, limit = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -276,7 +313,13 @@ const getThreadBySlug = async (req, res) => {
     }));
 
     res.json({
-      thread: { ...thread, view_count: (thread.view_count || 0) + 1, isBookmarked },
+      thread: {
+        ...thread,
+        view_count: (thread.view_count || 0) + 1,
+        isBookmarked,
+        reaction_counts: countsByThread[thread.id] || {},
+        userReaction: userByThread[thread.id] || null,
+      },
       posts: postsWithReplies,
       pagination: {
         page: parseInt(page),
@@ -677,6 +720,88 @@ const toggleReaction = async (req, res) => {
     }
   } catch (err) {
     console.error('Toggle reaction error:', err);
+    res.status(500).json({ error: 'Failed to toggle reaction' });
+  }
+};
+
+// ============================================================
+// THREAD REACTIONS
+// ============================================================
+
+const recalculateThreadReactions = async (threadId) => {
+  const { data: reactions } = await supabaseAdmin
+    .from('forum_thread_reactions')
+    .select('reaction_type')
+    .eq('thread_id', threadId);
+
+  const counts = {};
+  (reactions || []).forEach(r => {
+    counts[r.reaction_type] = (counts[r.reaction_type] || 0) + 1;
+  });
+  return counts;
+};
+
+const toggleThreadReaction = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id: threadId } = req.params;
+    const { type } = req.body;
+
+    if (!type || !VALID_REACTIONS.includes(type)) {
+      return res.status(400).json({ error: 'Invalid reaction type' });
+    }
+
+    const { data: thread, error: fetchError } = await supabaseAdmin
+      .from('forum_threads')
+      .select('id')
+      .eq('id', threadId)
+      .single();
+
+    if (fetchError || !thread) {
+      return res.status(404).json({ error: 'Thread not found' });
+    }
+
+    const { data: existing } = await supabaseAdmin
+      .from('forum_thread_reactions')
+      .select('id, reaction_type')
+      .eq('thread_id', threadId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.reaction_type === type) {
+        const { error: delError } = await supabaseAdmin
+          .from('forum_thread_reactions')
+          .delete()
+          .eq('id', existing.id);
+        if (delError) return res.status(400).json({ error: 'Failed to update reaction' });
+
+        const counts = await recalculateThreadReactions(threadId);
+        return res.json({ reacted: false, type: null, reactionCounts: counts });
+      }
+
+      const { error: updError } = await supabaseAdmin
+        .from('forum_thread_reactions')
+        .update({ reaction_type: type })
+        .eq('id', existing.id);
+      if (updError) return res.status(400).json({ error: 'Failed to update reaction' });
+
+      const counts = await recalculateThreadReactions(threadId);
+      return res.json({ reacted: true, type, reactionCounts: counts });
+    }
+
+    const { error: insError } = await supabaseAdmin
+      .from('forum_thread_reactions')
+      .insert({ thread_id: threadId, user_id: userId, reaction_type: type });
+    if (insError) {
+      console.error('Insert thread reaction error:', insError);
+      return res.status(400).json({ error: 'Failed to add reaction' });
+    }
+
+    const counts = await recalculateThreadReactions(threadId);
+    res.json({ reacted: true, type, reactionCounts: counts });
+  } catch (err) {
+    console.error('Toggle thread reaction error:', err);
     res.status(500).json({ error: 'Failed to toggle reaction' });
   }
 };
@@ -1105,6 +1230,7 @@ module.exports = {
   updatePost,
   deletePost,
   toggleReaction,
+  toggleThreadReaction,
   toggleBookmark,
   getBookmarkedThreads,
   searchForum,

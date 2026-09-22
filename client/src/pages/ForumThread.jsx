@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  MessageCircle, Flag, Lock, Loader2, Send, Bookmark, Share2, Smile,
+  MessageCircle, Flag, Lock, Loader2, Send, Bookmark, Share2,
   Image as ImageIcon, X, ChevronLeft, ChevronRight, Megaphone,
 } from 'lucide-react';
 import api from '../lib/api';
@@ -10,14 +10,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
-
-const REACTIONS = [
-  { type: 'thumbs_up', emoji: '\uD83D\uDC4D', label: 'Like' },
-  { type: 'heart', emoji: '\u2764\uFE0F', label: 'Love' },
-  { type: 'celebrate', emoji: '\uD83C\uDF89', label: 'Celebrate' },
-  { type: 'insightful', emoji: '\uD83D\uDCA1', label: 'Insightful' },
-  { type: 'funny', emoji: '\uD83D\uDE04', label: 'Funny' },
-];
+import ReactionBar from '../components/ui/ReactionBar';
 
 const MAX_IMAGES = 4;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -142,66 +135,6 @@ function ImagePreviews({ previews, onRemove }) {
           </button>
         </div>
       ))}
-    </div>
-  );
-}
-
-function ReactionBar({ reactionCounts, userReaction, onReact }) {
-  const [showPicker, setShowPicker] = useState(false);
-  const counts = reactionCounts || {};
-  const totalReactions = Object.values(counts).reduce((s, c) => s + c, 0);
-
-  return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      {REACTIONS.map((r) => {
-        const count = counts[r.type] || 0;
-        const isActive = userReaction === r.type;
-        if (count === 0 && !isActive) return null;
-        return (
-          <button
-            key={r.type}
-            onClick={() => onReact(r.type)}
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-              isActive
-                ? 'bg-primary-100 text-primary-700 ring-1 ring-primary-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-            title={r.label}
-          >
-            <span>{r.emoji}</span>
-            <span>{count}</span>
-          </button>
-        );
-      })}
-      <div className="relative">
-        <button
-          onClick={() => setShowPicker(!showPicker)}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
-          title="Add reaction"
-        >
-          <Smile className="w-3.5 h-3.5" />
-        </button>
-        {showPicker && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setShowPicker(false)} />
-            <div className="absolute bottom-full left-0 mb-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1.5 flex gap-1 z-20">
-              {REACTIONS.map((r) => (
-                <button
-                  key={r.type}
-                  onClick={() => { onReact(r.type); setShowPicker(false); }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-lg"
-                  title={r.label}
-                >
-                  {r.emoji}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-      {totalReactions > 0 && (
-        <span className="text-xs text-gray-400 ml-1">{totalReactions}</span>
-      )}
     </div>
   );
 }
@@ -409,6 +342,20 @@ export default function ForumThread() {
     }
   };
 
+  const handleThreadReact = async (type) => {
+    if (!thread) return;
+    try {
+      const { data } = await api.post(`/forum/threads/${thread.id}/reaction`, { type });
+      setThread(prev => ({
+        ...prev,
+        reaction_counts: data.reactionCounts,
+        userReaction: data.reacted ? type : null,
+      }));
+    } catch (err) {
+      console.error('Error reacting to thread:', err);
+    }
+  };
+
   const uploadImages = async (files) => {
     const urls = [];
     for (const file of files) {
@@ -594,6 +541,13 @@ export default function ForumThread() {
                   month: 'long', day: 'numeric', year: 'numeric',
                 })}</span>
                 <span>{thread.view_count} views</span>
+              </div>
+              <div className="mt-3">
+                <ReactionBar
+                  reactionCounts={thread.reaction_counts}
+                  userReaction={thread.userReaction}
+                  onReact={handleThreadReact}
+                />
               </div>
             </div>
           </div>
