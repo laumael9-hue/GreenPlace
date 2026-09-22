@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Search, Clock, TrendingUp, Bookmark, Plus, Loader2, MessageCircle, Share2, Image as ImageIcon, X, Megaphone } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -110,6 +110,8 @@ export default function Forum() {
   const [pagination, setPagination] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const activeQuery = searchParams.get('q') || '';
 
   useEffect(() => {
     if (location.state?.newAnnouncement && role === 'admin') {
@@ -119,9 +121,21 @@ export default function Forum() {
     }
   }, [location.state, role, navigate]);
 
+  useEffect(() => {
+    setSearch(activeQuery);
+    setPage(1);
+  }, [activeQuery]);
+
   const fetchThreads = useCallback(async () => {
     try {
-      const { data } = await api.get('/forum/threads', { params: { page, limit: 20, sort: sortBy } });
+      const { data } = await api.get('/forum/threads', {
+        params: {
+          page,
+          limit: 20,
+          sort: sortBy,
+          ...(activeQuery && { search: activeQuery }),
+        },
+      });
       setThreads(data.threads || []);
       setPagination(data.pagination);
     } catch (err) {
@@ -129,7 +143,7 @@ export default function Forum() {
     } finally {
       setLoading(false);
     }
-  }, [sortBy, page]);
+  }, [sortBy, page, activeQuery]);
 
   useEffect(() => { fetchThreads(); }, [fetchThreads]);
 
@@ -152,9 +166,17 @@ export default function Forum() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (search.trim()) {
-      navigate(`/forum/search?q=${encodeURIComponent(search.trim())}`);
+    const q = search.trim();
+    if (q) {
+      navigate(`/forum/search?q=${encodeURIComponent(q)}`);
+    } else {
+      navigate('/forum');
     }
+  };
+
+  const handleClearSearch = () => {
+    setSearch('');
+    navigate('/forum');
   };
 
   const handleImageSelect = (e) => {
@@ -313,9 +335,27 @@ export default function Forum() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search discussions..."
-          className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-full text-sm focus:ring-2 focus:ring-primary-500 focus:bg-white border border-transparent focus:border-gray-300 transition-all"
+          className="w-full pl-10 pr-10 py-2.5 bg-gray-100 rounded-full text-sm focus:ring-2 focus:ring-primary-500 focus:bg-white border border-transparent focus:border-gray-300 transition-all"
         />
+        {search && (
+          <button
+            type="button"
+            onClick={handleClearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            title="Clear search"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </form>
+
+      {/* Active search results header */}
+      {activeQuery && (
+        <p className="text-sm text-gray-500">
+          Results for <span className="font-medium text-gray-900">&ldquo;{activeQuery}&rdquo;</span>
+          {pagination ? ` — ${pagination.total} found` : ''}
+        </p>
+      )}
 
       {/* Sort tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-full p-1">
