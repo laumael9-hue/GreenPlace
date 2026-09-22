@@ -205,15 +205,17 @@ export default function ForumModeration() {
                         <p className="mt-1 text-sm text-gray-600">{report.description}</p>
                       )}
                       {report.target && (
-                        <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                          <p className="text-xs text-gray-400 mb-1">
-                            Reported post in: {report.target.thread?.title}
+                        <>
+                          <p className="text-sm text-gray-700">
+                            {report.target_type === 'thread'
+                              ? <>Reported thread: {report.target.thread?.title}</>
+                              : <>Reported post in: {report.target.thread?.title}</>}
                           </p>
                           <p className="text-sm text-gray-700 line-clamp-2">{report.target.body}</p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-gray-500">
                             by {report.target.author?.first_name} {report.target.author?.last_name}
                           </p>
-                        </div>
+                        </>
                       )}
                       {report.resolution_note && (
                         <div className="mt-2 p-3 bg-green-50 rounded-lg">

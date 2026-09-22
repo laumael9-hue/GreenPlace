@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   MessageCircle, Flag, Lock, Loader2, Send, Bookmark, Share2,
   Image as ImageIcon, X, ChevronLeft, ChevronRight, Megaphone,
@@ -233,7 +233,7 @@ function PostItem({ post, onReact, onReply, onReport, onOpenLightbox, isAuthenti
                 Reply
               </button>
               <button
-                onClick={() => onReport(post.id)}
+                onClick={() => onReport(post.id, 'post')}
                 className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
               >
                 <Flag className="w-4 h-4" />
@@ -287,6 +287,7 @@ function PostItem({ post, onReact, onReply, onReport, onOpenLightbox, isAuthenti
 export default function ForumThread() {
   const { slug } = useParams();
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [thread, setThread] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -294,8 +295,10 @@ export default function ForumThread() {
   const [submitting, setSubmitting] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
+  const [reportTargetType, setReportTargetType] = useState('post');
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
+  const [reportError, setReportError] = useState('');
   const [reporting, setReporting] = useState(false);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
@@ -456,8 +459,16 @@ export default function ForumThread() {
     }
   };
 
-  const openReport = (targetId) => {
+  const openReport = (targetId, targetType = 'post') => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
     setReportTarget(targetId);
+    setReportTargetType(targetType);
+    setReportReason('');
+    setReportDescription('');
+    setReportError('');
     setShowReport(true);
   };
 
@@ -465,19 +476,22 @@ export default function ForumThread() {
     e.preventDefault();
     if (!reportReason.trim()) return;
     setReporting(true);
+    setReportError('');
     try {
       await api.post('/forum/report', {
-        targetType: 'post',
+        targetType: reportTargetType,
         targetId: reportTarget,
         reason: reportReason.trim(),
         description: reportDescription.trim() || undefined,
       });
       setShowReport(false);
-      setReportReason('');
-      setReportDescription('');
       setReportTarget(null);
     } catch (err) {
-      console.error('Error reporting:', err);
+      if (err?.response?.status === 401) {
+        navigate('/login');
+        return;
+      }
+      setReportError(err?.response?.data?.error || 'Failed to submit report. Please try again.');
     } finally {
       setReporting(false);
     }
@@ -576,6 +590,13 @@ export default function ForumThread() {
                   Link copied!
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => openReport(thread.id, 'thread')}
+              className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+              title="Report"
+            >
+              <Flag className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -681,6 +702,11 @@ export default function ForumThread() {
 
       <Modal open={showReport} onClose={() => setShowReport(false)} title="Report Content">
         <form onSubmit={handleReport} className="space-y-4">
+          {reportError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {reportError}
+            </p>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
             <select

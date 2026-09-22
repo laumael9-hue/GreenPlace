@@ -95,7 +95,7 @@ function App() {
         <Route path="/admin/businesses" element={<BusinessManagement />} />
         <Route path="/admin/listings" element={<Placeholder title="Marketplace Moderation" desc="Review and moderate marketplace listings." />} />
         <Route path="/admin/forum" element={<ForumModeration />} />
-        <Route path="/admin/reports" element={<Placeholder title="Reports" desc="Review content and user reports." />} />
+        <Route path="/admin/reports" element={<ForumModeration />} />
         <Route path="/admin/settings" element={<Placeholder title="System Settings" desc="Configure application settings." />} />
       </Route>
 

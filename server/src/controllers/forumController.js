@@ -991,7 +991,7 @@ const reportContent = async (req, res) => {
       .from('reports')
       .insert({
         reporter_id: userId,
-        target_type: 'post',
+        target_type: targetType,
         target_id: targetId,
         reason: reason.trim(),
         description: description ? description.trim() : null,
@@ -1157,6 +1157,18 @@ const getReports = async (req, res) => {
           .eq('id', report.target_id)
           .single();
         target = data;
+      } else if (report.target_type === 'thread') {
+        const { data } = await supabaseAdmin
+          .from('forum_threads')
+          .select(`
+            id, body, images, created_at, title, slug,
+            author:profiles!forum_threads_author_id_fkey(id, first_name, last_name)
+          `)
+          .eq('id', report.target_id)
+          .single();
+        target = data
+          ? { ...data, thread: { title: data.title, slug: data.slug } }
+          : null;
       }
       return { ...report, target };
     }));

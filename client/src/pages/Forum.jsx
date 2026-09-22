@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { Search, Clock, TrendingUp, Bookmark, Plus, Loader2, MessageCircle, Share2, Image as ImageIcon, X, Megaphone } from 'lucide-react';
+import { Search, Clock, TrendingUp, Bookmark, Plus, Loader2, MessageCircle, Share2, Image as ImageIcon, X, Megaphone, Flag } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
@@ -18,7 +18,7 @@ const SORT_TABS = [
 const MAX_IMAGES = 4;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-function PostCard({ thread, onReact }) {
+function PostCard({ thread, onReact, onReport }) {
   return (
     <Link to={`/forum/thread/${thread.slug}`}>
       <Card className={`hover:shadow-md transition-all cursor-pointer ${
@@ -82,6 +82,18 @@ function PostCard({ thread, onReact }) {
                 <Share2 className="w-3.5 h-3.5" />
                 Share
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onReport(thread.id);
+                }}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+              >
+                <Flag className="w-3.5 h-3.5" />
+                Report
+              </button>
             </div>
           </div>
         </div>
@@ -161,6 +173,50 @@ export default function Forum() {
       )));
     } catch (err) {
       console.error('Error reacting:', err);
+    }
+  };
+
+  const [showReport, setShowReport] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [reportError, setReportError] = useState('');
+  const [reporting, setReporting] = useState(false);
+
+  const openReport = (targetId) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setReportTarget(targetId);
+    setReportReason('');
+    setReportDescription('');
+    setReportError('');
+    setShowReport(true);
+  };
+
+  const handleReport = async (e) => {
+    e.preventDefault();
+    if (!reportReason.trim()) return;
+    setReporting(true);
+    setReportError('');
+    try {
+      await api.post('/forum/report', {
+        targetType: 'thread',
+        targetId: reportTarget,
+        reason: reportReason.trim(),
+        description: reportDescription.trim() || undefined,
+      });
+      setShowReport(false);
+      setReportTarget(null);
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        navigate('/login');
+        return;
+      }
+      setReportError(err?.response?.data?.error || 'Failed to submit report. Please try again.');
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -384,7 +440,7 @@ export default function Forum() {
       ) : (
         <div className="space-y-4">
           {threads.map((thread) => (
-            <PostCard key={thread.id} thread={thread} onReact={handleThreadReact} />
+            <PostCard key={thread.id} thread={thread} onReact={handleThreadReact} onReport={openReport} />
           ))}
         </div>
       )}
@@ -497,6 +553,50 @@ export default function Forum() {
             <Button type="submit" disabled={submitting || uploadingImages || !newTitle.trim() || !newBody.trim()}>
               {submitting || uploadingImages ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {uploadingImages ? 'Uploading…' : 'Post'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={showReport} onClose={() => setShowReport(false)} title="Report Content">
+        <form onSubmit={handleReport} className="space-y-4">
+          {reportError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {reportError}
+            </p>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              required
+            >
+              <option value="">Select a reason...</option>
+              <option value="spam">Spam</option>
+              <option value="harassment">Harassment</option>
+              <option value="misinformation">Misinformation</option>
+              <option value="inappropriate">Inappropriate Content</option>
+              <option value="off-topic">Off-Topic</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Details (optional)</label>
+            <textarea
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              placeholder="Provide more context..."
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setShowReport(false)}>Cancel</Button>
+            <Button type="submit" variant="danger" disabled={reporting || !reportReason.trim()}>
+              {reporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Flag className="w-4 h-4 mr-2" />}
+              Submit Report
             </Button>
           </div>
         </form>
