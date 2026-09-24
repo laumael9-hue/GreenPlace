@@ -37,6 +37,7 @@ import DropOffReceipt from './pages/DropOffReceipt';
 import BusinessOrders from './pages/dashboard/BusinessOrders';
 import DropOffTracker from './pages/dashboard/DropOffTracker';
 import DropOffHistory from './pages/dashboard/DropOffHistory';
+import Messages from './pages/Messages';
 import Landing from './pages/Landing';
 import { Leaf } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -71,7 +72,8 @@ function App() {
         <Route path="/dashboard/orders" element={<BusinessOrders />} />
         <Route path="/dashboard/drop-offs" element={<DropOffTracker />} />
         <Route path="/dashboard/reviews" element={<Placeholder title="Reviews" desc="View and respond to customer reviews." />} />
-        <Route path="/dashboard/messages" element={<Placeholder title="Messages" desc="Communicate with customers." />} />
+        <Route path="/dashboard/messages" element={<Messages />} />
+        <Route path="/dashboard/messages/:conversationId" element={<Messages />} />
         <Route path="/dashboard/analytics" element={<Placeholder title="Analytics" desc="View business performance metrics." />} />
       </Route>
 

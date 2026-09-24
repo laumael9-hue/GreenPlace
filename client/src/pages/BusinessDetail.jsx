@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { ArrowLeft, Star, MapPin, Phone, Globe, Clock, Package, Store, Navigation, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Phone, Globe, Clock, Package, Store, Navigation, ExternalLink, Mail, Loader2 } from 'lucide-react';
 import api from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 
 const defaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -22,9 +24,13 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 export default function BusinessDetail() {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [messaging, setMessaging] = useState(false);
+  const [messageError, setMessageError] = useState('');
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -39,6 +45,27 @@ export default function BusinessDetail() {
     };
     fetchBusiness();
   }, [slug]);
+
+  const handleMessageBusiness = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setMessaging(true);
+    setMessageError('');
+    try {
+      const { data } = await api.post('/messages/conversations', { businessId: business.id });
+      navigate(`/dashboard/messages/${data.conversation.id}`);
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        navigate('/login');
+        return;
+      }
+      setMessageError(err?.response?.data?.error || 'Failed to start conversation');
+    } finally {
+      setMessaging(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -223,6 +250,25 @@ export default function BusinessDetail() {
                     <Navigation className="w-4 h-4" />
                     Open in Maps
                   </a>
+                )}
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleMessageBusiness}
+                  disabled={messaging}
+                >
+                  {messaging ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Mail className="w-4 h-4" />
+                  )}
+                  Message Business
+                </Button>
+                {messageError && (
+                  <p className="text-xs text-red-600 mt-2">{messageError}</p>
                 )}
               </div>
             </Card>

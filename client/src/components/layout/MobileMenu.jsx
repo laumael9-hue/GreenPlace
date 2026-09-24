@@ -3,11 +3,12 @@ import { Leaf } from 'lucide-react';
 import {
   LayoutDashboard, MapPin, ShoppingBag, ClipboardList,
   Package, MessageCircle, User, Building2, List,
-  Clock, Star, BarChart3, Users, FileText, Settings
+  Clock, Star, BarChart3, Users, FileText, Settings, Mail
 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import NavItem from './NavItem';
 import { useAuth } from '../../context/AuthContext';
+import { useMessages } from '../../context/MessagesContext';
 
 const residentNav = [
   { to: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
@@ -15,6 +16,7 @@ const residentNav = [
   { to: '/marketplace', icon: <ShoppingBag className="w-5 h-5" />, label: 'Marketplace' },
   { to: '/orders', icon: <ClipboardList className="w-5 h-5" />, label: 'My Orders' },
   { to: '/drop-offs', icon: <Package className="w-5 h-5" />, label: 'Drop-offs' },
+  { to: '/dashboard/messages', icon: <Mail className="w-5 h-5" />, label: 'Messages' },
   { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
   { to: '/profile', icon: <User className="w-5 h-5" />, label: 'Profile' },
 ];
@@ -27,7 +29,7 @@ const businessNav = [
   { to: '/dashboard/drop-offs', icon: <Clock className="w-5 h-5" />, label: 'Drop-offs' },
   { to: '/dashboard/reviews', icon: <Star className="w-5 h-5" />, label: 'Reviews' },
   { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
-  { to: '/dashboard/messages', icon: <MessageCircle className="w-5 h-5" />, label: 'Messages' },
+  { to: '/dashboard/messages', icon: <Mail className="w-5 h-5" />, label: 'Messages' },
   { to: '/dashboard/analytics', icon: <BarChart3 className="w-5 h-5" />, label: 'Analytics' },
 ];
 
@@ -45,8 +47,14 @@ const navMap = { resident: residentNav, business: businessNav, admin: adminNav }
 
 export default function MobileMenu({ open, onClose }) {
   const { isAuthenticated, profile } = useAuth();
+  const { unreadCount } = useMessages();
   const location = useLocation();
-  const items = navMap[profile?.role] || navMap.resident;
+  const baseItems = navMap[profile?.role] || navMap.resident;
+  const items = baseItems.map(item =>
+    item.to === '/dashboard/messages' && unreadCount > 0
+      ? { ...item, badge: unreadCount > 9 ? '9+' : unreadCount }
+      : item
+  );
   const prevPath = useRef(location.pathname);
 
   useEffect(() => {

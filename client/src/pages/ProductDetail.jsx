@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2, Zap, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2, Zap, Flag, Mail } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -34,6 +34,8 @@ export default function ProductDetail() {
   const [reportDescription, setReportDescription] = useState('');
   const [reportError, setReportError] = useState('');
   const [reporting, setReporting] = useState(false);
+  const [messageError, setMessageError] = useState('');
+  const [messaging, setMessaging] = useState(false);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -76,6 +78,27 @@ export default function ProductDetail() {
     if (result.success && result.cartItem) {
       sessionStorage.setItem('checkoutItems', JSON.stringify([result.cartItem.id]));
       navigate('/checkout');
+    }
+  };
+
+  const handleMessageSeller = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setMessaging(true);
+    setMessageError('');
+    try {
+      const { data } = await api.post('/messages/conversations', { recipientId: seller.id });
+      navigate(`/dashboard/messages/${data.conversation.id}`);
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        navigate('/login');
+        return;
+      }
+      setMessageError(err?.response?.data?.error || 'Failed to start conversation');
+    } finally {
+      setMessaging(false);
     }
   };
 
@@ -407,6 +430,27 @@ export default function ProductDetail() {
                     </Link>
                   )}
                 </div>
+                {seller && (!user || seller.id !== user.id) && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={handleMessageSeller}
+                      disabled={messaging}
+                    >
+                      {messaging ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Mail className="w-4 h-4" />
+                      )}
+                      Message Seller
+                    </Button>
+                    {messageError && (
+                      <p className="text-xs text-red-600 mt-2">{messageError}</p>
+                    )}
+                  </div>
+                )}
               </Card>
             )}
           </div>

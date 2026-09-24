@@ -3,9 +3,10 @@ import { Leaf } from 'lucide-react';
 import {
   LayoutDashboard, MapPin, ShoppingBag, ClipboardList,
   Package, MessageCircle, User, Building2, List,
-  Clock, Star, BarChart3, Users, FileText, Settings, Shield, Bookmark
+  Clock, Star, BarChart3, Users, FileText, Settings, Shield, Bookmark, Mail
 } from 'lucide-react';
 import NavItem from './NavItem';
+import { useMessages } from '../../context/MessagesContext';
 
 const residentNav = [
   { to: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
@@ -13,6 +14,7 @@ const residentNav = [
   { to: '/marketplace', icon: <ShoppingBag className="w-5 h-5" />, label: 'Marketplace' },
   { to: '/orders', icon: <ClipboardList className="w-5 h-5" />, label: 'My Orders' },
   { to: '/drop-offs', icon: <Package className="w-5 h-5" />, label: 'Drop-offs' },
+  { to: '/dashboard/messages', icon: <Mail className="w-5 h-5" />, label: 'Messages' },
   { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
   { to: '/bookmarks', icon: <Bookmark className="w-5 h-5" />, label: 'Saved Posts' },
   { to: '/profile', icon: <User className="w-5 h-5" />, label: 'Profile' },
@@ -27,7 +29,7 @@ const businessNav = [
   { to: '/dashboard/reviews', icon: <Star className="w-5 h-5" />, label: 'Reviews' },
   { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
   { to: '/bookmarks', icon: <Bookmark className="w-5 h-5" />, label: 'Saved Posts' },
-  { to: '/dashboard/messages', icon: <MessageCircle className="w-5 h-5" />, label: 'Messages' },
+  { to: '/dashboard/messages', icon: <Mail className="w-5 h-5" />, label: 'Messages' },
   { to: '/dashboard/analytics', icon: <BarChart3 className="w-5 h-5" />, label: 'Analytics' },
 ];
 
@@ -45,7 +47,13 @@ const adminNav = [
 const navMap = { resident: residentNav, business: businessNav, admin: adminNav };
 
 export default function Sidebar({ role = 'resident' }) {
-  const items = navMap[role] || navMap.resident;
+  const { unreadCount } = useMessages();
+  const baseItems = navMap[role] || navMap.resident;
+  const items = baseItems.map(item =>
+    item.to === '/dashboard/messages' && unreadCount > 0
+      ? { ...item, badge: unreadCount > 9 ? '9+' : unreadCount }
+      : item
+  );
   const sectionLabel = role === 'admin' ? 'Administration' : role === 'business' ? 'Business' : 'Menu';
 
   return (

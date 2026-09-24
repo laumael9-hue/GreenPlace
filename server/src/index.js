@@ -39,6 +39,7 @@ const orderRoutes = require('./routes/orders');
 const paymentRoutes = require('./routes/payments');
 const dropOffRoutes = require('./routes/dropOffs');
 const forumRoutes = require('./routes/forum');
+const messageRoutes = require('./routes/messages');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/businesses', businessRoutes);
@@ -47,6 +48,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/drop-offs', dropOffRoutes);
 app.use('/api/forum', forumRoutes);
+app.use('/api/messages', messageRoutes);
 
 // 404 handler
 app.use((req, res) => {

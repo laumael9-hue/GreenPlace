@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileMenu from './MobileMenu';
 import { useAuth } from '../../context/AuthContext';
+import { useMessages } from '../../context/MessagesContext';
 import Avatar from '../ui/Avatar';
 import { Bell, Search } from 'lucide-react';
 
 export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { profile } = useAuth();
+  const { unreadCount } = useMessages();
   const role = profile?.role || 'resident';
+  const canMessage = role === 'resident' || role === 'business';
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -39,10 +42,27 @@ export default function DashboardLayout() {
             </div>
 
             <div className="flex items-center gap-4">
-              <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
+              {canMessage ? (
+                <Link
+                  to="/dashboard/messages"
+                  aria-label="Messages"
+                  className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              ) : (
+                <button
+                  aria-label="Notifications"
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <Bell className="w-5 h-5" />
+                </button>
+              )}
               <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
                 <Avatar
                   name={`${profile?.first_name} ${profile?.last_name}`}
