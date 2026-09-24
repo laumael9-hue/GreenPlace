@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
+const { createNotification } = require('../services/notifications');
 
 const MAX_BODY_LENGTH = 2000;
 const PREVIEW_LENGTH = 100;
@@ -300,8 +301,15 @@ const sendMessage = async (req, res) => {
       return res.status(400).json({ error: `Message must be ${MAX_BODY_LENGTH} characters or fewer` });
     }
 
-    const { conversation, error } = await loadConversation(req.params.id, userId);
+    const { conversation, other, error } = await loadConversation(req.params.id, userId);
     if (error) return res.status(error.status).json({ error: error.message });
+
+    // Only notify when this is the first unread message from this sender
+    let hasPriorUnread = false;
+    if (other?.id) {
+      const unreadCounts = await fetchUnreadCounts([conversation.id], userId);
+      hasPriorUnread = (unreadCounts[conversation.id] || 0) > 0;
+    }
 
     const { data: message, error: insertError } = await supabaseAdmin
       .from('messages')
@@ -321,6 +329,17 @@ const sendMessage = async (req, res) => {
         last_message_preview: body.slice(0, PREVIEW_LENGTH),
       })
       .eq('id', conversation.id);
+
+    if (other?.id && other.id !== userId && !hasPriorUnread) {
+      const senderName = req.user.profile?.first_name || 'Someone';
+      await createNotification({
+        userId: other.id,
+        type: 'message',
+        title: `New message from ${senderName}`,
+        body: body.slice(0, PREVIEW_LENGTH),
+        data: { link: `/dashboard/messages/${conversation.id}` },
+      });
+    }
 
     res.status(201).json({ message });
   } catch (err) {

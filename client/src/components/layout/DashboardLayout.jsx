@@ -5,7 +5,8 @@ import MobileMenu from './MobileMenu';
 import { useAuth } from '../../context/AuthContext';
 import { useMessages } from '../../context/MessagesContext';
 import Avatar from '../ui/Avatar';
-import { Bell, Search } from 'lucide-react';
+import NotificationBell from './NotificationBell';
+import { Mail, Search } from 'lucide-react';
 
 export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -20,7 +21,7 @@ export default function DashboardLayout() {
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
           <div className="flex items-center justify-between h-16 px-4 sm:px-6">
             <div className="flex items-center gap-3">
               <button
@@ -48,21 +49,15 @@ export default function DashboardLayout() {
                   aria-label="Messages"
                   className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <Bell className="w-5 h-5" />
+                  <Mail className="w-5 h-5" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </Link>
-              ) : (
-                <button
-                  aria-label="Notifications"
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Bell className="w-5 h-5" />
-                </button>
-              )}
+              ) : null}
+              <NotificationBell />
               <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
                 <Avatar
                   name={`${profile?.first_name} ${profile?.last_name}`}

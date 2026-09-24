@@ -3,10 +3,11 @@ import { Leaf } from 'lucide-react';
 import {
   LayoutDashboard, MapPin, ShoppingBag, ClipboardList,
   Package, MessageCircle, User, Building2, List,
-  Clock, Star, BarChart3, Users, FileText, Settings, Shield, Bookmark, Mail
+  Clock, Star, BarChart3, Users, FileText, Settings, Shield, Bookmark, Mail, Bell
 } from 'lucide-react';
 import NavItem from './NavItem';
 import { useMessages } from '../../context/MessagesContext';
+import { useNotifications } from '../../context/NotificationsContext';
 
 const residentNav = [
   { to: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
@@ -15,6 +16,7 @@ const residentNav = [
   { to: '/orders', icon: <ClipboardList className="w-5 h-5" />, label: 'My Orders' },
   { to: '/drop-offs', icon: <Package className="w-5 h-5" />, label: 'Drop-offs' },
   { to: '/dashboard/messages', icon: <Mail className="w-5 h-5" />, label: 'Messages' },
+  { to: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
   { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
   { to: '/bookmarks', icon: <Bookmark className="w-5 h-5" />, label: 'Saved Posts' },
   { to: '/profile', icon: <User className="w-5 h-5" />, label: 'Profile' },
@@ -30,6 +32,7 @@ const businessNav = [
   { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
   { to: '/bookmarks', icon: <Bookmark className="w-5 h-5" />, label: 'Saved Posts' },
   { to: '/dashboard/messages', icon: <Mail className="w-5 h-5" />, label: 'Messages' },
+  { to: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
   { to: '/dashboard/analytics', icon: <BarChart3 className="w-5 h-5" />, label: 'Analytics' },
 ];
 
@@ -41,6 +44,7 @@ const adminNav = [
   { to: '/admin/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
   { to: '/bookmarks', icon: <Bookmark className="w-5 h-5" />, label: 'Saved Posts' },
   { to: '/admin/reports', icon: <FileText className="w-5 h-5" />, label: 'Reports' },
+  { to: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
   { to: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings' },
 ];
 
@@ -48,12 +52,17 @@ const navMap = { resident: residentNav, business: businessNav, admin: adminNav }
 
 export default function Sidebar({ role = 'resident' }) {
   const { unreadCount } = useMessages();
+  const { unreadCount: notifCount } = useNotifications();
   const baseItems = navMap[role] || navMap.resident;
-  const items = baseItems.map(item =>
-    item.to === '/dashboard/messages' && unreadCount > 0
-      ? { ...item, badge: unreadCount > 9 ? '9+' : unreadCount }
-      : item
-  );
+  const items = baseItems.map(item => {
+    if (item.to === '/dashboard/messages' && unreadCount > 0) {
+      return { ...item, badge: unreadCount > 9 ? '9+' : unreadCount };
+    }
+    if (item.to === '/notifications' && notifCount > 0) {
+      return { ...item, badge: notifCount > 9 ? '9+' : notifCount };
+    }
+    return item;
+  });
   const sectionLabel = role === 'admin' ? 'Administration' : role === 'business' ? 'Business' : 'Menu';
 
   return (

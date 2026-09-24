@@ -1,5 +1,6 @@
 const { supabaseAdmin } = require('../config/supabase');
 const paymongoService = require('../services/paymongo');
+const { createNotification } = require('../services/notifications');
 const crypto = require('crypto');
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -209,6 +210,14 @@ const handleWebhook = async (req, res) => {
         }
 
         console.log(`Order ${order.id} confirmed via webhook`);
+
+        await createNotification({
+          userId: order.buyer_id,
+          type: 'order',
+          title: 'Payment received',
+          body: 'Your payment has been received and your order is confirmed.',
+          data: { link: `/orders/${order.id}` },
+        });
       }
     } else if (eventType === 'payment.failed' || eventType === 'payment.expired') {
       await supabaseAdmin
@@ -222,6 +231,24 @@ const handleWebhook = async (req, res) => {
         .eq('id', payment.order_id);
 
       console.log(`Order ${payment.order_id} payment ${eventType}`);
+
+      const { data: failedOrder } = await supabaseAdmin
+        .from('orders')
+        .select('id, buyer_id')
+        .eq('id', payment.order_id)
+        .single();
+
+      if (failedOrder?.buyer_id) {
+        await createNotification({
+          userId: failedOrder.buyer_id,
+          type: 'order',
+          title: 'Payment failed',
+          body: eventType === 'payment.expired'
+            ? 'Your payment session expired. Please try checking out again.'
+            : 'Your payment could not be processed. Please try again.',
+          data: { link: `/orders/${failedOrder.id}` },
+        });
+      }
     }
 
     res.status(200).json({ message: 'Webhook processed' });
@@ -253,6 +280,23 @@ const checkPendingPaymentStatus = async (payment, orderId) => {
         .update({ payment_status: 'paid', status: 'confirmed', confirmed_at: new Date().toISOString() })
         .eq('id', orderId);
       payment.status = 'paid';
+
+      const { data: paidOrder } = await supabaseAdmin
+        .from('orders')
+        .select('id, buyer_id')
+        .eq('id', orderId)
+        .single();
+
+      if (paidOrder?.buyer_id) {
+        await createNotification({
+          userId: paidOrder.buyer_id,
+          type: 'order',
+          title: 'Payment received',
+          body: 'Your payment has been received and your order is confirmed.',
+          data: { link: `/orders/${paidOrder.id}` },
+        });
+      }
+
       return { payment, updated: true, payment_status: 'paid', order_status: 'confirmed' };
     } else if (intent.status === 'awaiting_payment_method' || intent.status === 'cancelled') {
       await supabaseAdmin
@@ -444,7 +488,7 @@ const requestRefund = async (req, res) => {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, buyer_id, status, payment_status, payment_method, total')
+      .select('id, buyer_id, business_id, status, payment_status, payment_method, total, order_number')
       .eq('id', orderId)
       .single();
 
@@ -501,6 +545,24 @@ const requestRefund = async (req, res) => {
         refund_requested_at: new Date().toISOString(),
       })
       .eq('id', orderId);
+
+    if (order.business_id) {
+      const { data: business } = await supabaseAdmin
+        .from('businesses')
+        .select('owner_id')
+        .eq('id', order.business_id)
+        .single();
+
+      if (business?.owner_id && business.owner_id !== userId) {
+        await createNotification({
+          userId: business.owner_id,
+          type: 'order',
+          title: 'Refund requested',
+          body: `A refund has been requested for order ${order.order_number}.`,
+          data: { link: `/orders/${order.id}` },
+        });
+      }
+    }
 
     res.status(201).json({
       message: 'Refund request submitted',
@@ -606,7 +668,7 @@ const processRefund = async (req, res) => {
       .from('refunds')
       .select(`
         id, order_id, amount, reason, status,
-        order:orders(id, buyer_id, business_id, total, payment_method, payment_status)
+        order:orders(id, order_number, buyer_id, business_id, total, payment_method, payment_status)
       `)
       .eq('id', refundId)
       .single();
@@ -708,6 +770,16 @@ const processRefund = async (req, res) => {
         }
       }
 
+      if (refund.order?.buyer_id) {
+        await createNotification({
+          userId: refund.order.buyer_id,
+          type: 'order',
+          title: 'Refund approved',
+          body: `Your refund for order ${refund.order.order_number} has been approved and processed.`,
+          data: { link: `/orders/${refund.order.id}` },
+        });
+      }
+
       res.json({ message: 'Refund approved and processed' });
     } else {
       await supabaseAdmin
@@ -722,6 +794,16 @@ const processRefund = async (req, res) => {
         .from('orders')
         .update({ refund_status: 'rejected' })
         .eq('id', refund.order_id);
+
+      if (refund.order?.buyer_id) {
+        await createNotification({
+          userId: refund.order.buyer_id,
+          type: 'order',
+          title: 'Refund rejected',
+          body: `Your refund request for order ${refund.order.order_number} was rejected.`,
+          data: { link: `/orders/${refund.order.id}` },
+        });
+      }
 
       res.json({ message: 'Refund request rejected' });
     }

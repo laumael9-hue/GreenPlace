@@ -40,6 +40,7 @@ const paymentRoutes = require('./routes/payments');
 const dropOffRoutes = require('./routes/dropOffs');
 const forumRoutes = require('./routes/forum');
 const messageRoutes = require('./routes/messages');
+const notificationRoutes = require('./routes/notifications');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/businesses', businessRoutes);
@@ -49,6 +50,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/drop-offs', dropOffRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 handler
 app.use((req, res) => {

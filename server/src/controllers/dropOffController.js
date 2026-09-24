@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
+const { createNotification } = require('../services/notifications');
 const crypto = require('crypto');
 
 // ============================================================
@@ -169,6 +170,16 @@ const createDropOff = async (req, res) => {
         .eq('id', businessId);
     } catch (countErr) {
       console.error('Failed to update drop-off count:', countErr);
+    }
+
+    if (dropOff.user_id) {
+      await createNotification({
+        userId: dropOff.user_id,
+        type: 'drop_off',
+        title: 'Drop-off scheduled',
+        body: `Your drop-off ${referenceNumber} has been scheduled.`,
+        data: { link: '/drop-offs' },
+      });
     }
 
     res.status(201).json({
@@ -399,7 +410,7 @@ const completeDropOff = async (req, res) => {
 
     const { data: existing, error: existingError } = await supabaseAdmin
       .from('drop_offs')
-      .select('id, business_id, status')
+      .select('id, business_id, status, user_id, reference_number')
       .eq('id', id)
       .maybeSingle();
 
@@ -463,6 +474,16 @@ const completeDropOff = async (req, res) => {
       }
     }
 
+    if (existing.user_id) {
+      await createNotification({
+        userId: existing.user_id,
+        type: 'drop_off',
+        title: 'Drop-off completed',
+        body: `Your drop-off ${existing.reference_number} has been processed.`,
+        data: { link: '/drop-offs' },
+      });
+    }
+
     res.json({ message: 'Drop-off completed', dropOff });
   } catch (err) {
     console.error('Complete drop-off error:', err && err.stack ? err.stack : err);
@@ -495,7 +516,7 @@ const cancelDropOff = async (req, res) => {
 
     const { data: existing, error: existingError } = await supabaseAdmin
       .from('drop_offs')
-      .select('id, business_id, status')
+      .select('id, business_id, status, user_id, reference_number')
       .eq('id', id)
       .maybeSingle();
 
@@ -524,6 +545,16 @@ const cancelDropOff = async (req, res) => {
     if (error) {
       console.error('Cancel drop-off error:', error);
       return res.status(400).json({ error: error.message });
+    }
+
+    if (existing.user_id) {
+      await createNotification({
+        userId: existing.user_id,
+        type: 'drop_off',
+        title: 'Drop-off cancelled',
+        body: `Your drop-off ${existing.reference_number} has been cancelled.`,
+        data: { link: '/drop-offs' },
+      });
     }
 
     res.json({ message: 'Drop-off cancelled' });

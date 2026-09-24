@@ -38,6 +38,7 @@ import BusinessOrders from './pages/dashboard/BusinessOrders';
 import DropOffTracker from './pages/dashboard/DropOffTracker';
 import DropOffHistory from './pages/dashboard/DropOffHistory';
 import Messages from './pages/Messages';
+import Notifications from './pages/Notifications';
 import Landing from './pages/Landing';
 import { Leaf } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -88,6 +89,7 @@ function App() {
         <Route path="/orders/:id" element={<OrderDetail />} />
         <Route path="/orders/:id/receipt" element={<Receipt />} />
         <Route path="/drop-offs/:id/receipt" element={<DropOffReceipt />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
       </Route>
 

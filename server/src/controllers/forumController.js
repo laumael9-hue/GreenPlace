@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
+const { createNotification } = require('../services/notifications');
 const crypto = require('crypto');
 
 const VALID_REACTIONS = ['thumbs_up', 'heart', 'celebrate', 'insightful', 'funny'];
@@ -498,7 +499,7 @@ const createPost = async (req, res) => {
 
     const { data: thread, error: threadError } = await supabaseAdmin
       .from('forum_threads')
-      .select('id, is_locked, reply_count, last_reply_at')
+      .select('id, slug, title, author_id, is_locked, reply_count, last_reply_at')
       .eq('id', threadId)
       .single();
 
@@ -510,10 +511,11 @@ const createPost = async (req, res) => {
       return res.status(403).json({ error: 'This thread is locked' });
     }
 
+    let parentAuthorId = null;
     if (parentId) {
       const { data: parentPost } = await supabaseAdmin
         .from('forum_posts')
-        .select('id')
+        .select('id, author_id')
         .eq('id', parentId)
         .eq('thread_id', threadId)
         .single();
@@ -521,6 +523,7 @@ const createPost = async (req, res) => {
       if (!parentPost) {
         return res.status(400).json({ error: 'Invalid parent post' });
       }
+      parentAuthorId = parentPost.author_id;
     }
 
     const { data: post, error } = await supabaseAdmin
@@ -551,6 +554,31 @@ const createPost = async (req, res) => {
         last_reply_by: userId,
       })
       .eq('id', threadId);
+
+    const replyLink = `/forum/thread/${thread.slug}`;
+    const threadTitle = thread.title || 'a thread';
+    const notified = new Set([userId]);
+
+    if (parentAuthorId && !notified.has(parentAuthorId)) {
+      notified.add(parentAuthorId);
+      await createNotification({
+        userId: parentAuthorId,
+        type: 'forum',
+        title: 'New reply to your comment',
+        body: `${post.author?.first_name || 'Someone'} replied to your comment in "${threadTitle}".`,
+        data: { link: replyLink },
+      });
+    }
+
+    if (thread.author_id && !notified.has(thread.author_id)) {
+      await createNotification({
+        userId: thread.author_id,
+        type: 'forum',
+        title: 'New reply to your thread',
+        body: `${post.author?.first_name || 'Someone'} replied to your thread "${threadTitle}".`,
+        data: { link: replyLink },
+      });
+    }
 
     res.status(201).json({ post });
   } catch (err) {

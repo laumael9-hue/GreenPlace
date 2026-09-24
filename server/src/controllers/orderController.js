@@ -1,5 +1,6 @@
 const { supabaseAdmin } = require('../config/supabase');
 const { checkPendingPaymentStatus } = require('./paymentController');
+const { createNotification } = require('../services/notifications');
 const crypto = require('crypto');
 
 // ============================================================
@@ -644,7 +645,7 @@ const updateOrderStatus = async (req, res) => {
     // Fetch order
     const { data: order, error: fetchError } = await supabaseAdmin
       .from('orders')
-      .select('id, business_id, status, buyer_id')
+      .select('id, order_number, business_id, status, buyer_id, payment_method')
       .eq('id', id)
       .single();
 
@@ -706,6 +707,22 @@ const updateOrderStatus = async (req, res) => {
         .eq('method', 'cash_on_pickup');
     }
 
+    if (order.buyer_id) {
+      const statusLabels = {
+        confirmed: 'confirmed',
+        processing: 'being processed',
+        ready_for_pickup: 'ready for pickup',
+        completed: 'completed',
+      };
+      await createNotification({
+        userId: order.buyer_id,
+        type: 'order',
+        title: 'Order updated',
+        body: `Your order ${order.order_number} is now ${statusLabels[status] || status}.`,
+        data: { link: `/orders/${order.id}` },
+      });
+    }
+
     res.json({
       message: `Order status updated to "${status}"`,
       order: updatedOrder,
@@ -731,7 +748,7 @@ const cancelOrder = async (req, res) => {
     const { data: order, error: fetchError } = await supabaseAdmin
       .from('orders')
       .select(`
-        id, buyer_id, business_id, status, payment_method,
+        id, order_number, buyer_id, business_id, status, payment_method,
         items:order_items(id, listing_id, quantity)
       `)
       .eq('id', id)
@@ -805,6 +822,32 @@ const cancelOrder = async (req, res) => {
         .update({ status: 'refunded' })
         .eq('order_id', id)
         .eq('method', 'cash_on_pickup');
+    }
+
+    if (isBuyer) {
+      const { data: business } = await supabaseAdmin
+        .from('businesses')
+        .select('owner_id')
+        .eq('id', order.business_id)
+        .single();
+
+      if (business?.owner_id) {
+        await createNotification({
+          userId: business.owner_id,
+          type: 'order',
+          title: 'Order cancelled',
+          body: `Order ${order.order_number} was cancelled by the buyer.`,
+          data: { link: `/orders/${order.id}` },
+        });
+      }
+    } else if (order.buyer_id) {
+      await createNotification({
+        userId: order.buyer_id,
+        type: 'order',
+        title: 'Order cancelled',
+        body: `Your order ${order.order_number} has been cancelled.`,
+        data: { link: `/orders/${order.id}` },
+      });
     }
 
     res.json({ message: 'Order cancelled successfully' });

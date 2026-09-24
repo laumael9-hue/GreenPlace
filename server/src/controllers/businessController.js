@@ -1,4 +1,5 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
+const { createNotification } = require('../services/notifications');
 const crypto = require('crypto');
 
 const BUCKET_DOCS = 'business-documents';
@@ -311,7 +312,7 @@ const deleteBusiness = async (req, res) => {
 
     const { data: existing, error: fetchError } = await supabaseAdmin
       .from('businesses')
-      .select('id, status, deleted_at, name')
+      .select('id, status, deleted_at, name, owner_id')
       .eq('id', id)
       .single();
 
@@ -934,7 +935,7 @@ const approveBusiness = async (req, res) => {
 
     const { data: existing } = await supabaseAdmin
       .from('businesses')
-      .select('id, status, deleted_at, name')
+      .select('id, status, deleted_at, name, owner_id')
       .eq('id', id)
       .single();
 
@@ -966,6 +967,16 @@ const approveBusiness = async (req, res) => {
 
     await logAuditAction(req.user.id, 'approve_business', id, { name: existing.name });
 
+    if (existing.owner_id) {
+      await createNotification({
+        userId: existing.owner_id,
+        type: 'business',
+        title: 'Business approved',
+        body: `"${existing.name}" has been approved. You can now publish listings and receive orders.`,
+        data: { link: '/dashboard/profile' },
+      });
+    }
+
     res.json({
       message: 'Business approved successfully',
       business: updated,
@@ -987,7 +998,7 @@ const rejectBusiness = async (req, res) => {
 
     const { data: existing } = await supabaseAdmin
       .from('businesses')
-      .select('id, status, deleted_at, name')
+      .select('id, status, deleted_at, name, owner_id')
       .eq('id', id)
       .single();
 
@@ -1017,6 +1028,16 @@ const rejectBusiness = async (req, res) => {
       reason: reason.trim(),
     });
 
+    if (existing.owner_id) {
+      await createNotification({
+        userId: existing.owner_id,
+        type: 'business',
+        title: 'Business rejected',
+        body: `"${existing.name}" was rejected: ${reason.trim()}`,
+        data: { link: '/dashboard/profile' },
+      });
+    }
+
     res.json({
       message: 'Business rejected',
       business: updated,
@@ -1034,7 +1055,7 @@ const suspendBusiness = async (req, res) => {
 
     const { data: existing } = await supabaseAdmin
       .from('businesses')
-      .select('id, status, deleted_at, name')
+      .select('id, status, deleted_at, name, owner_id')
       .eq('id', id)
       .single();
 
@@ -1066,6 +1087,16 @@ const suspendBusiness = async (req, res) => {
       reason: reason?.trim() || null,
     });
 
+    if (existing.owner_id) {
+      await createNotification({
+        userId: existing.owner_id,
+        type: 'business',
+        title: 'Business suspended',
+        body: `"${existing.name}" has been suspended${reason?.trim() ? `: ${reason.trim()}` : '.'}`,
+        data: { link: '/dashboard/profile' },
+      });
+    }
+
     res.json({
       message: 'Business suspended',
       business: updated,
@@ -1082,7 +1113,7 @@ const reactivateBusiness = async (req, res) => {
 
     const { data: existing } = await supabaseAdmin
       .from('businesses')
-      .select('id, status, deleted_at, name')
+      .select('id, status, deleted_at, name, owner_id')
       .eq('id', id)
       .single();
 
@@ -1110,6 +1141,16 @@ const reactivateBusiness = async (req, res) => {
     }
 
     await logAuditAction(req.user.id, 'reactivate_business', id, { name: existing.name });
+
+    if (existing.owner_id) {
+      await createNotification({
+        userId: existing.owner_id,
+        type: 'business',
+        title: 'Business reactivated',
+        body: `"${existing.name}" has been reactivated and is verified again.`,
+        data: { link: '/dashboard/profile' },
+      });
+    }
 
     res.json({
       message: 'Business reactivated successfully',
