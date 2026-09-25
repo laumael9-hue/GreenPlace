@@ -590,7 +590,7 @@ const editRefund = async (req, res) => {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, buyer_id, status')
+      .select('id, buyer_id, business_id, status, order_number')
       .eq('id', orderId)
       .single();
 
@@ -638,6 +638,24 @@ const editRefund = async (req, res) => {
       .from('orders')
       .update({ refund_reason: reason.trim() })
       .eq('id', orderId);
+
+    if (order.business_id) {
+      const { data: business } = await supabaseAdmin
+        .from('businesses')
+        .select('owner_id')
+        .eq('id', order.business_id)
+        .single();
+
+      if (business?.owner_id && business.owner_id !== userId) {
+        await createNotification({
+          userId: business.owner_id,
+          type: 'order',
+          title: 'Refund request updated',
+          body: `The refund request for order ${order.order_number} has been updated.`,
+          data: { link: `/orders/${order.id}` },
+        });
+      }
+    }
 
     res.json({
       message: 'Refund request updated',
@@ -883,7 +901,7 @@ const requestWalkInRefund = async (req, res) => {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, buyer_id, business_id, status, payment_status, payment_method, total')
+      .select('id, buyer_id, business_id, status, payment_status, payment_method, total, order_number')
       .eq('id', orderId)
       .single();
 
@@ -1012,6 +1030,16 @@ const requestWalkInRefund = async (req, res) => {
       }
     }
 
+    if (order.buyer_id) {
+      await createNotification({
+        userId: order.buyer_id,
+        type: 'order',
+        title: 'Refund processed',
+        body: `Your refund for order ${order.order_number} has been processed.`,
+        data: { link: `/orders/${order.id}` },
+      });
+    }
+
     res.json({ message: 'Refund processed successfully', refund });
   } catch (err) {
     console.error('Request business refund error:', err);
@@ -1030,7 +1058,7 @@ const cancelRefund = async (req, res) => {
 
     const { data: refund, error: refundError } = await supabaseAdmin
       .from('refunds')
-      .select('id, order_id, status, requested_by')
+      .select('id, order_id, status, requested_by, order:orders(id, order_number, business_id)')
       .eq('id', refundId)
       .single();
 
@@ -1055,6 +1083,24 @@ const cancelRefund = async (req, res) => {
       .from('orders')
       .update({ refund_status: 'none', refund_reason: null, refund_requested_at: null })
       .eq('id', refund.order_id);
+
+    if (refund.order?.business_id) {
+      const { data: business } = await supabaseAdmin
+        .from('businesses')
+        .select('owner_id')
+        .eq('id', refund.order.business_id)
+        .single();
+
+      if (business?.owner_id && business.owner_id !== userId) {
+        await createNotification({
+          userId: business.owner_id,
+          type: 'order',
+          title: 'Refund request cancelled',
+          body: `The refund request for order ${refund.order.order_number} was withdrawn by the buyer.`,
+          data: { link: `/orders/${refund.order_id}` },
+        });
+      }
+    }
 
     res.json({ message: 'Refund request cancelled' });
   } catch (err) {
