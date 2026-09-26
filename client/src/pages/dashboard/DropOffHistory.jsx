@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Loader2, ChevronLeft, ChevronRight, MapPin, FileText } from 'lucide-react';
+import { Package, Loader2, ChevronLeft, ChevronRight, MapPin, FileText, XCircle } from 'lucide-react';
 import api from '../../lib/api';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
 
@@ -22,6 +23,8 @@ export default function DropOffHistory() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
   const [selectedDropOff, setSelectedDropOff] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const fetchDropOffs = useCallback(async (page = 1) => {
     setLoading(true);
@@ -57,6 +60,21 @@ export default function DropOffHistory() {
     }
   };
 
+  const handleCancel = async (id) => {
+    setActionLoading(true);
+    setActionError('');
+    try {
+      await api.patch(`/drop-offs/${id}/cancel`);
+      setSelectedDropOff(null);
+      fetchDropOffs(pagination.page);
+    } catch (err) {
+      console.error('Failed to cancel drop-off:', err);
+      setActionError(err.response?.data?.error || err.message || 'Failed to cancel drop-off');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const filterOptions = [
     { value: '', label: 'All' },
     { value: 'scheduled', label: 'Pending' },
@@ -70,6 +88,15 @@ export default function DropOffHistory() {
         <h1 className="text-2xl font-bold text-gray-900">Drop-off History</h1>
         <p className="text-gray-500 mt-1">View your past recycling drop-offs</p>
       </div>
+
+      {actionError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between gap-3">
+          <p className="text-sm text-red-700">{actionError}</p>
+          <button onClick={() => setActionError('')} className="p-1 text-red-400 hover:text-red-600">
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2">
@@ -270,6 +297,21 @@ export default function DropOffHistory() {
               <div>
                 <p className="text-xs text-gray-500">Notes</p>
                 <p className="text-sm text-gray-700">{selectedDropOff.notes}</p>
+              </div>
+            )}
+
+            {/* Cancel */}
+            {selectedDropOff.status === 'scheduled' && (
+              <div className="pt-2 border-t border-gray-100">
+                <Button
+                  variant="danger"
+                  className="w-full"
+                  onClick={() => handleCancel(selectedDropOff.id)}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                  Cancel Drop-off
+                </Button>
               </div>
             )}
 

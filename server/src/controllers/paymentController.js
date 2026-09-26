@@ -1,6 +1,6 @@
 const { supabaseAdmin } = require('../config/supabase');
 const paymongoService = require('../services/paymongo');
-const { createNotification } = require('../services/notifications');
+const { createNotification, getOrderImage } = require('../services/notifications');
 const crypto = require('crypto');
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -216,7 +216,7 @@ const handleWebhook = async (req, res) => {
           type: 'order',
           title: 'Payment received',
           body: 'Your payment has been received and your order is confirmed.',
-          data: { link: `/orders/${order.id}` },
+          data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
         });
       }
     } else if (eventType === 'payment.failed' || eventType === 'payment.expired') {
@@ -246,7 +246,7 @@ const handleWebhook = async (req, res) => {
           body: eventType === 'payment.expired'
             ? 'Your payment session expired. Please try checking out again.'
             : 'Your payment could not be processed. Please try again.',
-          data: { link: `/orders/${failedOrder.id}` },
+          data: { link: `/orders/${failedOrder.id}`, image: await getOrderImage(failedOrder.id) },
         });
       }
     }
@@ -293,7 +293,7 @@ const checkPendingPaymentStatus = async (payment, orderId) => {
           type: 'order',
           title: 'Payment received',
           body: 'Your payment has been received and your order is confirmed.',
-          data: { link: `/orders/${paidOrder.id}` },
+          data: { link: `/orders/${paidOrder.id}`, image: await getOrderImage(paidOrder.id) },
         });
       }
 
@@ -559,7 +559,7 @@ const requestRefund = async (req, res) => {
           type: 'order',
           title: 'Refund requested',
           body: `A refund has been requested for order ${order.order_number}.`,
-          data: { link: `/orders/${order.id}` },
+          data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
         });
       }
     }
@@ -652,7 +652,7 @@ const editRefund = async (req, res) => {
           type: 'order',
           title: 'Refund request updated',
           body: `The refund request for order ${order.order_number} has been updated.`,
-          data: { link: `/orders/${order.id}` },
+          data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
         });
       }
     }
@@ -794,7 +794,7 @@ const processRefund = async (req, res) => {
           type: 'order',
           title: 'Refund approved',
           body: `Your refund for order ${refund.order.order_number} has been approved and processed.`,
-          data: { link: `/orders/${refund.order.id}` },
+          data: { link: `/orders/${refund.order.id}`, image: await getOrderImage(refund.order.id) },
         });
       }
 
@@ -819,7 +819,7 @@ const processRefund = async (req, res) => {
           type: 'order',
           title: 'Refund rejected',
           body: `Your refund request for order ${refund.order.order_number} was rejected.`,
-          data: { link: `/orders/${refund.order.id}` },
+          data: { link: `/orders/${refund.order.id}`, image: await getOrderImage(refund.order.id) },
         });
       }
 
@@ -1036,7 +1036,7 @@ const requestWalkInRefund = async (req, res) => {
         type: 'order',
         title: 'Refund processed',
         body: `Your refund for order ${order.order_number} has been processed.`,
-        data: { link: `/orders/${order.id}` },
+        data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
       });
     }
 
@@ -1097,7 +1097,7 @@ const cancelRefund = async (req, res) => {
           type: 'order',
           title: 'Refund request cancelled',
           body: `The refund request for order ${refund.order.order_number} was withdrawn by the buyer.`,
-          data: { link: `/orders/${refund.order_id}` },
+          data: { link: `/orders/${refund.order_id}`, image: await getOrderImage(refund.order_id) },
         });
       }
     }

@@ -118,8 +118,16 @@ export default function NotificationBell() {
                       item.is_read ? 'hover:bg-gray-50' : 'bg-primary-50 hover:bg-primary-100/60'
                     }`}
                   >
-                    <span className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${meta.classes}`}>
+                    <span className={`relative shrink-0 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ${meta.classes}`}>
                       <Icon className="w-4 h-4" />
+                      {item.data?.image && (
+                        <img
+                          src={item.data.image}
+                          alt=""
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      )}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className={`block text-sm truncate ${item.is_read ? 'font-medium text-gray-900' : 'font-semibold text-gray-900'}`}>

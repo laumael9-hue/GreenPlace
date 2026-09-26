@@ -1,6 +1,6 @@
 const { supabaseAdmin } = require('../config/supabase');
 const { checkPendingPaymentStatus } = require('./paymentController');
-const { createNotification } = require('../services/notifications');
+const { createNotification, getOrderImage } = require('../services/notifications');
 const crypto = require('crypto');
 
 // ============================================================
@@ -517,7 +517,7 @@ const getOrderById = async (req, res) => {
         confirmed_at, completed_at, cancelled_at, cancellation_reason,
         refund_status, refund_reason, refund_requested_at, refunded_at,
         created_at, updated_at,
-        buyer_id, business_id
+        buyer_id, business_id, guest_name, guest_phone
       `)
       .eq('id', id)
       .single();
@@ -530,12 +530,17 @@ const getOrderById = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // Use req.user.profile for buyer (already loaded by auth middleware)
-    let buyer = { id: userId, first_name: req.user.profile?.first_name, last_name: req.user.profile?.last_name, email: req.user.profile?.email, phone: req.user.profile?.phone };
-
-    // For walk-in orders, use guest info instead
-    if (!order.buyer_id && order.guest_name) {
-      buyer = { id: null, first_name: order.guest_name, last_name: null, phone: order.guest_phone, email: null };
+    // Fetch the real buyer profile (buyer_id FK → profiles ON DELETE CASCADE)
+    let buyer = null;
+    if (order.buyer_id) {
+      const { data: buyerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, first_name, last_name, phone, avatar_url')
+        .eq('id', order.buyer_id)
+        .maybeSingle();
+      buyer = buyerProfile;
+    } else if (order.guest_name) {
+      buyer = { id: null, first_name: order.guest_name, last_name: null, phone: order.guest_phone, avatar_url: null };
     }
 
     const [businessResult, itemsResult, paymentsResult, refundsResult] = await Promise.all([
@@ -719,7 +724,7 @@ const updateOrderStatus = async (req, res) => {
         type: 'order',
         title: 'Order updated',
         body: `Your order ${order.order_number} is now ${statusLabels[status] || status}.`,
-        data: { link: `/orders/${order.id}` },
+        data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
       });
     }
 
@@ -837,7 +842,7 @@ const cancelOrder = async (req, res) => {
           type: 'order',
           title: 'Order cancelled',
           body: `Order ${order.order_number} was cancelled by the buyer.`,
-          data: { link: `/orders/${order.id}` },
+          data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
         });
       }
     } else if (order.buyer_id) {
@@ -846,7 +851,7 @@ const cancelOrder = async (req, res) => {
         type: 'order',
         title: 'Order cancelled',
         body: `Your order ${order.order_number} has been cancelled.`,
-        data: { link: `/orders/${order.id}` },
+        data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
       });
     }
 
@@ -882,6 +887,7 @@ const getBusinessOrders = async (req, res) => {
       .from('orders')
       .select(`
         id, order_number, status, subtotal, total,
+        buyer_id, guest_name, guest_phone,
         payment_method, payment_status, pickup_address, notes,
         preferred_pickup_date, preferred_pickup_time,
         confirmed_at, completed_at, cancelled_at, created_at,

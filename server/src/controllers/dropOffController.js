@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
-const { createNotification } = require('../services/notifications');
+const { createNotification, getBusinessLogo } = require('../services/notifications');
 const crypto = require('crypto');
 
 // ============================================================
@@ -178,7 +178,7 @@ const createDropOff = async (req, res) => {
         type: 'drop_off',
         title: 'Drop-off scheduled',
         body: `Your drop-off ${referenceNumber} has been scheduled.`,
-        data: { link: '/drop-offs' },
+        data: { link: '/drop-offs', image: await getBusinessLogo(businessId) },
       });
     }
 
@@ -480,7 +480,7 @@ const completeDropOff = async (req, res) => {
         type: 'drop_off',
         title: 'Drop-off completed',
         body: `Your drop-off ${existing.reference_number} has been processed.`,
-        data: { link: '/drop-offs' },
+        data: { link: '/drop-offs', image: await getBusinessLogo(existing.business_id) },
       });
     }
 
@@ -500,19 +500,7 @@ const cancelDropOff = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-
-    const { data: myBusiness } = await supabaseAdmin
-      .from('businesses')
-      .select('id')
-      .eq('owner_id', userId)
-      .eq('status', 'approved')
-      .is('deleted_at', null)
-      .limit(1)
-      .maybeSingle();
-
-    if (!myBusiness) {
-      return res.status(400).json({ error: 'No approved business found' });
-    }
+    const userRole = req.user.profile?.role;
 
     const { data: existing, error: existingError } = await supabaseAdmin
       .from('drop_offs')
@@ -529,8 +517,23 @@ const cancelDropOff = async (req, res) => {
       return res.status(404).json({ error: 'Drop-off not found' });
     }
 
-    if (existing.business_id !== myBusiness.id) {
-      return res.status(403).json({ error: 'Not authorized' });
+    if (userRole === 'resident') {
+      if (existing.user_id !== userId) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
+    } else if (userRole === 'business') {
+      const { data: myBusiness } = await supabaseAdmin
+        .from('businesses')
+        .select('id')
+        .eq('owner_id', userId)
+        .eq('status', 'approved')
+        .is('deleted_at', null)
+        .limit(1)
+        .maybeSingle();
+
+      if (!myBusiness || existing.business_id !== myBusiness.id) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
     }
 
     if (existing.status === 'processed' || existing.status === 'cancelled') {
@@ -547,14 +550,32 @@ const cancelDropOff = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    if (existing.user_id) {
+    if (existing.user_id && userRole !== 'resident') {
       await createNotification({
         userId: existing.user_id,
         type: 'drop_off',
         title: 'Drop-off cancelled',
         body: `Your drop-off ${existing.reference_number} has been cancelled.`,
-        data: { link: '/drop-offs' },
+        data: { link: '/drop-offs', image: await getBusinessLogo(existing.business_id) },
       });
+    }
+
+    if (userRole === 'resident') {
+      const { data: dropOffBusiness } = await supabaseAdmin
+        .from('businesses')
+        .select('owner_id')
+        .eq('id', existing.business_id)
+        .maybeSingle();
+
+      if (dropOffBusiness?.owner_id && dropOffBusiness.owner_id !== userId) {
+        await createNotification({
+          userId: dropOffBusiness.owner_id,
+          type: 'drop_off',
+          title: 'Drop-off cancelled',
+          body: `The resident cancelled drop-off ${existing.reference_number}.`,
+          data: { link: '/dashboard/drop-offs', image: await getBusinessLogo(existing.business_id) },
+        });
+      }
     }
 
     res.json({ message: 'Drop-off cancelled' });

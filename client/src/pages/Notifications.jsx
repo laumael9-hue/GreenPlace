@@ -142,8 +142,16 @@ export default function Notifications() {
                     item.is_read ? 'hover:bg-gray-50' : 'bg-primary-50/60 hover:bg-primary-50'
                   }`}
                 >
-                  <span className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${meta.classes}`}>
+                  <span className={`relative shrink-0 w-9 h-9 rounded-full flex items-center justify-center overflow-hidden ${meta.classes}`}>
                     <Icon className="w-5 h-5" />
+                    {item.data?.image && (
+                      <img
+                        src={item.data.image}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">

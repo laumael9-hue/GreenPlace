@@ -264,14 +264,24 @@ export default function DropOffTracker() {
                       </td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         {dropOff.status === 'scheduled' ? (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleComplete(dropOff.id)}
-                            disabled={actionLoading}
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Complete
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleComplete(dropOff.id)}
+                              disabled={actionLoading}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Complete
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleCancel(dropOff.id)}
+                              disabled={actionLoading}
+                            >
+                              <XCircle className="w-3.5 h-3.5" /> Cancel
+                            </Button>
+                          </div>
                         ) : dropOff.status === 'processed' ? (
                           <Link to={`/drop-offs/${dropOff.id}/receipt`} onClick={(e) => e.stopPropagation()}>
                             <Button variant="outline" size="sm">

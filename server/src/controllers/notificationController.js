@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
+const { attachNotificationImages } = require('../services/notifications');
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -33,8 +34,10 @@ const getNotifications = async (req, res) => {
       return res.status(500).json({ error: 'Failed to load notifications' });
     }
 
+    const notifications = await attachNotificationImages(data || []);
+
     res.json({
-      notifications: data || [],
+      notifications,
       pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) },
     });
   } catch (err) {

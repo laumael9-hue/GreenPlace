@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, Package, MapPin, CreditCard, Clock,
-  CheckCircle, XCircle, AlertCircle, Store, Phone, RotateCcw, Pencil, ChevronRight, FileText
+  CheckCircle, XCircle, AlertCircle, Store, Phone, RotateCcw, Pencil, ChevronRight, FileText, MessageCircle, User
 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +32,7 @@ export default function OrderDetail() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [messaging, setMessaging] = useState(false);
   const [error, setError] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -166,6 +167,23 @@ export default function OrderDetail() {
       setError(err.response?.data?.error || 'Failed to process refund');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleMessage = async () => {
+    setMessaging(true);
+    setError('');
+    try {
+      const body = role === 'business'
+        ? { recipientId: order.buyer.id }
+        : { businessId: order.business.id };
+      const { data } = await api.post('/messages/conversations', body);
+      navigate(`/dashboard/messages/${data.conversation.id}`);
+    } catch (err) {
+      if (err?.response?.status === 401) navigate('/login');
+      else setError(err.response?.data?.error || 'Failed to open conversation');
+    } finally {
+      setMessaging(false);
     }
   };
 
@@ -382,6 +400,46 @@ export default function OrderDetail() {
               </div>
             </Card>
 
+            {/* Customer Info */}
+            {role === 'business' && order.buyer && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5 text-primary-600" />
+                    Customer
+                  </CardTitle>
+                </CardHeader>
+                <div className="space-y-2 text-sm">
+                  <p className="font-medium text-gray-900">
+                    {order.buyer.first_name} {order.buyer.last_name}
+                  </p>
+                  {order.buyer.phone && (
+                    <p className="flex items-center gap-2 text-gray-500">
+                      <Phone className="w-4 h-4" />
+                      {order.buyer.phone}
+                    </p>
+                  )}
+                  {order.buyer.id ? (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleMessage}
+                      disabled={messaging}
+                    >
+                      {messaging ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <MessageCircle className="w-4 h-4" />
+                      )}
+                      Message Buyer
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-gray-400">Walk-in order — no account to message.</p>
+                  )}
+                </div>
+              </Card>
+            )}
+
             {/* Business Info */}
             {order.business && (
               <Card>
@@ -398,6 +456,21 @@ export default function OrderDetail() {
                       <Phone className="w-4 h-4" />
                       {order.business.phone}
                     </p>
+                  )}
+                  {role === 'resident' && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleMessage}
+                      disabled={messaging}
+                    >
+                      {messaging ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <MessageCircle className="w-4 h-4" />
+                      )}
+                      Message Seller
+                    </Button>
                   )}
                 </div>
               </Card>
