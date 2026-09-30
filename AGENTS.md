@@ -243,6 +243,7 @@ const handler = async (req, res) => {
 - Phase 10: Refunds, PayMongo Test Mode, Drop-offs
 - Phase 11: Receipts (Order + Drop-off, print/PDF with iframe)
 - Phase 12+: Forum, Messaging, Notifications
+- Phase 16: Reviews (ratings, per-star aggregation, duplicate prevention, business replies)
 
 ## Receipt Pattern
 

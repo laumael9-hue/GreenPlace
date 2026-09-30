@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Loader2, ChevronLeft, ChevronRight, MapPin, FileText, XCircle } from 'lucide-react';
+import { Package, Loader2, ChevronLeft, ChevronRight, MapPin, FileText, XCircle, Star } from 'lucide-react';
 import api from '../../lib/api';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
+import StarRating from '../../components/ui/StarRating';
+import ReviewModal from '../../components/reviews/ReviewModal';
 
 const statusConfig = {
   scheduled: { variant: 'warning', label: 'Pending' },
@@ -25,6 +27,34 @@ export default function DropOffHistory() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [dropOffReview, setDropOffReview] = useState(null);
+  const [reviewChecked, setReviewChecked] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+
+  // Duplicate prevention: check whether the user already reviewed this facility
+  useEffect(() => {
+    let cancelled = false;
+    const checkReview = async () => {
+      setReviewChecked(false);
+      setDropOffReview(null);
+      if (!selectedDropOff || !['received', 'processed'].includes(selectedDropOff.status)) {
+        setReviewChecked(true);
+        return;
+      }
+      try {
+        const { data } = await api.get('/reviews/check', {
+          params: { dropOffId: selectedDropOff.id },
+        });
+        if (!cancelled) setDropOffReview(data.review || null);
+      } catch (err) {
+        console.error('Failed to check review status:', err);
+      } finally {
+        if (!cancelled) setReviewChecked(true);
+      }
+    };
+    checkReview();
+    return () => { cancelled = true; };
+  }, [selectedDropOff]);
 
   const fetchDropOffs = useCallback(async (page = 1) => {
     setLoading(true);
@@ -324,9 +354,51 @@ export default function DropOffHistory() {
                 </button>
               </Link>
             )}
+
+            {/* Review facility */}
+            {['received', 'processed'].includes(selectedDropOff.status) &&
+              selectedDropOff.business &&
+              reviewChecked && (
+                <div className="pt-2 border-t border-gray-100">
+                  {dropOffReview ? (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-yellow-800">Your Review</p>
+                        <button
+                          type="button"
+                          onClick={() => setShowReviewModal(true)}
+                          className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <StarRating value={dropOffReview.rating} size="sm" />
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{dropOffReview.body}</p>
+                    </div>
+                  ) : (
+                    <Button className="w-full" onClick={() => setShowReviewModal(true)}>
+                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      Review Facility
+                    </Button>
+                  )}
+                </div>
+              )}
           </div>
         )}
       </Modal>
+
+      {/* Review Modal */}
+      {selectedDropOff?.business && (
+        <ReviewModal
+          open={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          businessId={selectedDropOff.business.id}
+          businessName={selectedDropOff.business.name}
+          dropOffId={selectedDropOff.id}
+          existingReview={dropOffReview}
+          onSaved={(review) => setDropOffReview(review)}
+        />
+      )}
     </div>
   );
 }

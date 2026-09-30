@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, Package, MapPin, CreditCard, Clock,
-  CheckCircle, XCircle, AlertCircle, Store, Phone, RotateCcw, Pencil, ChevronRight, FileText, MessageCircle, User
+  CheckCircle, XCircle, AlertCircle, Store, Phone, RotateCcw, Pencil, ChevronRight, FileText, MessageCircle, User, Star
 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,8 @@ import Card, { CardHeader, CardTitle } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import ImageViewer from '../components/ui/ImageViewer';
 import Modal from '../components/ui/Modal';
+import StarRating from '../components/ui/StarRating';
+import ReviewModal from '../components/reviews/ReviewModal';
 
 const statusConfig = {
   pending: { variant: 'warning', label: 'Pending', icon: Clock },
@@ -45,6 +47,9 @@ export default function OrderDetail() {
   const [showRefundDetailModal, setShowRefundDetailModal] = useState(false);
   const [showWalkInRefundModal, setShowWalkInRefundModal] = useState(false);
   const [walkInRefundReason, setWalkInRefundReason] = useState('');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [myReview, setMyReview] = useState(null);
+  const [reviewChecked, setReviewChecked] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -60,6 +65,26 @@ export default function OrderDetail() {
     };
     fetchOrder();
   }, [id]);
+
+  // Duplicate prevention: check whether this user already reviewed the business
+  useEffect(() => {
+    const checkReview = async () => {
+      setReviewChecked(false);
+      if (!order || order.status !== 'completed' || !order.buyer_id || role === 'business') {
+        setReviewChecked(true);
+        return;
+      }
+      try {
+        const { data } = await api.get('/reviews/check', { params: { orderId: order.id } });
+        setMyReview(data.review || null);
+      } catch (err) {
+        console.error('Failed to check review status:', err);
+      } finally {
+        setReviewChecked(true);
+      }
+    };
+    checkReview();
+  }, [order, role]);
 
   const handleStatusUpdate = async (newStatus) => {
     setActionLoading(true);
@@ -201,6 +226,9 @@ export default function OrderDetail() {
   const canUpdateStatus = role === 'business' && order && getNextStatus(order.status);
   const canRequestRefund = role === 'resident' && order && order.buyer_id && order.status === 'completed' && order.payment_status === 'paid' && order.refund_status !== 'requested' && order.refund_status !== 'refunded';
   const canRefundBusiness = role === 'business' && order && order.status === 'completed' && order.refund_status !== 'refunded';
+  const reviewEnabled = role !== 'business' && order && order.status === 'completed' && !!order.buyer_id && !!order.business;
+  const canLeaveReview = reviewEnabled && reviewChecked && !myReview;
+  const hasReviewed = reviewEnabled && reviewChecked && !!myReview;
   const refundRequested = order && order.refund_status === 'requested';
   const isRefunded = order && order.refund_status === 'refunded';
   const currentStepIndex = statusTimeline.indexOf(order?.status);
@@ -487,7 +515,7 @@ export default function OrderDetail() {
             )}
 
             {/* Actions */}
-            {(canUpdateStatus || canCancel || canRequestRefund || canRefundBusiness || refundRequested || isRefunded || (role === 'business' && refundRequested)) && (
+            {(canUpdateStatus || canCancel || canRequestRefund || canRefundBusiness || refundRequested || isRefunded || (role === 'business' && refundRequested) || canLeaveReview || hasReviewed) && (
               <Card>
                 <CardHeader>
                   <CardTitle>Actions</CardTitle>
@@ -536,6 +564,31 @@ export default function OrderDetail() {
                       <RotateCcw className="w-4 h-4" />
                       Refund Order
                     </Button>
+                  )}
+                  {canLeaveReview && (
+                    <Button className="w-full" onClick={() => setShowReviewModal(true)}>
+                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      Leave a Review
+                    </Button>
+                  )}
+                  {hasReviewed && (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-sm font-semibold text-yellow-800">Your Review</p>
+                        <button
+                          type="button"
+                          onClick={() => setShowReviewModal(true)}
+                          className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <StarRating value={myReview.rating} size="sm" />
+                      {myReview.title && (
+                        <p className="text-sm font-medium text-gray-800 mt-1.5">{myReview.title}</p>
+                      )}
+                      <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{myReview.body}</p>
+                    </div>
                   )}
                   {refundRequested && role === 'resident' && (
                     <div
@@ -802,6 +855,19 @@ export default function OrderDetail() {
           </Button>
         </div>
       </Modal>
+
+      {/* Review Modal */}
+      {order?.business && (
+        <ReviewModal
+          open={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          businessId={order.business.id}
+          businessName={order.business.name}
+          orderId={order.id}
+          existingReview={myReview}
+          onSaved={(review) => setMyReview(review)}
+        />
+      )}
 
       {viewingImages && (
         <ImageViewer

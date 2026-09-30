@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { ArrowLeft, Star, MapPin, Phone, Globe, Clock, Package, Store, Navigation, ExternalLink, Mail, Loader2 } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Phone, Globe, Clock, Package, Store, Navigation, ExternalLink, Mail, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import ReviewSummary from '../components/reviews/ReviewSummary';
+import ReviewCard from '../components/reviews/ReviewCard';
+import ReviewModal from '../components/reviews/ReviewModal';
 
 const defaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -31,6 +34,30 @@ export default function BusinessDetail() {
   const [error, setError] = useState(null);
   const [messaging, setMessaging] = useState(false);
   const [messageError, setMessageError] = useState('');
+  const [reviews, setReviews] = useState([]);
+  const [reviewsSummary, setReviewsSummary] = useState(null);
+  const [myReview, setMyReview] = useState(null);
+  const [reviewsPagination, setReviewsPagination] = useState({ page: 1, limit: 5, total: 0, pages: 0 });
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+
+  const fetchReviews = useCallback(async (businessId, page = 1) => {
+    if (!businessId) return;
+    setReviewsLoading(true);
+    try {
+      const { data } = await api.get(`/reviews/business/${businessId}`, {
+        params: { page, limit: 5 },
+      });
+      setReviews(data.reviews || []);
+      setReviewsSummary(data.summary);
+      setMyReview(data.myReview);
+      setReviewsPagination(data.pagination);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -65,6 +92,22 @@ export default function BusinessDetail() {
     } finally {
       setMessaging(false);
     }
+  };
+
+  useEffect(() => {
+    if (business?.id) fetchReviews(business.id, 1);
+  }, [business?.id, fetchReviews]);
+
+  const handleReviewClick = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setShowReviewModal(true);
+  };
+
+  const handleReviewSaved = () => {
+    fetchReviews(business?.id, reviewsPagination.page);
   };
 
   if (loading) {
@@ -182,6 +225,65 @@ export default function BusinessDetail() {
                 </div>
               </Card>
             )}
+
+            {/* Reviews */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4 gap-3">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  <Star className="w-5 h-5 inline mr-2 text-yellow-400" />
+                  Reviews
+                </h2>
+                <Button size="sm" variant={myReview ? 'outline' : 'primary'} onClick={handleReviewClick}>
+                  {myReview ? 'Edit Your Review' : 'Write a Review'}
+                </Button>
+              </div>
+
+              {reviewsLoading && reviews.length === 0 ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <ReviewSummary summary={reviewsSummary} />
+
+                  <div className="mt-4 pt-2 border-t border-gray-100">
+                    {reviews.length === 0 ? (
+                      <p className="text-sm text-gray-500 py-4 text-center">
+                        No reviews yet. Be the first to share your experience.
+                      </p>
+                    ) : (
+                      reviews.map((review) => <ReviewCard key={review.id} review={review} />)
+                    )}
+                  </div>
+
+                  {reviewsPagination.pages > 1 && (
+                    <div className="flex items-center justify-between pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchReviews(business.id, reviewsPagination.page - 1)}
+                        disabled={reviewsPagination.page <= 1 || reviewsLoading}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
+                      </Button>
+                      <span className="text-sm text-gray-500">
+                        Page {reviewsPagination.page} of {reviewsPagination.pages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchReviews(business.id, reviewsPagination.page + 1)}
+                        disabled={reviewsPagination.page >= reviewsPagination.pages || reviewsLoading}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </Card>
 
             {/* Map */}
             {hasLocation && (
@@ -319,6 +421,15 @@ export default function BusinessDetail() {
           </div>
         </div>
       </div>
+
+      <ReviewModal
+        open={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        businessId={business.id}
+        businessName={business.name}
+        existingReview={myReview}
+        onSaved={handleReviewSaved}
+      />
     </div>
   );
 }
