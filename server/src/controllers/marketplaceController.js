@@ -82,6 +82,7 @@ const getListings = async (req, res) => {
         id, title, slug, description, price, original_price, unit,
         quantity_available, condition, material_type, status,
         is_featured, view_count, sold_count, city,
+        rating_avg, rating_count,
         created_at, published_at,
         category:categories(id, name, slug, icon),
         seller:profiles(id, first_name, last_name, avatar_url),
@@ -132,6 +133,9 @@ const getListings = async (req, res) => {
         break;
       case 'popular':
         orderConfig = { column: 'view_count', ascending: false };
+        break;
+      case 'rating':
+        orderConfig = { column: 'rating_avg', ascending: false };
         break;
       case 'oldest':
         orderConfig = { column: 'created_at', ascending: true };

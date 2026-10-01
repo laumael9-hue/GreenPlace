@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Filter, ChevronDown, ChevronUp, X, ShoppingBag, Tag, Loader2, Package, Flag } from 'lucide-react';
+import { Search, Filter, ChevronDown, ChevronUp, X, ShoppingBag, Tag, Loader2, Package, Flag, Star } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -24,6 +24,7 @@ const SORT_OPTIONS = [
   { value: 'price_asc', label: 'Price: Low to High' },
   { value: 'price_desc', label: 'Price: High to Low' },
   { value: 'popular', label: 'Most Popular' },
+  { value: 'rating', label: 'Top Rated' },
 ];
 
 const CONDITION_LABELS = {
@@ -494,6 +495,15 @@ function ListingCard({ listing, onAddToCart, addingToCart, onReport, currentUser
             </h3>
           </Link>
           <p className="text-xs text-gray-500 mt-1">{sellerName}</p>
+          {(listing.rating_count || 0) > 0 && (
+            <div className="flex items-center gap-1 mt-1">
+              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+              <span className="text-xs font-medium text-gray-700">
+                {parseFloat(listing.rating_avg || 0).toFixed(1)}
+              </span>
+              <span className="text-xs text-gray-400">({listing.rating_count})</span>
+            </div>
+          )}
           {listing.category && (
             <div className="mt-2">
               <Badge variant="neutral" className="text-[10px]">

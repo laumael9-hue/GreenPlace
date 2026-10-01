@@ -4,7 +4,9 @@ const { authenticate, optionalAuth } = require('../middleware/auth');
 const { requireBusiness } = require('../middleware/rbac');
 const {
   getBusinessReviews,
+  getListingReviews,
   getMyBusinessReviews,
+  getMyListingReviews,
   getMyReviews,
   checkMyReview,
   createReview,
@@ -15,6 +17,7 @@ const {
 
 // Public routes
 router.get('/business/:businessId', optionalAuth, getBusinessReviews);
+router.get('/listing/:listingId', optionalAuth, getListingReviews);
 router.get('/check', optionalAuth, checkMyReview);
 
 // Authenticated routes
@@ -24,7 +27,8 @@ router.patch('/:id', authenticate, updateReview);
 router.delete('/:id', authenticate, deleteReview);
 router.post('/:id/reply', authenticate, replyToReview);
 
-// Business routes
+// Seller routes
 router.get('/for-my-business', authenticate, requireBusiness, getMyBusinessReviews);
+router.get('/for-my-listings', authenticate, getMyListingReviews);
 
 module.exports = router;

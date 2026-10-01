@@ -244,6 +244,7 @@ const handler = async (req, res) => {
 - Phase 11: Receipts (Order + Drop-off, print/PDF with iframe)
 - Phase 12+: Forum, Messaging, Notifications
 - Phase 16: Reviews (ratings, per-star aggregation, duplicate prevention, business replies)
+- Phase 16+: Product reviews (listing_id, separate listing ratings, seller visibility/replies, per-item review on completed orders)
 
 ## Receipt Pattern
 

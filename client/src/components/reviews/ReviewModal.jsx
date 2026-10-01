@@ -9,7 +9,8 @@ import StarRating from '../ui/StarRating';
 export default function ReviewModal({
   open,
   onClose,
-  businessId,
+  businessId = null,
+  listingId = null,
   orderId = null,
   dropOffId = null,
   businessName = '',
@@ -51,9 +52,10 @@ export default function ReviewModal({
     setSubmitting(true);
     try {
       const payload = { rating, title, body, isAnonymous };
+      const target = listingId ? { listingId } : { businessId };
       const { data } = existingReview
         ? await api.patch(`/reviews/${existingReview.id}`, payload)
-        : await api.post('/reviews', { ...payload, businessId, orderId, dropOffId });
+        : await api.post('/reviews', { ...payload, ...target, orderId, dropOffId });
 
       onSaved?.(data.review);
       onClose();

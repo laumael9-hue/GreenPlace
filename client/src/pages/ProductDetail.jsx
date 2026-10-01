@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2, Zap, Flag, Mail } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2, Zap, Flag, Mail, Star } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -8,6 +8,10 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
+import StarRating from '../components/ui/StarRating';
+import ReviewSummary from '../components/reviews/ReviewSummary';
+import ReviewCard from '../components/reviews/ReviewCard';
+import ReviewModal from '../components/reviews/ReviewModal';
 
 const CONDITION_LABELS = {
   new: 'New',
@@ -36,6 +40,12 @@ export default function ProductDetail() {
   const [reporting, setReporting] = useState(false);
   const [messageError, setMessageError] = useState('');
   const [messaging, setMessaging] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsSummary, setReviewsSummary] = useState(null);
+  const [myReview, setMyReview] = useState(null);
+  const [reviewsPagination, setReviewsPagination] = useState({ page: 1, limit: 5, total: 0, pages: 0 });
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -52,6 +62,40 @@ export default function ProductDetail() {
     };
     fetchListing();
   }, [slug]);
+
+  const fetchReviews = useCallback(async (listingId, page = 1) => {
+    if (!listingId) return;
+    setReviewsLoading(true);
+    try {
+      const { data } = await api.get(`/reviews/listing/${listingId}`, {
+        params: { page, limit: 5 },
+      });
+      setReviews(data.reviews || []);
+      setReviewsSummary(data.summary);
+      setMyReview(data.myReview);
+      setReviewsPagination(data.pagination);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (listing?.id) fetchReviews(listing.id, 1);
+  }, [listing?.id, fetchReviews]);
+
+  const handleReviewClick = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setShowReviewModal(true);
+  };
+
+  const handleReviewSaved = () => {
+    fetchReviews(listing?.id, reviewsPagination.page);
+  };
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -252,6 +296,15 @@ export default function ProductDetail() {
                   <Badge variant="neutral" className="mb-2">{listing.category.name}</Badge>
                 )}
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{listing.title}</h1>
+                <div className="flex items-center gap-2 mt-2">
+                  <StarRating value={parseFloat(listing.rating_avg) || 0} size="sm" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {(parseFloat(listing.rating_avg) || 0).toFixed(1)}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    ({listing.rating_count || 0} review{listing.rating_count === 1 ? '' : 's'})
+                  </span>
+                </div>
               </div>
               {(!user || listing.seller?.id !== user.id) && (
                 <button
@@ -455,7 +508,77 @@ export default function ProductDetail() {
             )}
           </div>
         </div>
+
+        {/* Reviews */}
+        <div className="mt-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4 gap-3">
+              <h2 className="text-lg font-semibold text-gray-900">
+                <Star className="w-5 h-5 inline mr-2 text-yellow-400" />
+                Reviews
+              </h2>
+              <Button size="sm" variant={myReview ? 'outline' : 'primary'} onClick={handleReviewClick}>
+                {myReview ? 'Edit Your Review' : 'Write a Review'}
+              </Button>
+            </div>
+
+            {reviewsLoading && reviews.length === 0 ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+              </div>
+            ) : (
+              <>
+                <ReviewSummary summary={reviewsSummary} />
+
+                <div className="mt-4 pt-2 border-t border-gray-100">
+                  {reviews.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-4 text-center">
+                      No reviews yet. Be the first to review this product.
+                    </p>
+                  ) : (
+                    reviews.map((review) => <ReviewCard key={review.id} review={review} />)
+                  )}
+                </div>
+
+                {reviewsPagination.pages > 1 && (
+                  <div className="flex items-center justify-between pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchReviews(listing.id, reviewsPagination.page - 1)}
+                      disabled={reviewsPagination.page <= 1 || reviewsLoading}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </Button>
+                    <span className="text-sm text-gray-500">
+                      Page {reviewsPagination.page} of {reviewsPagination.pages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchReviews(listing.id, reviewsPagination.page + 1)}
+                      disabled={reviewsPagination.page >= reviewsPagination.pages || reviewsLoading}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </Card>
+        </div>
       </div>
+
+      <ReviewModal
+        open={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        listingId={listing.id}
+        businessName={listing.title}
+        existingReview={myReview}
+        onSaved={handleReviewSaved}
+      />
 
       <Modal open={showReport} onClose={() => setShowReport(false)} title="Report Listing">
         <form onSubmit={handleReport} className="space-y-4">

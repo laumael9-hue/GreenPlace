@@ -49,6 +49,9 @@ export default function OrderDetail() {
   const [walkInRefundReason, setWalkInRefundReason] = useState('');
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [myReview, setMyReview] = useState(null);
+  const [listingReviews, setListingReviews] = useState([]);
+  const [showListingReviewModal, setShowListingReviewModal] = useState(false);
+  const [listingReviewTarget, setListingReviewTarget] = useState(null);
   const [reviewChecked, setReviewChecked] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -77,6 +80,7 @@ export default function OrderDetail() {
       try {
         const { data } = await api.get('/reviews/check', { params: { orderId: order.id } });
         setMyReview(data.review || null);
+        setListingReviews(data.listingReviews || []);
       } catch (err) {
         console.error('Failed to check review status:', err);
       } finally {
@@ -85,6 +89,25 @@ export default function OrderDetail() {
     };
     checkReview();
   }, [order, role]);
+
+  const openListingReview = (item) => {
+    const listingId = item.listing_id || item.listing?.id;
+    setListingReviewTarget({
+      listingId,
+      title: item.title,
+      existing: listingReviews.find((r) => r.listing_id === listingId) || null,
+    });
+    setShowListingReviewModal(true);
+  };
+
+  const handleListingReviewSaved = (review) => {
+    setListingReviews((prev) => {
+      const found = prev.some((r) => r.listing_id === review.listing_id);
+      return found
+        ? prev.map((r) => (r.listing_id === review.listing_id ? review : r))
+        : [...prev, review];
+    });
+  };
 
   const handleStatusUpdate = async (newStatus) => {
     setActionLoading(true);
@@ -229,6 +252,7 @@ export default function OrderDetail() {
   const reviewEnabled = role !== 'business' && order && order.status === 'completed' && !!order.buyer_id && !!order.business;
   const canLeaveReview = reviewEnabled && reviewChecked && !myReview;
   const hasReviewed = reviewEnabled && reviewChecked && !!myReview;
+  const perItemReviewEnabled = role !== 'business' && order && order.status === 'completed' && !!order.buyer_id;
   const refundRequested = order && order.refund_status === 'requested';
   const isRefunded = order && order.refund_status === 'refunded';
   const currentStepIndex = statusTimeline.indexOf(order?.status);
@@ -345,6 +369,35 @@ export default function OrderDetail() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
                       <p className="text-xs text-gray-500">Qty: {item.quantity} x ₱{parseFloat(item.price || 0).toLocaleString('en-PH')}</p>
+                      {perItemReviewEnabled && (item.listing_id || item.listing?.id) && (() => {
+                        const listingId = item.listing_id || item.listing?.id;
+                        const itemReview = listingReviews.find((r) => r.listing_id === listingId);
+                        return (
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {itemReview ? (
+                              <>
+                                <StarRating value={itemReview.rating} size="sm" />
+                                <button
+                                  type="button"
+                                  onClick={() => openListingReview(item)}
+                                  className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                                >
+                                  Your review · Edit
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openListingReview(item)}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700"
+                              >
+                                <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                                Review this item
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <p className="text-sm font-bold text-gray-900 flex-shrink-0">
                       ₱{parseFloat(item.total || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
@@ -866,6 +919,19 @@ export default function OrderDetail() {
           orderId={order.id}
           existingReview={myReview}
           onSaved={(review) => setMyReview(review)}
+        />
+      )}
+
+      {/* Product Review Modal */}
+      {listingReviewTarget && (
+        <ReviewModal
+          open={showListingReviewModal}
+          onClose={() => setShowListingReviewModal(false)}
+          listingId={listingReviewTarget.listingId}
+          businessName={listingReviewTarget.title}
+          orderId={order.id}
+          existingReview={listingReviewTarget.existing}
+          onSaved={handleListingReviewSaved}
         />
       )}
 

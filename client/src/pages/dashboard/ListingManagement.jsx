@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Package, Edit2, Trash2, Eye, Upload, Loader2, Search, Image as ImageIcon } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, Eye, Upload, Loader2, Search, Image as ImageIcon, Star } from 'lucide-react';
 import api from '../../lib/api';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -272,6 +272,10 @@ function ListingRow({ listing, onEdit, onImages, onDelete, onPublish }) {
             <span>{listing.quantity_available} in stock</span>
             <span>{listing.view_count || 0} views</span>
             <span>{listing.sold_count || 0} sold</span>
+            <span className="flex items-center gap-1">
+              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+              {(parseFloat(listing.rating_avg) || 0).toFixed(1)} ({listing.rating_count || 0})
+            </span>
           </div>
 
           <div className="mt-3 flex items-center gap-2">

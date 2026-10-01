@@ -11,7 +11,7 @@ const MAX_TITLE_LENGTH = 255;
 const MAX_REPLY_LENGTH = 1000;
 
 const REVIEW_SELECT = `
-  id, reviewer_id, business_id, order_id, drop_off_id,
+  id, reviewer_id, business_id, listing_id, order_id, drop_off_id,
   rating, title, body, is_anonymous,
   business_reply, business_replied_at, is_visible,
   created_at, updated_at,
@@ -81,6 +81,19 @@ const hydrateContext = async (reviews) => {
 // Rating aggregation summary (per-star breakdown + average)
 // ============================================================
 
+const buildSummary = (entity, rows) => {
+  const breakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  (rows || []).forEach((row) => {
+    if (breakdown[row.rating] !== undefined) breakdown[row.rating] += 1;
+  });
+
+  return {
+    avg: parseFloat(entity?.rating_avg || 0) || 0,
+    count: entity?.rating_count ?? (rows ? rows.length : 0),
+    breakdown,
+  };
+};
+
 const getRatingSummary = async (businessId) => {
   const [{ data: business }, { data: rows }] = await Promise.all([
     supabaseAdmin
@@ -95,23 +108,31 @@ const getRatingSummary = async (businessId) => {
       .eq('is_visible', true),
   ]);
 
-  const breakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  (rows || []).forEach((row) => {
-    if (breakdown[row.rating] !== undefined) breakdown[row.rating] += 1;
-  });
+  return buildSummary(business, rows);
+};
 
-  return {
-    avg: parseFloat(business?.rating_avg || 0) || 0,
-    count: business?.rating_count ?? (rows ? rows.length : 0),
-    breakdown,
-  };
+const getListingRatingSummary = async (listingId) => {
+  const [{ data: listing }, { data: rows }] = await Promise.all([
+    supabaseAdmin
+      .from('listings')
+      .select('rating_avg, rating_count')
+      .eq('id', listingId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from('reviews')
+      .select('rating')
+      .eq('listing_id', listingId)
+      .eq('is_visible', true),
+  ]);
+
+  return buildSummary(listing, rows);
 };
 
 // ============================================================
-// Shared list query (public profile + business dashboard)
+// Shared list query (public profile + dashboards)
 // ============================================================
 
-const listBusinessReviews = async (businessId, queryParams, viewerId) => {
+const listScopedReviews = async (column, value, queryParams, viewerId, summaryPromise) => {
   const {
     page = 1,
     limit = 10,
@@ -127,7 +148,7 @@ const listBusinessReviews = async (businessId, queryParams, viewerId) => {
   let query = supabaseAdmin
     .from('reviews')
     .select(REVIEW_SELECT, { count: 'exact' })
-    .eq('business_id', businessId)
+    .eq(column, value)
     .eq('is_visible', true);
 
   if (ratingNum !== null && isValidInt(ratingNum, 1, 5)) {
@@ -142,11 +163,11 @@ const listBusinessReviews = async (businessId, queryParams, viewerId) => {
 
   const [{ data: reviews, count, error }, summary] = await Promise.all([
     query.range(offset, offset + limitNum - 1),
-    getRatingSummary(businessId),
+    summaryPromise,
   ]);
 
   if (error) {
-    console.error('Supabase error (listBusinessReviews):', error);
+    console.error('Supabase error (listScopedReviews):', error);
     throw new Error(error.message);
   }
 
@@ -155,7 +176,7 @@ const listBusinessReviews = async (businessId, queryParams, viewerId) => {
     const { data: mine } = await supabaseAdmin
       .from('reviews')
       .select(REVIEW_SELECT)
-      .eq('business_id', businessId)
+      .eq(column, value)
       .eq('reviewer_id', viewerId)
       .limit(1)
       .maybeSingle();
@@ -176,6 +197,12 @@ const listBusinessReviews = async (businessId, queryParams, viewerId) => {
     },
   };
 };
+
+const listBusinessReviews = (businessId, queryParams, viewerId) =>
+  listScopedReviews('business_id', businessId, queryParams, viewerId, getRatingSummary(businessId));
+
+const listListingReviews = (listingId, queryParams, viewerId) =>
+  listScopedReviews('listing_id', listingId, queryParams, viewerId, getListingRatingSummary(listingId));
 
 // ============================================================
 // PUBLIC — Reviews for a business
@@ -204,32 +231,79 @@ const getBusinessReviews = async (req, res) => {
 };
 
 // ============================================================
+// PUBLIC — Reviews for a product (listing)
+// ============================================================
+
+const getListingReviews = async (req, res) => {
+  try {
+    const { listingId } = req.params;
+
+    const { data: listing } = await supabaseAdmin
+      .from('listings')
+      .select('id, status')
+      .eq('id', listingId)
+      .maybeSingle();
+
+    if (!listing) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const result = await listListingReviews(listingId, req.query, req.user?.id || null);
+    res.json(result);
+  } catch (err) {
+    console.error('Get listing reviews error:', err);
+    res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
+};
+
+// ============================================================
 // PUBLIC — Duplicate check for the signed-in user
 // ============================================================
 
 const checkMyReview = async (req, res) => {
   try {
-    const { businessId = '', orderId = '', dropOffId = '' } = req.query;
+    const { businessId = '', orderId = '', dropOffId = '', listingId = '' } = req.query;
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.json({ reviewed: false, review: null });
+      return res.json({ reviewed: false, review: null, listingReviews: [] });
     }
 
-    if (!businessId && !orderId && !dropOffId) {
-      return res.status(400).json({ error: 'Provide businessId, orderId, or dropOffId' });
+    if (!businessId && !orderId && !dropOffId && !listingId) {
+      return res.status(400).json({ error: 'Provide businessId, listingId, orderId, or dropOffId' });
     }
 
-    // Resolve the business so the check reflects the one-review-per-business rule
+    // --- Product review check ---
+    if (listingId) {
+      const { data: review, error } = await supabaseAdmin
+        .from('reviews')
+        .select(REVIEW_SELECT)
+        .eq('listing_id', listingId)
+        .eq('reviewer_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Supabase error (checkMyReview):', error);
+        return res.status(500).json({ error: 'Failed to check review status' });
+      }
+
+      return res.json({ reviewed: !!review, review: serializeReview(review, userId), listingReviews: [] });
+    }
+
+    // --- Resolve the establishment the check applies to ---
     let targetBusinessId = businessId || null;
 
-    if (!targetBusinessId && orderId) {
+    if (orderId) {
       const { data: order } = await supabaseAdmin
         .from('orders')
         .select('business_id')
         .eq('id', orderId)
         .maybeSingle();
-      targetBusinessId = order?.business_id || null;
+
+      if (!order) return res.status(404).json({ error: 'Order not found' });
+      // Marketplace-only orders have no business — skip the establishment check
+      targetBusinessId = targetBusinessId || order.business_id || null;
     }
 
     if (!targetBusinessId && dropOffId) {
@@ -238,27 +312,42 @@ const checkMyReview = async (req, res) => {
         .select('business_id')
         .eq('id', dropOffId)
         .maybeSingle();
-      targetBusinessId = dropOff?.business_id || null;
+
+      if (!dropOff) return res.status(404).json({ error: 'Drop-off not found' });
+      targetBusinessId = dropOff.business_id;
     }
 
-    if (!targetBusinessId) {
-      return res.status(404).json({ error: 'Business not found' });
+    let review = null;
+    if (targetBusinessId) {
+      const { data: existing, error } = await supabaseAdmin
+        .from('reviews')
+        .select(REVIEW_SELECT)
+        .eq('business_id', targetBusinessId)
+        .eq('reviewer_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Supabase error (checkMyReview):', error);
+        return res.status(500).json({ error: 'Failed to check review status' });
+      }
+      review = existing;
     }
 
-    const { data: review, error } = await supabaseAdmin
-      .from('reviews')
-      .select(REVIEW_SELECT)
-      .eq('business_id', targetBusinessId)
-      .eq('reviewer_id', userId)
-      .limit(1)
-      .maybeSingle();
+    // --- My product reviews for this order (per-item review gating) ---
+    let listingReviews = [];
+    if (orderId) {
+      const { data: rows } = await supabaseAdmin
+        .from('reviews')
+        .select(REVIEW_SELECT)
+        .eq('order_id', orderId)
+        .eq('reviewer_id', userId)
+        .not('listing_id', 'is', null);
 
-    if (error) {
-      console.error('Supabase error (checkMyReview):', error);
-      return res.status(500).json({ error: 'Failed to check review status' });
+      listingReviews = (rows || []).map((row) => serializeReview(row, userId));
     }
 
-    res.json({ reviewed: !!review, review: serializeReview(review, userId) });
+    res.json({ reviewed: !!review, review: serializeReview(review, userId), listingReviews });
   } catch (err) {
     console.error('Check review error:', err);
     res.status(500).json({ error: 'Failed to check review status' });
@@ -281,7 +370,9 @@ const getMyReviews = async (req, res) => {
     const { data: reviews, count, error } = await supabaseAdmin
       .from('reviews')
       .select(
-        `${REVIEW_SELECT}, business:businesses!reviews_business_id_fkey(id, name, slug, logo_url, rating_avg, rating_count)`,
+        `${REVIEW_SELECT},
+         business:businesses!reviews_business_id_fkey(id, name, slug, logo_url, rating_avg, rating_count),
+         listing:listings!reviews_listing_id_fkey(id, title, slug)`,
         { count: 'exact' }
       )
       .eq('reviewer_id', userId)
@@ -319,6 +410,7 @@ const createReview = async (req, res) => {
     const userId = req.user.id;
     const {
       businessId,
+      listingId,
       rating,
       title = '',
       body = '',
@@ -327,8 +419,14 @@ const createReview = async (req, res) => {
       dropOffId = null,
     } = req.body || {};
 
-    if (!businessId) {
-      return res.status(400).json({ error: 'Business is required' });
+    if (!businessId && !listingId) {
+      return res.status(400).json({ error: 'Business or product is required' });
+    }
+    if (businessId && listingId) {
+      return res.status(400).json({ error: 'Provide either a business or a product, not both' });
+    }
+    if (listingId && dropOffId) {
+      return res.status(400).json({ error: 'Drop-off reviews cannot be attached to a product' });
     }
 
     const ratingNum = Number(rating);
@@ -350,14 +448,36 @@ const createReview = async (req, res) => {
       return res.status(400).json({ error: `Title must be ${MAX_TITLE_LENGTH} characters or fewer` });
     }
 
-    const { data: business } = await supabaseAdmin
-      .from('businesses')
-      .select('id, name, owner_id, deleted_at')
-      .eq('id', businessId)
-      .maybeSingle();
+    // --- Resolve the review target (business or product) ---
+    let notifyUserId = null;
+    let notifyName = '';
+    let listing = null;
 
-    if (!business || business.deleted_at) {
-      return res.status(404).json({ error: 'Business not found' });
+    if (listingId) {
+      const { data: found } = await supabaseAdmin
+        .from('listings')
+        .select('id, title, seller_id')
+        .eq('id', listingId)
+        .maybeSingle();
+
+      if (!found) {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+      listing = found;
+      notifyUserId = found.seller_id;
+      notifyName = found.title;
+    } else {
+      const { data: business } = await supabaseAdmin
+        .from('businesses')
+        .select('id, name, owner_id, deleted_at')
+        .eq('id', businessId)
+        .maybeSingle();
+
+      if (!business || business.deleted_at) {
+        return res.status(404).json({ error: 'Business not found' });
+      }
+      notifyUserId = business.owner_id;
+      notifyName = business.name;
     }
 
     // --- Verify the transaction (order / drop-off) when provided ---
@@ -369,14 +489,27 @@ const createReview = async (req, res) => {
         .maybeSingle();
 
       if (!order) return res.status(404).json({ error: 'Order not found' });
-      if (order.business_id !== businessId) {
-        return res.status(400).json({ error: 'Order does not belong to this business' });
-      }
       if (order.buyer_id !== userId) {
         return res.status(403).json({ error: 'You can only review your own orders' });
       }
       if (order.status !== 'completed') {
         return res.status(400).json({ error: 'Only completed orders can be reviewed' });
+      }
+
+      if (listingId) {
+        // Product review: the order must actually contain this product
+        const { data: item } = await supabaseAdmin
+          .from('order_items')
+          .select('id')
+          .eq('order_id', orderId)
+          .eq('listing_id', listingId)
+          .maybeSingle();
+
+        if (!item) {
+          return res.status(400).json({ error: 'Order does not contain this product' });
+        }
+      } else if (order.business_id !== businessId) {
+        return res.status(400).json({ error: 'Order does not belong to this business' });
       }
     }
 
@@ -400,29 +533,47 @@ const createReview = async (req, res) => {
     }
 
     // --- Duplicate prevention: friendly pre-check ---
-    const { data: existing } = await supabaseAdmin
-      .from('reviews')
-      .select('id, order_id, drop_off_id')
-      .eq('business_id', businessId)
-      .eq('reviewer_id', userId)
-      .limit(1)
-      .maybeSingle();
+    if (listingId) {
+      const { data: existingListingReview } = await supabaseAdmin
+        .from('reviews')
+        .select('id, order_id')
+        .eq('listing_id', listingId)
+        .eq('reviewer_id', userId)
+        .limit(1)
+        .maybeSingle();
 
-    if (existing) {
-      if (orderId && existing.order_id === orderId) {
-        return res.status(409).json({ error: 'You have already reviewed this order' });
+      if (existingListingReview) {
+        if (orderId && existingListingReview.order_id === orderId) {
+          return res.status(409).json({ error: 'You have already reviewed this product' });
+        }
+        return res.status(409).json({ error: 'You have already reviewed this product. Edit your existing review instead.' });
       }
-      if (dropOffId && existing.drop_off_id === dropOffId) {
-        return res.status(409).json({ error: 'You have already reviewed this drop-off' });
+    } else {
+      const { data: existing } = await supabaseAdmin
+        .from('reviews')
+        .select('id, order_id, drop_off_id')
+        .eq('business_id', businessId)
+        .eq('reviewer_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        if (orderId && existing.order_id === orderId) {
+          return res.status(409).json({ error: 'You have already reviewed this order' });
+        }
+        if (dropOffId && existing.drop_off_id === dropOffId) {
+          return res.status(409).json({ error: 'You have already reviewed this drop-off' });
+        }
+        return res.status(409).json({ error: 'You have already reviewed this business. Edit your existing review instead.' });
       }
-      return res.status(409).json({ error: 'You have already reviewed this business. Edit your existing review instead.' });
     }
 
     const { data: created, error } = await supabaseAdmin
       .from('reviews')
       .insert({
         reviewer_id: userId,
-        business_id: businessId,
+        business_id: listingId ? null : businessId,
+        listing_id: listingId || null,
         rating: ratingNum,
         title: trimmedTitle || null,
         body: trimmedBody,
@@ -436,24 +587,26 @@ const createReview = async (req, res) => {
     if (error) {
       // Race-condition backstop: unique index violations become 409s
       if (error.code === '23505') {
-        return res.status(409).json({ error: 'You have already reviewed this business' });
+        return res.status(409).json({
+          error: listingId ? 'You have already reviewed this product' : 'You have already reviewed this business',
+        });
       }
       console.error('Supabase error (createReview):', error);
       return res.status(400).json({ error: 'Failed to create review' });
     }
 
-    // Notify the business owner (fire-and-forget)
-    if (business.owner_id && business.owner_id !== userId) {
+    // Notify the seller / business owner (fire-and-forget)
+    if (notifyUserId && notifyUserId !== userId) {
       const profile = req.user.profile;
       const reviewerName = created.is_anonymous || !profile
         ? 'Anonymous'
         : `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'A customer';
       createNotification({
-        userId: business.owner_id,
+        userId: notifyUserId,
         type: 'review',
         title: 'New review received',
-        body: `${ratingNum}-star review from ${reviewerName} on ${business.name}`,
-        data: { businessId, reviewId: created.id },
+        body: `${ratingNum}-star review from ${reviewerName} on ${notifyName}`,
+        data: listingId ? { listingId, reviewId: created.id } : { businessId, reviewId: created.id },
       });
     }
 
@@ -597,13 +750,28 @@ const replyToReview = async (req, res) => {
 
     const { data: review } = await supabaseAdmin
       .from('reviews')
-      .select('id, business_id, reviewer_id, rating, is_anonymous, business:businesses!reviews_business_id_fkey(id, name, owner_id)')
+      .select(`
+        id, business_id, listing_id, reviewer_id, rating, is_anonymous,
+        business:businesses!reviews_business_id_fkey(id, name, owner_id),
+        listing:listings!reviews_listing_id_fkey(id, title, seller_id)
+      `)
       .eq('id', id)
       .maybeSingle();
 
     if (!review) return res.status(404).json({ error: 'Review not found' });
-    if (review.business?.owner_id !== userId && role !== 'admin') {
-      return res.status(403).json({ error: 'You can only reply to reviews on your own business' });
+
+    let allowed = role === 'admin';
+    if (review.listing_id) {
+      allowed = allowed || review.listing?.seller_id === userId;
+    } else {
+      allowed = allowed || review.business?.owner_id === userId;
+    }
+    if (!allowed) {
+      return res.status(403).json({
+        error: review.listing_id
+          ? 'You can only reply to reviews on your own product'
+          : 'You can only reply to reviews on your own business',
+      });
     }
 
     const { data: updated, error } = await supabaseAdmin
@@ -622,12 +790,15 @@ const replyToReview = async (req, res) => {
     }
 
     if (review.reviewer_id && review.reviewer_id !== userId) {
+      const isProduct = !!review.listing_id;
       createNotification({
         userId: review.reviewer_id,
         type: 'review',
-        title: 'Business replied to your review',
-        body: `${review.business?.name || 'The business'} responded to your ${review.rating}-star review`,
-        data: { businessId: review.business_id, reviewId: review.id },
+        title: isProduct ? 'Seller replied to your review' : 'Business replied to your review',
+        body: `${(isProduct ? review.listing?.title : review.business?.name) || 'They'} responded to your ${review.rating}-star review`,
+        data: isProduct
+          ? { listingId: review.listing_id, reviewId: review.id }
+          : { businessId: review.business_id, reviewId: review.id },
       });
     }
 
@@ -667,9 +838,109 @@ const getMyBusinessReviews = async (req, res) => {
   }
 };
 
+// ============================================================
+// AUTHENTICATED — Reviews on my listings (products)
+// ============================================================
+
+const getMyListingReviews = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 10, rating = '', sort = 'newest' } = req.query;
+
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
+    const offset = (pageNum - 1) * limitNum;
+    const ratingNum = rating !== '' ? parseInt(rating, 10) : null;
+
+    // Listings I sell directly + listings belonging to businesses I own
+    const [{ data: owned }, { data: myBusinesses }] = await Promise.all([
+      supabaseAdmin.from('listings').select('id').eq('seller_id', userId),
+      supabaseAdmin.from('businesses').select('id').eq('owner_id', userId).is('deleted_at', null),
+    ]);
+
+    const businessIds = (myBusinesses || []).map((b) => b.id);
+    let listingIds = (owned || []).map((l) => l.id);
+
+    if (businessIds.length > 0) {
+      const { data: bizListings } = await supabaseAdmin
+        .from('listings')
+        .select('id')
+        .in('business_id', businessIds);
+      listingIds = [...new Set([...listingIds, ...(bizListings || []).map((l) => l.id)])];
+    }
+
+    const emptySummary = { avg: 0, count: 0, breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+    if (listingIds.length === 0) {
+      return res.json({
+        reviews: [],
+        summary: emptySummary,
+        pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 },
+      });
+    }
+
+    // Overall summary across all of my listings
+    const { data: allRatings } = await supabaseAdmin
+      .from('reviews')
+      .select('rating')
+      .in('listing_id', listingIds)
+      .eq('is_visible', true);
+
+    const rows = allRatings || [];
+    const total = rows.length;
+    const avg = total
+      ? Math.round((rows.reduce((sum, r) => sum + r.rating, 0) / total) * 100) / 100
+      : 0;
+    const summary = buildSummary({ rating_avg: avg, rating_count: total }, rows);
+
+    let query = supabaseAdmin
+      .from('reviews')
+      .select(
+        `${REVIEW_SELECT}, listing:listings!reviews_listing_id_fkey(id, title, slug, status)`,
+        { count: 'exact' }
+      )
+      .in('listing_id', listingIds)
+      .eq('is_visible', true);
+
+    if (ratingNum !== null && isValidInt(ratingNum, 1, 5)) {
+      query = query.eq('rating', ratingNum);
+    }
+
+    const orderColumn = ['highest', 'lowest'].includes(sort) ? 'rating' : 'created_at';
+    query = query.order(orderColumn, { ascending: sort === 'lowest' });
+    if (orderColumn !== 'created_at') {
+      query = query.order('created_at', { ascending: false });
+    }
+
+    const { data: reviews, count, error } = await query.range(offset, offset + limitNum - 1);
+
+    if (error) {
+      console.error('Supabase error (getMyListingReviews):', error);
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.json({
+      reviews: await hydrateContext(
+        (reviews || []).map((review) => serializeReview(review, userId))
+      ),
+      summary,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: count || 0,
+        pages: Math.ceil((count || 0) / limitNum),
+      },
+    });
+  } catch (err) {
+    console.error('Get my listing reviews error:', err);
+    res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
+};
+
 module.exports = {
   getBusinessReviews,
+  getListingReviews,
   getMyBusinessReviews,
+  getMyListingReviews,
   getMyReviews,
   checkMyReview,
   createReview,

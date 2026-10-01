@@ -9,6 +9,7 @@ import ReviewSummary from '../../components/reviews/ReviewSummary';
 import ReviewCard from '../../components/reviews/ReviewCard';
 
 export default function ReviewManagement() {
+  const [tab, setTab] = useState('establishment');
   const [reviews, setReviews] = useState([]);
   const [summary, setSummary] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 0 });
@@ -26,7 +27,8 @@ export default function ReviewManagement() {
     try {
       const params = { page, limit: 10 };
       if (filter) params.rating = filter;
-      const { data } = await api.get('/reviews/for-my-business', { params });
+      const endpoint = tab === 'products' ? '/reviews/for-my-listings' : '/reviews/for-my-business';
+      const { data } = await api.get(endpoint, { params });
       setReviews(data.reviews || []);
       setSummary(data.summary);
       setPagination(data.pagination);
@@ -40,7 +42,7 @@ export default function ReviewManagement() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, tab]);
 
   useEffect(() => { fetchReviews(1); }, [fetchReviews]);
 
@@ -88,6 +90,26 @@ export default function ReviewManagement() {
         <p className="text-gray-500 mt-1">See what customers are saying and respond to their feedback</p>
       </div>
 
+      {/* Source tabs */}
+      <div className="flex gap-2">
+        {[
+          { value: 'establishment', label: 'Establishment' },
+          { value: 'products', label: 'Products' },
+        ].map((t) => (
+          <button
+            key={t.value}
+            onClick={() => setTab(t.value)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              tab === t.value
+                ? 'bg-primary-600 text-white'
+                : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between gap-3">
           <p className="text-sm text-red-700">{error}</p>
@@ -130,11 +152,19 @@ export default function ReviewManagement() {
         <Card>
           <EmptyState
             icon={<Star className="w-8 h-8" />}
-            title={filter ? `No ${filter}-star reviews` : 'No reviews yet'}
+            title={
+              filter
+                ? `No ${filter}-star reviews`
+                : tab === 'products'
+                  ? 'No product reviews yet'
+                  : 'No reviews yet'
+            }
             description={
               filter
                 ? 'Try a different filter to see other reviews.'
-                : 'Reviews from customers will appear here once they share their experience.'
+                : tab === 'products'
+                  ? 'Reviews on your listings will appear here once customers share their experience.'
+                  : 'Reviews from customers will appear here once they share their experience.'
             }
           />
         </Card>
@@ -146,10 +176,17 @@ export default function ReviewManagement() {
                 key={review.id}
                 review={review}
                 actions={
-                  <Button variant="outline" size="sm" onClick={() => openReply(review)}>
-                    <MessageSquare className="w-4 h-4" />
-                    {review.business_reply ? 'Edit Response' : 'Respond'}
-                  </Button>
+                  <>
+                    {review.listing?.title && (
+                      <p className="text-xs font-medium text-gray-500 mb-2">
+                        Product: {review.listing.title}
+                      </p>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => openReply(review)}>
+                      <MessageSquare className="w-4 h-4" />
+                      {review.business_reply ? 'Edit Response' : 'Respond'}
+                    </Button>
+                  </>
                 }
               />
             ))}
