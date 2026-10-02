@@ -674,7 +674,6 @@ const editRefund = async (req, res) => {
 const processRefund = async (req, res) => {
   try {
     const userId = req.user.id;
-    const userRole = req.user.profile?.role;
     const { refundId } = req.params;
     const { action } = req.body;
 
@@ -699,16 +698,14 @@ const processRefund = async (req, res) => {
       return res.status(400).json({ error: 'This refund has already been processed' });
     }
 
-    if (userRole !== 'admin') {
-      const { data: business } = await supabaseAdmin
-        .from('businesses')
-        .select('id')
-        .eq('owner_id', userId)
-        .single();
+    const { data: business } = await supabaseAdmin
+      .from('businesses')
+      .select('id')
+      .eq('owner_id', userId)
+      .single();
 
-      if (!business || business.id !== refund.order?.business_id) {
-        return res.status(403).json({ error: 'Insufficient permissions' });
-      }
+    if (!business || business.id !== refund.order?.business_id) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
     if (action === 'approve') {
@@ -891,7 +888,6 @@ const getRefunds = async (req, res) => {
 const requestWalkInRefund = async (req, res) => {
   try {
     const userId = req.user.id;
-    const userRole = req.user.profile?.role;
     const { orderId } = req.params;
     const { reason } = req.body;
 
@@ -909,17 +905,15 @@ const requestWalkInRefund = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    // Verify business ownership or admin
-    if (userRole !== 'admin') {
-      const { data: business } = await supabaseAdmin
-        .from('businesses')
-        .select('id')
-        .eq('owner_id', userId)
-        .single();
+    // Verify business ownership
+    const { data: business } = await supabaseAdmin
+      .from('businesses')
+      .select('id')
+      .eq('owner_id', userId)
+      .single();
 
-      if (!business || business.id !== order.business_id) {
-        return res.status(403).json({ error: 'Insufficient permissions' });
-      }
+    if (!business || business.id !== order.business_id) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
     if (order.status !== 'completed') {
