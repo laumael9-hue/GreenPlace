@@ -245,6 +245,8 @@ const handler = async (req, res) => {
 - Phase 12+: Forum, Messaging, Notifications
 - Phase 16: Reviews (ratings, per-star aggregation, duplicate prevention, business replies)
 - Phase 16+: Product reviews (listing_id, separate listing ratings, seller visibility/replies, per-item review on completed orders)
+- Phase 17: Admin (dashboard, approvals, document verification, reports center, settings, CSV export)
+- Phase 17+: Refunds owned by business (approve/reject + walk-in); admin is oversight-only (read/list, no decision or money-out)
 
 ## Receipt Pattern
 
