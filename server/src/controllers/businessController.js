@@ -1207,6 +1207,156 @@ const getBusinessStats = async (req, res) => {
 };
 
 // ============================================================
+// ADMIN: DOCUMENT VERIFICATION
+// ============================================================
+
+const getAllDocuments = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status = '', search = '' } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    let query = supabaseAdmin
+      .from('business_documents')
+      .select(`
+        id, business_id, document_type, file_url, file_name, file_size,
+        mime_type, uploaded_at, verification_status, verification_notes,
+        verified_by, verified_at
+      `, { count: 'exact' });
+
+    if (status) {
+      query = query.eq('verification_status', status);
+    }
+
+    if (search) {
+      query = query.or(`file_name.ilike.%${search}%,document_type.ilike.%${search}%`);
+    }
+
+    const { data: documents, count, error } = await query
+      .order('uploaded_at', { ascending: false })
+      .range(offset, offset + parseInt(limit) - 1);
+
+    if (error) {
+      console.error('Supabase error (getAllDocuments):', error);
+      return res.status(400).json({ error: error.message });
+    }
+
+    const businessIds = [...new Set((documents || []).map(d => d.business_id).filter(Boolean))];
+    let businessMap = {};
+    if (businessIds.length > 0) {
+      const { data: bizRows } = await supabaseAdmin
+        .from('businesses')
+        .select('id, name, slug, status, owner_id')
+        .in('id', businessIds);
+      const ownerIds = [...new Set((bizRows || []).map(b => b.owner_id).filter(Boolean))];
+      const { data: ownerRows } = ownerIds.length > 0
+        ? await supabaseAdmin
+            .from('profiles')
+            .select('id, first_name, last_name, email')
+            .in('id', ownerIds)
+        : { data: [] };
+      const ownerMap = Object.fromEntries((ownerRows || []).map(p => [p.id, p]));
+      businessMap = Object.fromEntries(
+        (bizRows || []).map(b => [b.id, { ...b, owner: ownerMap[b.owner_id] || null }])
+      );
+    }
+
+    const enriched = (documents || []).map(d => ({
+      ...d,
+      business: businessMap[d.business_id] || null,
+    }));
+
+    res.json({
+      documents: enriched,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    console.error('Get all documents error:', err);
+    res.status(500).json({ error: 'Failed to fetch documents' });
+  }
+};
+
+const verifyDocument = async (req, res) => {
+  try {
+    const { docId } = req.params;
+    const { status, notes } = req.body || {};
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be "approved" or "rejected"' });
+    }
+
+    if (status === 'rejected' && !notes) {
+      return res.status(400).json({ error: 'Rejection notes are required' });
+    }
+
+    const { data: existing } = await supabaseAdmin
+      .from('business_documents')
+      .select('id, business_id, file_name, document_type, verification_status')
+      .eq('id', docId)
+      .single();
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    const { data: updated, error } = await supabaseAdmin
+      .from('business_documents')
+      .update({
+        verification_status: status,
+        verification_notes: notes || null,
+        verified_by: req.user.id,
+        verified_at: new Date().toISOString(),
+      })
+      .eq('id', docId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error (verifyDocument):', error);
+      return res.status(400).json({ error: error.message });
+    }
+
+    await logAuditAction(req.user.id, `${status}_document`, docId, {
+      business_id: existing.business_id,
+      file_name: existing.file_name,
+      document_type: existing.document_type,
+      previous_status: existing.verification_status,
+      notes: notes || null,
+    });
+
+    const { data: business } = await supabaseAdmin
+      .from('businesses')
+      .select('name, owner_id')
+      .eq('id', existing.business_id)
+      .single();
+
+    if (business?.owner_id) {
+      await createNotification({
+        userId: business.owner_id,
+        type: 'business',
+        title: status === 'approved' ? 'Document verified' : 'Document rejected',
+        body: status === 'approved'
+          ? `Your "${existing.document_type}" document for ${business.name} has been verified.`
+          : `Your "${existing.document_type}" document for ${business.name} was rejected: ${notes}`,
+        data: { business_id: existing.business_id, document_id: docId },
+      });
+    }
+
+    res.json({
+      message: status === 'approved' ? 'Document approved' : 'Document rejected',
+      document: updated,
+    });
+  } catch (err) {
+    console.error('Verify document error:', err);
+    res.status(500).json({ error: 'Failed to verify document' });
+  }
+};
+
+// ============================================================
 // PUBLIC OPERATIONS
 // ============================================================
 
@@ -1505,6 +1655,8 @@ module.exports = {
   suspendBusiness,
   reactivateBusiness,
   getBusinessStats,
+  getAllDocuments,
+  verifyDocument,
   getPublicBusinesses,
   getPublicBusinessBySlug,
   getNearbyBusinesses,

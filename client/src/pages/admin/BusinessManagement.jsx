@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
+import { exportToCsv, csvFilename } from '../../lib/exportCsv';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -9,7 +10,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import {
   Search, Building2, ChevronLeft, ChevronRight,
   CheckCircle, Ban, XCircle, Eye, Clock, MapPin,
-  Phone, Globe, Mail, AlertTriangle, RotateCcw, Users
+  Phone, Globe, Mail, AlertTriangle, RotateCcw, Users, Download
 } from 'lucide-react';
 
 const statusConfig = {
@@ -35,9 +36,11 @@ export default function BusinessManagement() {
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [suspendReason, setSuspendReason] = useState('');
+  const [error, setError] = useState('');
 
   const fetchBusinesses = useCallback(async (page = 1) => {
     setLoading(true);
+    setError('');
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -50,6 +53,7 @@ export default function BusinessManagement() {
       setPagination(data.pagination);
     } catch (err) {
       console.error('Failed to fetch businesses:', err);
+      setError(err.response?.data?.error || 'Failed to load businesses.');
       setBusinesses([]);
     } finally {
       setLoading(false);
@@ -78,11 +82,12 @@ export default function BusinessManagement() {
   const openBusinessDetail = async (businessId) => {
     setDetailLoading(true);
     setSelectedBusiness(null);
+    setError('');
     try {
       const { data } = await api.get(`/businesses/admin/${businessId}`);
       setSelectedBusiness(data.business);
-    } catch {
-      // ignore
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to load business details.');
     } finally {
       setDetailLoading(false);
     }
@@ -91,13 +96,14 @@ export default function BusinessManagement() {
   const handleApprove = async () => {
     if (!selectedBusiness) return;
     setActionLoading(true);
+    setError('');
     try {
       await api.patch(`/businesses/admin/${selectedBusiness.id}/approve`);
       setSelectedBusiness(prev => prev ? { ...prev, status: 'approved', is_verified: true } : null);
       fetchBusinesses(pagination.page);
       fetchStats();
-    } catch {
-      // ignore
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to approve business.');
     } finally {
       setActionLoading(false);
     }
@@ -111,14 +117,15 @@ export default function BusinessManagement() {
   const handleReject = async () => {
     if (!selectedBusiness || !rejectReason.trim()) return;
     setActionLoading(true);
+    setError('');
     try {
       await api.patch(`/businesses/admin/${selectedBusiness.id}/reject`, { reason: rejectReason });
       setSelectedBusiness(prev => prev ? { ...prev, status: 'rejected', rejection_reason: rejectReason } : null);
       setShowRejectModal(false);
       fetchBusinesses(pagination.page);
       fetchStats();
-    } catch {
-      // ignore
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to reject business.');
     } finally {
       setActionLoading(false);
     }
@@ -141,7 +148,7 @@ export default function BusinessManagement() {
       fetchBusinesses(pagination.page);
       fetchStats();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to suspend business');
+      setError(err.response?.data?.error || 'Failed to suspend business.');
     } finally {
       setActionLoading(false);
     }
@@ -150,15 +157,45 @@ export default function BusinessManagement() {
   const handleReactivate = async () => {
     if (!selectedBusiness) return;
     setActionLoading(true);
+    setError('');
     try {
       await api.patch(`/businesses/admin/${selectedBusiness.id}/reactivate`);
       setSelectedBusiness(prev => prev ? { ...prev, status: 'approved', is_verified: true, rejection_reason: null } : null);
       fetchBusinesses(pagination.page);
       fetchStats();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to reactivate business');
+      setError(err.response?.data?.error || 'Failed to reactivate business.');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setError('');
+    try {
+      const params = new URLSearchParams({
+        page: '1', limit: '500',
+        ...(search && { search }),
+        ...(statusFilter && { status: statusFilter }),
+      });
+      const { data } = await api.get(`/businesses/admin?${params}`);
+      const rows = (data.businesses || []).map((b) => [
+        b.name,
+        b.profiles ? `${b.profiles.first_name} ${b.profiles.last_name}` : '',
+        b.profiles?.email || '',
+        b.category,
+        b.city,
+        b.status,
+        b.is_verified ? 'Yes' : 'No',
+        b.created_at ? new Date(b.created_at).toLocaleDateString() : '',
+      ]);
+      exportToCsv(
+        csvFilename('greenplace-businesses'),
+        ['Business', 'Owner', 'Email', 'Category', 'City', 'Status', 'Verified', 'Registered'],
+        rows
+      );
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to export businesses.');
     }
   };
 
@@ -171,10 +208,32 @@ export default function BusinessManagement() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Business Management</h1>
-        <p className="text-gray-500 mt-1">Review, approve, and manage business registrations.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Business Management</h1>
+          <p className="text-gray-500 mt-1">Review, approve, and manage business registrations.</p>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            to="/admin/approvals"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:border-primary-300 hover:text-primary-600 transition-colors"
+          >
+            <Clock className="w-4 h-4" />
+            Approvals Queue
+          </Link>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={loading}>
+            <Download className="w-4 h-4" />
+            Export CSV
+          </Button>
+        </div>
       </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
@@ -486,12 +545,22 @@ export default function BusinessManagement() {
             {/* Documents */}
             {selectedBusiness.documents && selectedBusiness.documents.length > 0 && (
               <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-900 mb-2">Documents ({selectedBusiness.documents.length})</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-900">Documents ({selectedBusiness.documents.length})</p>
+                  <Link to="/admin/documents" className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                    Manage →
+                  </Link>
+                </div>
                 <div className="space-y-1 text-sm">
                   {selectedBusiness.documents.map(doc => (
-                    <div key={doc.id} className="flex justify-between">
-                      <span className="text-gray-700">{doc.file_name}</span>
-                      <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline">View</a>
+                    <div key={doc.id} className="flex justify-between items-center gap-2">
+                      <span className="text-gray-700 truncate">{doc.file_name}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant={doc.verification_status === 'approved' ? 'success' : doc.verification_status === 'rejected' ? 'danger' : 'warning'}>
+                          {doc.verification_status || 'pending'}
+                        </Badge>
+                        <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline">View</a>
+                      </div>
                     </div>
                   ))}
                 </div>

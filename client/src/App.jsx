@@ -26,6 +26,10 @@ import ForumThread from './pages/ForumThread';
 import ForumBookmarks from './pages/ForumBookmarks';
 import ForumModeration from './pages/admin/ForumModeration';
 import ListingModeration from './pages/admin/ListingModeration';
+import Approvals from './pages/admin/Approvals';
+import Documents from './pages/admin/Documents';
+import Reports from './pages/admin/Reports';
+import AdminSettings from './pages/admin/Settings';
 import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import PaymentSuccess from './pages/PaymentSuccess';
@@ -99,10 +103,12 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/businesses" element={<BusinessManagement />} />
+        <Route path="/admin/approvals" element={<Approvals />} />
+        <Route path="/admin/documents" element={<Documents />} />
         <Route path="/admin/listings" element={<ListingModeration />} />
         <Route path="/admin/forum" element={<ForumModeration />} />
-        <Route path="/admin/reports" element={<ForumModeration />} />
-        <Route path="/admin/settings" element={<Placeholder title="System Settings" desc="Configure application settings." />} />
+        <Route path="/admin/reports" element={<Reports />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
       </Route>
 
       {/* MainLayout — navbar (catch-all at end) */}

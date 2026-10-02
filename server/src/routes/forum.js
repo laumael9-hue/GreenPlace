@@ -22,6 +22,7 @@ const {
   moderateThread,
   moderatePost,
   getReports,
+  getReportStats,
   resolveReport,
 } = require('../controllers/forumController');
 
@@ -73,6 +74,7 @@ router.post('/report', authenticate, reportContent);
 // Admin moderation
 router.put('/threads/:id/moderate', authenticate, requireAdmin, moderateThread);
 router.put('/posts/:id/moderate', authenticate, requireAdmin, moderatePost);
+router.get('/admin/reports/stats', authenticate, requireAdmin, getReportStats);
 router.get('/admin/reports', authenticate, requireAdmin, getReports);
 router.put('/admin/reports/:id', authenticate, requireAdmin, resolveReport);
 

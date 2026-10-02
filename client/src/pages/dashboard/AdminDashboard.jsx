@@ -3,44 +3,53 @@ import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import {
   Users, Building2, FileText, Settings,
-  ArrowRight, Clock, CheckCircle, Shield, User
+  ArrowRight, Clock, CheckCircle, Shield, User,
+  ClipboardList, Package, Flag, FolderCheck, ShoppingBag, HeartHandshake,
 } from 'lucide-react';
 import StatCard from '../../components/ui/StatCard';
 import Card, { CardHeader, CardTitle } from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 
 const quickActions = [
+  { to: '/admin/approvals', icon: <CheckCircle className="w-5 h-5" />, label: 'Approvals', color: 'bg-amber-100 text-amber-600' },
   { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Manage Users', color: 'bg-blue-100 text-blue-600' },
-  { to: '/admin/businesses', icon: <Building2 className="w-5 h-5" />, label: 'Businesses', color: 'bg-amber-100 text-amber-600' },
-  { to: '/admin/reports', icon: <FileText className="w-5 h-5" />, label: 'Reports', color: 'bg-red-100 text-red-600' },
+  { to: '/admin/businesses', icon: <Building2 className="w-5 h-5" />, label: 'Businesses', color: 'bg-orange-100 text-orange-600' },
+  { to: '/admin/documents', icon: <FolderCheck className="w-5 h-5" />, label: 'Documents', color: 'bg-teal-100 text-teal-600' },
+  { to: '/admin/listings', icon: <ShoppingBag className="w-5 h-5" />, label: 'Listings', color: 'bg-indigo-100 text-indigo-600' },
+  { to: '/admin/reports', icon: <Flag className="w-5 h-5" />, label: 'Reports', color: 'bg-red-100 text-red-600' },
+  { to: '/admin/forum', icon: <FileText className="w-5 h-5" />, label: 'Forum', color: 'bg-purple-100 text-purple-600' },
   { to: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings', color: 'bg-gray-100 text-gray-600' },
 ];
 
+const defaultStats = {
+  users: { total: 0, active: 0, inactive: 0, byRole: { residents: 0, businesses: 0, admins: 0 } },
+  businesses: { total: 0, byStatus: { pending: 0, approved: 0, rejected: 0, suspended: 0 } },
+  listings: { total: 0, byStatus: {} },
+  orders: { total: 0, last30Days: 0 },
+  dropOffs: { total: 0 },
+  forum: { threads: 0, posts: 0 },
+  queues: { pendingReports: 0, pendingDocuments: 0, pendingRefunds: 0, pendingBusinesses: 0 },
+};
+
 export default function AdminDashboard() {
-  const [userStats, setUserStats] = useState({ total: 0, active: 0, inactive: 0, pendingDeletion: 0, deleted: 0 });
-  const [bizStats, setBizStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, suspended: 0 });
+  const [stats, setStats] = useState(defaultStats);
   const [pendingBusinesses, setPendingBusinesses] = useState([]);
-  const [roleStats, setRoleStats] = useState({ residents: 0, businesses: 0, admins: 0 });
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [userStatsRes, bizStatsRes, pendingBizRes, residentRes, businessRes, adminRes] = await Promise.allSettled([
-        api.get('/users/stats'),
-        api.get('/businesses/admin/stats'),
+      const [statsRes, pendingBizRes] = await Promise.allSettled([
+        api.get('/admin/stats'),
         api.get('/businesses/admin?status=pending&limit=5'),
-        api.get('/users?role=resident&limit=1'),
-        api.get('/users?role=business&limit=1'),
-        api.get('/users?role=admin&limit=1'),
       ]);
 
-      if (userStatsRes.status === 'fulfilled') setUserStats(userStatsRes.value.data);
-      if (bizStatsRes.status === 'fulfilled') setBizStats(bizStatsRes.value.data);
-      if (pendingBizRes.status === 'fulfilled') setPendingBusinesses(pendingBizRes.value.data.businesses);
-      if (residentRes.status === 'fulfilled') setRoleStats(prev => ({ ...prev, residents: residentRes.value.data.pagination.total }));
-      if (businessRes.status === 'fulfilled') setRoleStats(prev => ({ ...prev, businesses: businessRes.value.data.pagination.total }));
-      if (adminRes.status === 'fulfilled') setRoleStats(prev => ({ ...prev, admins: adminRes.value.data.pagination.total }));
+      if (statsRes.status === 'fulfilled') {
+        setStats({ ...defaultStats, ...statsRes.value.data.stats });
+      }
+      if (pendingBizRes.status === 'fulfilled') {
+        setPendingBusinesses(pendingBizRes.value.data.businesses || []);
+      }
     } catch {
       // ignore
     } finally {
@@ -52,6 +61,9 @@ export default function AdminDashboard() {
     fetchData();
   }, [fetchData]);
 
+  const biz = stats.businesses.byStatus;
+  const roleStats = stats.users.byRole;
+
   return (
     <div className="space-y-6">
       <div>
@@ -60,10 +72,83 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Users className="w-6 h-6" />} label="Total Users" value={userStats.total} change={`${userStats.active} active`} changeType="up" />
-        <StatCard icon={<Building2 className="w-6 h-6" />} label="Businesses" value={bizStats.total} change={`${bizStats.pending} pending approval`} changeType="neutral" />
-        <StatCard icon={<Clock className="w-6 h-6" />} label="Pending Approvals" value={bizStats.pending} change="Needs review" changeType="neutral" />
-        <StatCard icon={<CheckCircle className="w-6 h-6" />} label="Approved" value={bizStats.approved} change={`${bizStats.rejected} rejected`} changeType="up" />
+        <StatCard
+          icon={<Users className="w-6 h-6" />}
+          label="Total Users"
+          value={stats.users.total}
+          change={`${stats.users.active} active`}
+          changeType="up"
+        />
+        <StatCard
+          icon={<Building2 className="w-6 h-6" />}
+          label="Businesses"
+          value={stats.businesses.total}
+          change={`${biz.pending} pending approval`}
+          changeType="neutral"
+        />
+        <StatCard
+          icon={<ClipboardList className="w-6 h-6" />}
+          label="Orders (30d)"
+          value={stats.orders.last30Days}
+          change={`${stats.orders.total} all time`}
+          changeType="neutral"
+        />
+        <StatCard
+          icon={<Package className="w-6 h-6" />}
+          label="Drop-offs"
+          value={stats.dropOffs.total}
+          change={`${stats.listings.total} listings`}
+          changeType="neutral"
+        />
+      </div>
+
+      {/* Moderation queues */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Link
+          to="/admin/approvals"
+          className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all"
+        >
+          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
+            <Clock className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xl font-bold text-gray-900">{stats.queues.pendingBusinesses}</p>
+            <p className="text-xs text-gray-500">Pending Approvals</p>
+          </div>
+        </Link>
+        <Link
+          to="/admin/documents"
+          className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all"
+        >
+          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600">
+            <FolderCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xl font-bold text-gray-900">{stats.queues.pendingDocuments}</p>
+            <p className="text-xs text-gray-500">Documents to Verify</p>
+          </div>
+        </Link>
+        <Link
+          to="/admin/reports"
+          className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all"
+        >
+          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-red-600">
+            <Flag className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xl font-bold text-gray-900">{stats.queues.pendingReports}</p>
+            <p className="text-xs text-gray-500">Open Reports</p>
+          </div>
+        </Link>
+        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100">
+          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+            <HeartHandshake className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xl font-bold text-gray-900">{stats.queues.pendingRefunds}</p>
+            <p className="text-xs text-gray-500">Pending Refunds</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -114,8 +199,8 @@ export default function AdminDashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Pending Business Approvals</CardTitle>
-              <Link to="/admin/businesses" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-                View all <ArrowRight className="w-4 h-4" />
+              <Link to="/admin/approvals" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                Review queue <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </CardHeader>
@@ -125,11 +210,11 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-500 text-center py-8">No pending business approvals.</p>
           ) : (
             <div className="space-y-3">
-              {pendingBusinesses.map(biz => (
-                <div key={biz.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              {pendingBusinesses.map(b => (
+                <div key={b.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{biz.name}</p>
-                    <p className="text-xs text-gray-500">{biz.category} — {biz.city}</p>
+                    <p className="text-sm font-medium text-gray-900">{b.name}</p>
+                    <p className="text-xs text-gray-500">{b.category} — {b.city}</p>
                   </div>
                   <Badge variant="warning">
                     <Clock className="w-3 h-3 mr-1" />
@@ -152,20 +237,49 @@ export default function AdminDashboard() {
           </CardHeader>
           <div className="grid grid-cols-2 gap-4">
             <div className="p-3 bg-green-50 rounded-lg text-center">
-              <p className="text-2xl font-bold text-green-700">{bizStats.approved}</p>
+              <p className="text-2xl font-bold text-green-700">{biz.approved}</p>
               <p className="text-xs text-green-600">Approved</p>
             </div>
             <div className="p-3 bg-amber-50 rounded-lg text-center">
-              <p className="text-2xl font-bold text-amber-700">{bizStats.pending}</p>
+              <p className="text-2xl font-bold text-amber-700">{biz.pending}</p>
               <p className="text-xs text-amber-600">Pending</p>
             </div>
             <div className="p-3 bg-red-50 rounded-lg text-center">
-              <p className="text-2xl font-bold text-red-700">{bizStats.rejected}</p>
+              <p className="text-2xl font-bold text-red-700">{biz.rejected}</p>
               <p className="text-xs text-red-600">Rejected</p>
             </div>
             <div className="p-3 bg-orange-50 rounded-lg text-center">
-              <p className="text-2xl font-bold text-orange-700">{bizStats.suspended}</p>
+              <p className="text-2xl font-bold text-orange-700">{biz.suspended}</p>
               <p className="text-xs text-orange-600">Suspended</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Community</CardTitle>
+              <Link to="/admin/forum" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                Moderate <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </CardHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 bg-purple-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-purple-700">{stats.forum.threads}</p>
+              <p className="text-xs text-purple-600">Forum Threads</p>
+            </div>
+            <div className="p-3 bg-indigo-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-indigo-700">{stats.forum.posts}</p>
+              <p className="text-xs text-indigo-600">Forum Posts</p>
+            </div>
+            <div className="p-3 bg-teal-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-teal-700">{stats.listings.total}</p>
+              <p className="text-xs text-teal-600">Listings</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-gray-700">{stats.users.inactive}</p>
+              <p className="text-xs text-gray-600">Inactive Users</p>
             </div>
           </div>
         </Card>

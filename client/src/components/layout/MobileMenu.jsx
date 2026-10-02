@@ -3,7 +3,8 @@ import { Leaf } from 'lucide-react';
 import {
   LayoutDashboard, MapPin, ShoppingBag, ClipboardList,
   Package, MessageCircle, User, Building2, List,
-  Clock, Star, BarChart3, Users, FileText, Settings, Mail, Bell
+  Clock, Star, BarChart3, Users, FileText, Settings, Mail, Bell,
+  CheckCircle, FolderCheck
 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import NavItem from './NavItem';
@@ -38,8 +39,10 @@ const businessNav = [
 
 const adminNav = [
   { to: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
+  { to: '/admin/approvals', icon: <CheckCircle className="w-5 h-5" />, label: 'Approvals' },
   { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Users' },
   { to: '/admin/businesses', icon: <Building2 className="w-5 h-5" />, label: 'Businesses' },
+  { to: '/admin/documents', icon: <FolderCheck className="w-5 h-5" />, label: 'Documents' },
   { to: '/admin/listings', icon: <List className="w-5 h-5" />, label: 'Listings' },
   { to: '/admin/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
   { to: '/admin/reports', icon: <FileText className="w-5 h-5" />, label: 'Reports' },

@@ -948,7 +948,7 @@ const logListingAudit = async (adminId, action, targetId, details = {}) => {
 
 const getAdminListings = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search = '', status = '' } = req.query;
+    const { page = 1, limit = 20, search = '', status = '', flagged = '' } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     let query = supabaseAdmin
@@ -960,6 +960,28 @@ const getAdminListings = async (req, res) => {
         business:businesses(id, name),
         listing_images(id, image_url, is_primary, sort_order)
       `, { count: 'exact' });
+
+    // Reported-only moderation view: restrict to listings with >= 1 report
+    if (flagged === 'true') {
+      const { data: reported } = await supabaseAdmin
+        .from('reports')
+        .select('target_id')
+        .eq('target_type', 'listing');
+      const reportedIds = [...new Set((reported || []).map(r => r.target_id).filter(Boolean))];
+
+      if (reportedIds.length === 0) {
+        return res.json({
+          listings: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0,
+          },
+        });
+      }
+      query = query.in('id', reportedIds);
+    }
 
     if (search) {
       query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);

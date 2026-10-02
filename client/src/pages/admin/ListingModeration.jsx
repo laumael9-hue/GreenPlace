@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Package, Flag, Eye, ChevronLeft, ChevronRight, Archive, RotateCcw, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, Package, Flag, Eye, ChevronLeft, ChevronRight, Archive, RotateCcw, Loader2, AlertTriangle, Download } from 'lucide-react';
 import api from '../../lib/api';
+import { exportToCsv, csvFilename } from '../../lib/exportCsv';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/ui/EmptyState';
+import Modal from '../../components/ui/Modal';
 
 const statusConfig = {
   draft: { variant: 'neutral', label: 'Draft' },
@@ -19,28 +21,35 @@ export default function ListingModeration() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
   const [actionLoading, setActionLoading] = useState(null);
+  const [archiveTarget, setArchiveTarget] = useState(null);
+  const [archiveReason, setArchiveReason] = useState('');
+  const [error, setError] = useState('');
 
   const fetchListings = useCallback(async (page = 1) => {
     setLoading(true);
+    setError('');
     try {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '20',
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
+        ...(flaggedOnly && { flagged: 'true' }),
       });
       const { data } = await api.get(`/marketplace/admin/listings?${params}`);
       setListings(data.listings || []);
       setPagination(data.pagination);
     } catch (err) {
       console.error('Failed to fetch listings:', err);
+      setError(err.response?.data?.error || 'Failed to load listings.');
       setListings([]);
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter]);
+  }, [search, statusFilter, flaggedOnly]);
 
   useEffect(() => {
     fetchListings(1);
@@ -51,15 +60,53 @@ export default function ListingModeration() {
     fetchListings(1);
   };
 
-  const handleStatusChange = async (id, status) => {
+  const handleStatusChange = async (id, status, reason = '') => {
     setActionLoading(id);
+    setError('');
     try {
-      await api.patch(`/marketplace/admin/listings/${id}/status`, { status });
+      await api.patch(`/marketplace/admin/listings/${id}/status`, { status, reason: reason || undefined });
+      setArchiveTarget(null);
+      setArchiveReason('');
       fetchListings(pagination.page);
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to update listing status');
+      setError(err.response?.data?.error || 'Failed to update listing status.');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const openArchiveModal = (listing) => {
+    setArchiveReason('');
+    setArchiveTarget(listing);
+  };
+
+  const handleExport = async () => {
+    setError('');
+    try {
+      const params = new URLSearchParams({
+        page: '1', limit: '500',
+        ...(search && { search }),
+        ...(statusFilter && { status: statusFilter }),
+        ...(flaggedOnly && { flagged: 'true' }),
+      });
+      const { data } = await api.get(`/marketplace/admin/listings?${params}`);
+      const rows = (data.listings || []).map((l) => [
+        l.title,
+        sellerName(l),
+        l.category?.name || '',
+        l.price,
+        l.status,
+        l.report_count || 0,
+        l.city || '',
+        l.created_at ? new Date(l.created_at).toLocaleDateString() : '',
+      ]);
+      exportToCsv(
+        csvFilename('greenplace-listings'),
+        ['Title', 'Seller', 'Category', 'Price', 'Status', 'Reports', 'City', 'Created'],
+        rows
+      );
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to export listings.');
     }
   };
 
@@ -71,10 +118,23 @@ export default function ListingModeration() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Marketplace Moderation</h1>
-        <p className="text-gray-500 mt-1">Review, archive, and restore marketplace listings.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Marketplace Moderation</h1>
+          <p className="text-gray-500 mt-1">Review, archive, and restore marketplace listings.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={loading}>
+          <Download className="w-4 h-4" />
+          Export CSV
+        </Button>
       </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
+      )}
 
       <Card padding={false}>
         <div className="p-4 border-b border-gray-100">
@@ -100,6 +160,18 @@ export default function ListingModeration() {
               <option value="sold">Sold</option>
               <option value="archived">Archived</option>
             </select>
+            <button
+              type="button"
+              onClick={() => setFlaggedOnly(prev => !prev)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                flaggedOnly
+                  ? 'bg-red-100 text-red-700 border border-red-200'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-red-300'
+              }`}
+            >
+              <Flag className="w-4 h-4" />
+              Reported Only
+            </button>
             <Button type="submit" size="sm">Search</Button>
           </form>
         </div>
@@ -186,7 +258,7 @@ export default function ListingModeration() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => handleStatusChange(l.id, 'archived')}
+                            onClick={() => openArchiveModal(l)}
                             disabled={actionLoading === l.id}
                             className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
                             title="Archive listing"
@@ -240,6 +312,45 @@ export default function ListingModeration() {
         <AlertTriangle className="w-3.5 h-3.5" />
         Archived listings are hidden from the marketplace and can be restored at any time.
       </p>
+
+      {/* Archive Modal */}
+      <Modal open={!!archiveTarget} onClose={() => setArchiveTarget(null)} title="Archive Listing" maxWidth="max-w-sm">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+              <Archive className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-gray-900">Archive Listing</h3>
+              <p className="text-sm text-gray-500 line-clamp-1">{archiveTarget?.title}</p>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600">
+            The listing will be hidden from the marketplace. You can restore it at any time.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Reason (optional)</label>
+            <textarea
+              rows={3}
+              value={archiveReason}
+              onChange={(e) => setArchiveReason(e.target.value)}
+              placeholder="e.g., Reported for misleading content..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setArchiveTarget(null)}>Cancel</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => handleStatusChange(archiveTarget.id, 'archived', archiveReason)}
+              disabled={actionLoading === archiveTarget?.id}
+            >
+              {actionLoading === archiveTarget?.id ? 'Archiving...' : 'Archive'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

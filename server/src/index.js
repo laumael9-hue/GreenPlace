@@ -42,6 +42,7 @@ const forumRoutes = require('./routes/forum');
 const messageRoutes = require('./routes/messages');
 const notificationRoutes = require('./routes/notifications');
 const reviewRoutes = require('./routes/reviews');
+const adminRoutes = require('./routes/admin');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/businesses', businessRoutes);
@@ -53,6 +54,7 @@ app.use('/api/forum', forumRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res) => {

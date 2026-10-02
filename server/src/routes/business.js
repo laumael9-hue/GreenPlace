@@ -24,6 +24,8 @@ const {
   suspendBusiness,
   reactivateBusiness,
   getBusinessStats,
+  getAllDocuments,
+  verifyDocument,
   getPublicBusinesses,
   getPublicBusinessBySlug,
   getNearbyBusinesses,
@@ -82,6 +84,8 @@ router.get('/public/slug/:slug', optionalAuth, getPublicBusinessBySlug);
 
 // Admin routes
 router.get('/admin/stats', authenticate, requireAdmin, getBusinessStats);
+router.get('/admin/documents', authenticate, requireAdmin, getAllDocuments);
+router.patch('/admin/documents/:docId/verify', authenticate, requireAdmin, verifyDocument);
 router.get('/admin', authenticate, requireAdmin, getAllBusinesses);
 router.get('/admin/:id', authenticate, requireAdmin, getBusinessById);
 router.patch('/admin/:id/approve', authenticate, requireAdmin, approveBusiness);

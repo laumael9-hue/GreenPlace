@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
+import { exportToCsv, csvFilename } from '../../lib/exportCsv';
 import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -10,7 +11,7 @@ import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
 import {
   Search, Users, ChevronLeft, ChevronRight, Shield,
-  Ban, CheckCircle, Trash2, Eye, AlertTriangle, Clock, Building2
+  Ban, CheckCircle, Trash2, Eye, AlertTriangle, Clock, Building2, Download
 } from 'lucide-react';
 
 const ROLE_TABS = [
@@ -41,9 +42,11 @@ export default function UserManagement() {
   const [dependencies, setDependencies] = useState(null);
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, pendingDeletion: 0, deleted: 0 });
   const [businessMap, setBusinessMap] = useState({});
+  const [error, setError] = useState('');
 
   const fetchUsers = useCallback(async (page = 1) => {
     setLoading(true);
+    setError('');
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -54,7 +57,8 @@ export default function UserManagement() {
       const { data } = await api.get(`/users?${params}`);
       setUsers(data.users);
       setPagination(data.pagination);
-    } catch {
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to load users.');
       setUsers([]);
     } finally {
       setLoading(false);
@@ -112,6 +116,36 @@ export default function UserManagement() {
   const handleSearch = (e) => {
     e.preventDefault();
     fetchUsers(1);
+  };
+
+  const handleExport = async () => {
+    setError('');
+    try {
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '500',
+        ...(search && { search }),
+        ...(roleFilter && { role: roleFilter }),
+      });
+      const { data } = await api.get(`/users?${params}`);
+      const rows = (data.users || []).map((u) => [
+        `${u.first_name || ''} ${u.last_name || ''}`.trim(),
+        u.email || '',
+        u.phone || '',
+        u.role,
+        u.is_active ? 'Active' : 'Suspended',
+        u.city || '',
+        u.pending_deletion_at ? new Date(u.pending_deletion_at).toLocaleDateString() : '',
+        u.created_at ? new Date(u.created_at).toLocaleDateString() : '',
+      ]);
+      exportToCsv(
+        csvFilename('greenplace-users'),
+        ['Name', 'Email', 'Phone', 'Role', 'Status', 'City', 'Pending Deletion', 'Registered'],
+        rows
+      );
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to export users.');
+    }
   };
 
   const openUserDetail = async (userId) => {
@@ -302,6 +336,13 @@ export default function UserManagement() {
         <p className="text-gray-500 mt-1">View and manage all user accounts.</p>
       </div>
 
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
       {/* Role Tabs */}
       <div className="flex flex-wrap gap-2">
         {ROLE_TABS.map(tab => {
@@ -373,7 +414,16 @@ export default function UserManagement() {
         </Card>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExport}
+          disabled={loading}
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </Button>
         <Button
           variant="outline"
           size="sm"

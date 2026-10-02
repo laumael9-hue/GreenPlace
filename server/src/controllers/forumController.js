@@ -1153,7 +1153,7 @@ const moderatePost = async (req, res) => {
 
 const getReports = async (req, res) => {
   try {
-    const { page = 1, limit = 20, status = '' } = req.query;
+    const { page = 1, limit = 20, status = '', target = '' } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     let query = supabaseAdmin
@@ -1167,6 +1167,10 @@ const getReports = async (req, res) => {
 
     if (status) {
       query = query.eq('status', status);
+    }
+
+    if (target) {
+      query = query.eq('target_type', target);
     }
 
     const { data: reports, count, error } = await query
@@ -1421,6 +1425,37 @@ const resolveReport = async (req, res) => {
   }
 };
 
+const getReportStats = async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('reports')
+      .select('status, target_type');
+
+    if (error) {
+      console.error('Get report stats error:', error);
+      return res.status(400).json({ error: error.message });
+    }
+
+    const byStatus = { pending: 0, reviewed: 0, resolved: 0, dismissed: 0 };
+    const byTarget = {};
+    (data || []).forEach((r) => {
+      byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+      byTarget[r.target_type] = (byTarget[r.target_type] || 0) + 1;
+    });
+
+    res.json({
+      stats: {
+        total: (data || []).length,
+        byStatus,
+        byTarget,
+      },
+    });
+  } catch (err) {
+    console.error('Get report stats error:', err);
+    res.status(500).json({ error: 'Failed to fetch report statistics' });
+  }
+};
+
 module.exports = {
   uploadForumImage,
   getThreads,
@@ -1440,5 +1475,6 @@ module.exports = {
   moderateThread,
   moderatePost,
   getReports,
+  getReportStats,
   resolveReport,
 };
