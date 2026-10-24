@@ -1,6 +1,6 @@
 const { supabaseAdmin } = require('../config/supabase');
 const paymongoService = require('../services/paymongo');
-const { createNotification, getOrderImage } = require('../services/notifications');
+const { createNotification, getOrderImage, notifyBusinessNewOrder } = require('../services/notifications');
 const crypto = require('crypto');
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -59,6 +59,7 @@ const finalizePaidOrder = async (orderId) => {
     body: 'Your payment has been received and your order is confirmed.',
     data: { link: `/orders/${orderId}`, image: await getOrderImage(orderId) },
   });
+  await notifyBusinessNewOrder(orderId);
 
   return true;
 };

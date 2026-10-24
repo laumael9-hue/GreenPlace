@@ -45,6 +45,35 @@ const getOrderImage = async (orderId) => {
   }
 };
 
+// Tell the business owner a new order needs attention (cash orders at checkout, PayMongo once paid)
+const notifyBusinessNewOrder = async (orderId) => {
+  try {
+    const { data: order } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_number, total, buyer_id, business_id')
+      .eq('id', orderId)
+      .maybeSingle();
+    if (!order?.business_id) return;
+
+    const { data: business } = await supabaseAdmin
+      .from('businesses')
+      .select('owner_id')
+      .eq('id', order.business_id)
+      .maybeSingle();
+    if (!business?.owner_id || business.owner_id === order.buyer_id) return;
+
+    await createNotification({
+      userId: business.owner_id,
+      type: 'order',
+      title: 'New order received',
+      body: `Order ${order.order_number} (₱${parseFloat(order.total).toLocaleString('en-PH', { minimumFractionDigits: 2 })}) is waiting for you.`,
+      data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
+    });
+  } catch (err) {
+    console.error('Notify business of new order failed:', err.message);
+  }
+};
+
 const getBusinessLogo = async (businessId) => {
   try {
     const { data: business } = await supabaseAdmin
@@ -175,6 +204,7 @@ const attachNotificationImages = async (rows = []) => {
 module.exports = {
   createNotification,
   getOrderImage,
+  notifyBusinessNewOrder,
   getBusinessLogo,
   attachNotificationImages,
 };

@@ -1,7 +1,7 @@
 const { supabaseAdmin } = require('../config/supabase');
 const paymongoService = require('../services/paymongo');
 const { checkPendingPaymentStatus } = require('./paymentController');
-const { createNotification, getOrderImage } = require('../services/notifications');
+const { createNotification, getOrderImage, notifyBusinessNewOrder } = require('../services/notifications');
 const crypto = require('crypto');
 
 // ============================================================
@@ -205,6 +205,10 @@ const checkout = async (req, res) => {
             method: paymentMethod,
             status: 'pending',
           });
+      }
+
+      if (paymentMethod === 'cash_on_pickup') {
+        await notifyBusinessNewOrder(order.id);
       }
 
       createdOrders.push(order);
@@ -706,6 +710,10 @@ const updateOrderStatus = async (req, res) => {
 
     // If completed, update payment status for cash on pickup
     if (status === 'completed' && order.payment_method === 'cash_on_pickup') {
+      await supabaseAdmin
+        .from('orders')
+        .update({ payment_status: 'paid' })
+        .eq('id', id);
       await supabaseAdmin
         .from('payments')
         .update({ status: 'paid', paid_at: new Date().toISOString() })
