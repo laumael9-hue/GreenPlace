@@ -247,6 +247,7 @@ const handler = async (req, res) => {
 - Phase 16+: Product reviews (listing_id, separate listing ratings, seller visibility/replies, per-item review on completed orders)
 - Phase 17: Admin (dashboard, approvals, document verification, reports center, settings, CSV export)
 - Phase 17+: Refunds owned by business (approve/reject + walk-in); admin is oversight-only (read/list, no decision or money-out)
+- Phase 18 (integration): Resident E2E verified in a real browser (register → find business + material filter → marketplace → cart → GCash PayMongo TEST → receipt → order tracking → review → cancel/refund). Fixes: shared atomic `finalizePaidOrder` (webhook + status polling), webhook now reads SDK `Event.resource.attributes.payment_intent_id`, cancel restores stock only if reserved and refunds paid PayMongo orders, `GET /businesses/public/materials` + `material` filter (comma-separated, must accept ALL) on `/public` and `/public/nearby`, dashboard recommended-listings route fix
 
 ## Receipt Pattern
 

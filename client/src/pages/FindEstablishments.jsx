@@ -126,6 +126,8 @@ export default function FindEstablishments() {
   const [selectedCity, setSelectedCity] = useState('');
   const [acceptsDropOffs, setAcceptsDropOffs] = useState(false);
   const [hasMarketplace, setHasMarketplace] = useState(false);
+  const [availableMaterials, setAvailableMaterials] = useState([]);
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState(CEBU_CENTER);
@@ -178,6 +180,7 @@ export default function FindEstablishments() {
         ...(selectedCity && { city: selectedCity }),
         ...(acceptsDropOffs && { acceptsDropOffs: 'true' }),
         ...(hasMarketplace && { hasMarketplace: 'true' }),
+        ...(selectedMaterials.length > 0 && { material: selectedMaterials.join(',') }),
         ...(userLocation && {
           latitude: userLocation[0],
           longitude: userLocation[1],
@@ -204,7 +207,13 @@ export default function FindEstablishments() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, selectedCategory, selectedCity, acceptsDropOffs, hasMarketplace, userLocation, sortBy]);
+  }, [page, search, selectedCategory, selectedCity, acceptsDropOffs, hasMarketplace, selectedMaterials, userLocation, sortBy]);
+
+  useEffect(() => {
+    api.get('/businesses/public/materials')
+      .then(({ data }) => setAvailableMaterials(data.materials || []))
+      .catch(() => setAvailableMaterials([]));
+  }, []);
 
   useEffect(() => {
     fetchBusinesses();
@@ -212,7 +221,7 @@ export default function FindEstablishments() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, selectedCategory, selectedCity, acceptsDropOffs, hasMarketplace, sortBy]);
+  }, [search, selectedCategory, selectedCity, acceptsDropOffs, hasMarketplace, selectedMaterials, sortBy]);
 
   const clearFilters = () => {
     setSearch('');
@@ -221,10 +230,15 @@ export default function FindEstablishments() {
     setSelectedCity('');
     setAcceptsDropOffs(false);
     setHasMarketplace(false);
+    setSelectedMaterials([]);
     setSortBy('rating');
   };
 
-  const hasActiveFilters = selectedCategory || selectedCity || acceptsDropOffs || hasMarketplace;
+  const hasActiveFilters = selectedCategory || selectedCity || acceptsDropOffs || hasMarketplace || selectedMaterials.length > 0;
+
+  const toggleMaterial = (name) => {
+    setSelectedMaterials((prev) => (prev.includes(name) ? prev.filter((m) => m !== name) : [...prev, name]));
+  };
 
   const focusOnBusiness = (biz) => {
     setSelectedBusiness(biz);
@@ -351,7 +365,7 @@ export default function FindEstablishments() {
               Filters
               {hasActiveFilters && (
                 <span className="w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center">
-                  {[selectedCategory, selectedCity, acceptsDropOffs, hasMarketplace].filter(Boolean).length}
+                  {[selectedCategory, selectedCity, acceptsDropOffs, hasMarketplace, selectedMaterials.length > 0].filter(Boolean).length}
                 </span>
               )}
               {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -430,6 +444,31 @@ export default function FindEstablishments() {
                   </label>
                 </div>
               </div>
+              {availableMaterials.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Accepted Materials</label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableMaterials.map((name) => {
+                      const active = selectedMaterials.includes(name);
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => toggleMaterial(name)}
+                          className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                            active
+                              ? 'bg-primary-600 text-white border-primary-600'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-primary-500'
+                          }`}
+                        >
+                          {name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {hasActiveFilters && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <button

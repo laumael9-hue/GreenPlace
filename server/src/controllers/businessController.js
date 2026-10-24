@@ -1360,11 +1360,49 @@ const verifyDocument = async (req, res) => {
 // PUBLIC OPERATIONS
 // ============================================================
 
+// Ids of approved businesses that accept ALL of the given materials (comma-separated names).
+// Returns null when no material filter was requested.
+const getMaterialFilterIds = async (materialParam) => {
+  const wanted = String(materialParam || '').split(',').map((m) => m.trim()).filter(Boolean);
+  if (wanted.length === 0) return null;
+
+  const { data } = await supabaseAdmin
+    .from('business_materials')
+    .select('business_id, material_name')
+    .eq('is_accepted', true)
+    .in('material_name', wanted);
+
+  const counts = {};
+  for (const row of data || []) {
+    counts[row.business_id] = (counts[row.business_id] || new Set()).add(row.material_name);
+  }
+  return Object.keys(counts).filter((id) => counts[id].size === new Set(wanted).size);
+};
+
+const getPublicMaterials = async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('business_materials')
+      .select('material_name, business:businesses!inner(status, deleted_at)')
+      .eq('is_accepted', true)
+      .eq('business.status', 'approved')
+      .is('business.deleted_at', null);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    const materials = [...new Set((data || []).map((m) => m.material_name))].sort();
+    res.json({ materials });
+  } catch (err) {
+    console.error('Get public materials error:', err);
+    res.status(500).json({ error: 'Failed to fetch materials' });
+  }
+};
+
 const getPublicBusinesses = async (req, res) => {
   try {
     const {
       page = 1, limit = 20, search = '', category = '',
-      city = '', acceptsDropOffs, hasMarketplace,
+      city = '', acceptsDropOffs, hasMarketplace, material,
     } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -1392,6 +1430,11 @@ const getPublicBusinesses = async (req, res) => {
 
     if (hasMarketplace === 'true') {
       query = query.eq('has_marketplace', true);
+    }
+
+    const materialIds = await getMaterialFilterIds(material);
+    if (materialIds) {
+      query = query.in('id', materialIds);
     }
 
     const { data: businesses, count, error } = await query
@@ -1466,7 +1509,7 @@ const getNearbyBusinesses = async (req, res) => {
   try {
     const {
       latitude, longitude, radius = 50, page = 1, limit = 20,
-      search = '', category = '', city = '', acceptsDropOffs, hasMarketplace,
+      search = '', category = '', city = '', acceptsDropOffs, hasMarketplace, material,
     } = req.query;
 
     const userLat = latitude ? parseFloat(latitude) : null;
@@ -1492,6 +1535,11 @@ const getNearbyBusinesses = async (req, res) => {
     }
     if (hasMarketplace === 'true') {
       query = query.eq('has_marketplace', true);
+    }
+
+    const materialIds = await getMaterialFilterIds(material);
+    if (materialIds) {
+      query = query.in('id', materialIds);
     }
 
     const { data: businesses, count, error } = await query
@@ -1658,6 +1706,7 @@ module.exports = {
   getAllDocuments,
   verifyDocument,
   getPublicBusinesses,
+  getPublicMaterials,
   getPublicBusinessBySlug,
   getNearbyBusinesses,
   getRecommendations,

@@ -27,6 +27,7 @@ const {
   getAllDocuments,
   verifyDocument,
   getPublicBusinesses,
+  getPublicMaterials,
   getPublicBusinessBySlug,
   getNearbyBusinesses,
   getRecommendations,
@@ -78,6 +79,7 @@ const handleMulterError = (err, req, res, next) => {
 
 // Public routes
 router.get('/public/nearby', getNearbyBusinesses);
+router.get('/public/materials', getPublicMaterials);
 router.get('/public/recommendations', getRecommendations);
 router.get('/public', getPublicBusinesses);
 router.get('/public/slug/:slug', optionalAuth, getPublicBusinessBySlug);
