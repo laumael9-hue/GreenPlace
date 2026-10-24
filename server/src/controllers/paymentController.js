@@ -6,6 +6,64 @@ const crypto = require('crypto');
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // ============================================================
+// HELPER: Finalize a paid PayMongo order (shared by webhook + status polling)
+// Atomic guard: only the caller that flips payment_status to 'paid' runs side effects.
+// ============================================================
+
+const finalizePaidOrder = async (orderId) => {
+  const { data: claimed } = await supabaseAdmin
+    .from('orders')
+    .update({ payment_status: 'paid', status: 'confirmed', confirmed_at: new Date().toISOString() })
+    .eq('id', orderId)
+    .neq('payment_status', 'paid')
+    .select('id, buyer_id')
+    .maybeSingle();
+
+  if (!claimed) return false;
+
+  const { data: orderItems } = await supabaseAdmin
+    .from('order_items')
+    .select('listing_id, quantity')
+    .eq('order_id', orderId);
+
+  if (orderItems) {
+    for (const item of orderItems) {
+      const { data: listing } = await supabaseAdmin
+        .from('listings')
+        .select('quantity_available, sold_count')
+        .eq('id', item.listing_id)
+        .single();
+
+      if (listing) {
+        await supabaseAdmin
+          .from('listings')
+          .update({
+            quantity_available: Math.max(0, listing.quantity_available - item.quantity),
+            sold_count: (listing.sold_count || 0) + item.quantity,
+          })
+          .eq('id', item.listing_id);
+      }
+    }
+
+    await supabaseAdmin
+      .from('cart_items')
+      .delete()
+      .eq('user_id', claimed.buyer_id)
+      .in('listing_id', orderItems.map((i) => i.listing_id));
+  }
+
+  await createNotification({
+    userId: claimed.buyer_id,
+    type: 'order',
+    title: 'Payment received',
+    body: 'Your payment has been received and your order is confirmed.',
+    data: { link: `/orders/${orderId}`, image: await getOrderImage(orderId) },
+  });
+
+  return true;
+};
+
+// ============================================================
 // CREATE CHECKOUT: Create PayMongo payment for an order
 // ============================================================
 
@@ -110,20 +168,21 @@ const handleWebhook = async (req, res) => {
     }
 
     const eventType = event.type;
-    const paymentIntentId = event.data?.id;
+    // SDK Event shape: { id: evt_*, type, resource: <payment object> }
+    const paymentIntentId = event.resource?.attributes?.payment_intent_id;
 
     if (!paymentIntentId) {
       return res.status(400).json({ error: 'Missing payment intent ID' });
     }
 
-    const eventId = event.data?.attributes?.event_id || `${paymentIntentId}-${eventType}`;
+    const eventId = event.id || `${paymentIntentId}-${eventType}`;
 
     const { error: insertError } = await supabaseAdmin
       .from('webhook_events')
       .insert({
         event_id: eventId,
         event_type: eventType,
-        payload: event.data || {},
+        payload: event.resource || {},
       });
 
     if (insertError && insertError.code === '23505') {
@@ -150,75 +209,7 @@ const handleWebhook = async (req, res) => {
         })
         .eq('id', payment.id);
 
-      const { data: order } = await supabaseAdmin
-        .from('orders')
-        .select('id, buyer_id, payment_status')
-        .eq('id', payment.order_id)
-        .single();
-
-      if (order && order.payment_status !== 'paid') {
-        await supabaseAdmin
-          .from('orders')
-          .update({
-            payment_status: 'paid',
-            status: 'confirmed',
-            confirmed_at: new Date().toISOString(),
-          })
-          .eq('id', order.id);
-
-        const { data: orderItems } = await supabaseAdmin
-          .from('order_items')
-          .select('listing_id, quantity')
-          .eq('order_id', order.id);
-
-        if (orderItems) {
-          for (const item of orderItems) {
-            const { data: listing } = await supabaseAdmin
-              .from('listings')
-              .select('quantity_available, sold_count')
-              .eq('id', item.listing_id)
-              .single();
-
-            if (listing) {
-              await supabaseAdmin
-                .from('listings')
-                .update({
-                  quantity_available: Math.max(0, listing.quantity_available - item.quantity),
-                  sold_count: (listing.sold_count || 0) + item.quantity,
-                })
-                .eq('id', item.listing_id);
-            }
-          }
-
-          const cartItemIds = [];
-          for (const item of orderItems) {
-            const { data: cartItem } = await supabaseAdmin
-              .from('cart_items')
-              .select('id')
-              .eq('user_id', order.buyer_id)
-              .eq('listing_id', item.listing_id)
-              .single();
-            if (cartItem) cartItemIds.push(cartItem.id);
-          }
-
-          if (cartItemIds.length > 0) {
-            await supabaseAdmin
-              .from('cart_items')
-              .delete()
-              .in('id', cartItemIds);
-          }
-        }
-
-        console.log(`Order ${order.id} confirmed via webhook`);
-
-        await createNotification({
-          userId: order.buyer_id,
-          type: 'order',
-          title: 'Payment received',
-          body: 'Your payment has been received and your order is confirmed.',
-          data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
-        });
-      }
+      await finalizePaidOrder(payment.order_id);
     } else if (eventType === 'payment.failed' || eventType === 'payment.expired') {
       await supabaseAdmin
         .from('payments')
@@ -275,27 +266,8 @@ const checkPendingPaymentStatus = async (payment, orderId) => {
         .from('payments')
         .update({ status: 'paid', paid_at: new Date().toISOString() })
         .eq('id', payment.id);
-      await supabaseAdmin
-        .from('orders')
-        .update({ payment_status: 'paid', status: 'confirmed', confirmed_at: new Date().toISOString() })
-        .eq('id', orderId);
+      await finalizePaidOrder(orderId);
       payment.status = 'paid';
-
-      const { data: paidOrder } = await supabaseAdmin
-        .from('orders')
-        .select('id, buyer_id')
-        .eq('id', orderId)
-        .single();
-
-      if (paidOrder?.buyer_id) {
-        await createNotification({
-          userId: paidOrder.buyer_id,
-          type: 'order',
-          title: 'Payment received',
-          body: 'Your payment has been received and your order is confirmed.',
-          data: { link: `/orders/${paidOrder.id}`, image: await getOrderImage(paidOrder.id) },
-        });
-      }
 
       return { payment, updated: true, payment_status: 'paid', order_status: 'confirmed' };
     } else if (intent.status === 'awaiting_payment_method' || intent.status === 'cancelled') {
@@ -1104,6 +1076,7 @@ const cancelRefund = async (req, res) => {
 };
 
 module.exports = {
+  finalizePaidOrder,
   createCheckout,
   handleWebhook,
   getPaymentStatus,

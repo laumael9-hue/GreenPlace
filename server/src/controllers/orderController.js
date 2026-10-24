@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
+const paymongoService = require('../services/paymongo');
 const { checkPendingPaymentStatus } = require('./paymentController');
 const { createNotification, getOrderImage } = require('../services/notifications');
 const crypto = require('crypto');
@@ -753,7 +754,7 @@ const cancelOrder = async (req, res) => {
     const { data: order, error: fetchError } = await supabaseAdmin
       .from('orders')
       .select(`
-        id, order_number, buyer_id, business_id, status, payment_method,
+        id, order_number, buyer_id, business_id, status, payment_method, payment_status,
         items:order_items(id, listing_id, quantity)
       `)
       .eq('id', id)
@@ -787,6 +788,29 @@ const cancelOrder = async (req, res) => {
       });
     }
 
+    // Paid PayMongo orders: refund the captured payment before cancelling
+    const needsRefund = order.payment_method !== 'cash_on_pickup' && order.payment_status === 'paid';
+    if (needsRefund) {
+      const { data: payment } = await supabaseAdmin
+        .from('payments')
+        .select('paymongo_payment_id, amount')
+        .eq('order_id', id)
+        .maybeSingle();
+
+      if (payment?.paymongo_payment_id) {
+        try {
+          await paymongoService.refundPayment(
+            payment.paymongo_payment_id,
+            Math.round(parseFloat(payment.amount) * 100),
+            'requested_by_customer'
+          );
+        } catch (refundErr) {
+          console.error('PayMongo refund on cancel failed:', refundErr?.response?.data || refundErr.message);
+          return res.status(502).json({ error: 'Could not refund the payment. The order was not cancelled; please try again.' });
+        }
+      }
+    }
+
     // Update order status
     const { error: updateError } = await supabaseAdmin
       .from('orders')
@@ -794,6 +818,7 @@ const cancelOrder = async (req, res) => {
         status: 'cancelled',
         cancelled_at: new Date().toISOString(),
         cancellation_reason: cancellation_reason || null,
+        ...(needsRefund ? { payment_status: 'refunded', refund_status: 'refunded', refunded_at: new Date().toISOString() } : {}),
       })
       .eq('id', id);
 
@@ -801,8 +826,11 @@ const cancelOrder = async (req, res) => {
       return res.status(400).json({ error: updateError.message });
     }
 
+    // Stock is only reserved for cash orders and paid PayMongo orders
+    const stockReserved = order.payment_method === 'cash_on_pickup' || order.payment_status === 'paid';
+
     // Restore listing quantities
-    for (const item of order.items) {
+    for (const item of stockReserved ? order.items : []) {
       const { data: listing } = await supabaseAdmin
         .from('listings')
         .select('quantity_available, sold_count')
@@ -821,7 +849,9 @@ const cancelOrder = async (req, res) => {
     }
 
     // Update payment status
-    if (order.payment_method === 'cash_on_pickup') {
+    if (needsRefund) {
+      await supabaseAdmin.from('payments').update({ status: 'refunded' }).eq('order_id', id);
+    } else if (order.payment_method === 'cash_on_pickup') {
       await supabaseAdmin
         .from('payments')
         .update({ status: 'refunded' })
