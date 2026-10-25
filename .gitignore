@@ -41,3 +41,7 @@ supabase/.temp/
 
 # Stray local files
 server/adm.png
+
+# Local tool state
+.claude/
+.opencode/plans/

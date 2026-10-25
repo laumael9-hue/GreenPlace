@@ -73,7 +73,7 @@ Integrations:
 ## Technology Stack
 
 ### Frontend
-- React 18
+- React 19
 - Vite
 - Tailwind CSS
 - Axios
@@ -120,7 +120,6 @@ cp client/.env.example client/.env
 |---|---|---|
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | server | Service role key is server-only; never expose it to the client |
 | `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET` | server | Use `sk_test_` keys only |
-| `PAYMONGO_TEST_MODE` | server | Keep `true` |
 | `CLIENT_URL` | server | Allowed CORS origin and redirect base; **required** when `NODE_ENV=production` |
 | `NODE_ENV` | server | Set to `production` when deployed |
 | `VITE_API_URL` | client | API base URL including `/api`; set at build time |
@@ -156,8 +155,8 @@ Runs on http://localhost:3001
 1. Create a new Supabase project
 2. Go to Settings > API to get your keys
 3. Enable Email/Password auth in Authentication > Providers
-4. Create storage buckets: `profile-images`, `business-documents`, `product-images`
-5. Run migrations from `database/migrations/`
+4. Run migrations from `database/migrations/` (they create the storage buckets)
+5. Optional: run `database/seeds/demo_data.sql` for sample businesses, listings and forum threads
 
 ## Google / Facebook Sign-In
 
@@ -195,6 +194,8 @@ cd server && npm run test
 ```
 
 ## Deployment
+
+Step-by-step demo deployment (one Vercel project with client + server services, plus Supabase): see [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ### Frontend (Free Tier)
 - Vercel
