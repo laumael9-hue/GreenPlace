@@ -1,4 +1,5 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
+const { createNotification } = require('../services/notifications');
 
 const BUCKET = 'profile-images';
 const GRACE_PERIOD_DAYS = 30;
@@ -134,6 +135,10 @@ const toggleUserActive = async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body || {};
 
+    if (id === req.user.id) {
+      return res.status(400).json({ error: 'Cannot suspend your own account' });
+    }
+
     const { data: profile, error: fetchError } = await supabaseAdmin
       .from('profiles')
       .select('is_active, deleted_at, pending_deletion_at')
@@ -178,6 +183,21 @@ const toggleUserActive = async (req, res) => {
 
     if (!newStatus) {
       await revokeAllSessions(id);
+      await createNotification({
+        userId: id,
+        type: 'system',
+        title: 'Your account has been suspended',
+        body: reason
+          ? `Reason: ${reason}. Contact support for more information.`
+          : 'Contact support for more information.',
+      });
+    } else {
+      await createNotification({
+        userId: id,
+        type: 'system',
+        title: 'Your account has been reactivated',
+        body: 'Your account has been fully restored. All features are available again.',
+      });
     }
 
     await logAuditAction(req.user.id, newStatus ? 'activate_user' : 'deactivate_user', id, {

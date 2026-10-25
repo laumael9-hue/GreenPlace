@@ -7,6 +7,7 @@ const {
   getCategories,
   getCategoryBySlug,
   getListings,
+  getRecommendedListings,
   getListingBySlug,
   getListingById,
   createListing,
@@ -16,6 +17,7 @@ const {
   getMyListings,
   getAdminListings,
   updateAdminListingStatus,
+  updateAdminListingFeature,
   uploadListingImage,
   deleteListingImage,
   getCart,
@@ -57,12 +59,14 @@ const handleMulterError = (err, req, res, next) => {
 router.get('/categories', getCategories);
 router.get('/categories/:slug', getCategoryBySlug);
 router.get('/listings', getListings);
+router.get('/listings/recommended', optionalAuth, getRecommendedListings);
 router.get('/listings/slug/:slug', optionalAuth, getListingBySlug);
 router.get('/listings/:id', optionalAuth, getListingById);
 
 // Admin moderation
 router.get('/admin/listings', authenticate, requireAdmin, getAdminListings);
 router.patch('/admin/listings/:id/status', authenticate, requireAdmin, updateAdminListingStatus);
+router.patch('/admin/listings/:id/feature', authenticate, requireAdmin, updateAdminListingFeature);
 
 // Seller routes (business users)
 router.post('/listings', authenticate, requireBusiness, createListing);

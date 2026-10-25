@@ -47,7 +47,20 @@ const authenticate = async (req, res, next) => {
     }
 
     if (!profile.is_active) {
-      return res.status(403).json({ error: 'Account is deactivated' });
+      const method = req.method.toUpperCase();
+      const isSafeMethod = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
+
+      if (!isSafeMethod) {
+        return res.status(403).json({
+          error: 'Account is suspended',
+          code: 'ACCOUNT_SUSPENDED',
+          reason: profile.suspension_reason || null,
+        });
+      }
+
+      req.user = { ...user, profile, suspended: true };
+      req.token = token;
+      return next();
     }
 
     req.user = { ...user, profile };

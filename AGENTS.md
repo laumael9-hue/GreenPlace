@@ -247,8 +247,10 @@ const handler = async (req, res) => {
 - Phase 16+: Product reviews (listing_id, separate listing ratings, seller visibility/replies, per-item review on completed orders)
 - Phase 17: Admin (dashboard, approvals, document verification, reports center, settings, CSV export)
 - Phase 17+: Refunds owned by business (approve/reject + walk-in); admin is oversight-only (read/list, no decision or money-out)
+- Phase 18: Business Analytics (`GET /businesses/my/stats`, Recharts trends, top products, drop-offs, ratings; wired into dashboard stub cards)
 - Phase 18 (integration): Resident E2E verified in a real browser (register → find business + material filter → marketplace → cart → GCash PayMongo TEST → receipt → order tracking → review → cancel/refund). Fixes: shared atomic `finalizePaidOrder` (webhook + status polling), webhook now reads SDK `Event.resource.attributes.payment_intent_id`, cancel restores stock only if reserved and refunds paid PayMongo orders, `GET /businesses/public/materials` + `material` filter (comma-separated, must accept ALL) on `/public` and `/public/nearby`, dashboard recommended-listings route fix
 - Phase 18 (integration, business/admin/community/messaging): API-verified business onboarding (register → document upload/verify → admin approve → materials → listing → order → complete), admin moderation (users suspend/reactivate, listings, forum reports, reports/settings, CSV exports in browser), forum post/comment/report/moderate, messaging with notifications. Fixes: business owner gets a `New order received` notification (`notifyBusinessNewOrder`, cash at checkout / PayMongo on payment); completing a cash order now sets `orders.payment_status='paid'`
+- Phase 18+: Resident→Business conversion (layered accounts, admin-approved): dashboard CTA → existing wizard → `businesses.status='pending'` (role stays resident) → `approveBusiness` flips `profiles.role` + syncs auth metadata; rejected applications can reapply; `requireResident` includes business (resident powers kept); grouped Business+General sidebar via `navConfig.jsx`; migration `026_role_protection.sql` blocks self role changes
 
 ## Receipt Pattern
 

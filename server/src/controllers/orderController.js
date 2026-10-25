@@ -2,6 +2,7 @@ const { supabaseAdmin } = require('../config/supabase');
 const paymongoService = require('../services/paymongo');
 const { checkPendingPaymentStatus } = require('./paymentController');
 const { createNotification, getOrderImage, notifyBusinessNewOrder } = require('../services/notifications');
+const { reserveListingStock, releaseListingStock } = require('../services/stock');
 const crypto = require('crypto');
 
 // ============================================================
@@ -85,6 +86,22 @@ const checkout = async (req, res) => {
       businessGroups[businessId].push(item);
     });
 
+    // Cash orders hold stock immediately: reserve every line up front, undo on any failure.
+    const reserved = [];
+    const releaseReserved = async () => {
+      for (const r of reserved.splice(0)) await releaseListingStock(r.listingId, r.quantity);
+    };
+    if (paymentMethod === 'cash_on_pickup') {
+      for (const item of cartItems) {
+        const ok = await reserveListingStock(item.listing.id, item.quantity);
+        if (!ok) {
+          await releaseReserved();
+          return res.status(400).json({ error: `Some items are no longer available: ${item.listing.title}` });
+        }
+        reserved.push({ listingId: item.listing.id, quantity: item.quantity });
+      }
+    }
+
     const createdOrders = [];
 
     for (const [businessId, items] of Object.entries(businessGroups)) {
@@ -149,6 +166,7 @@ const checkout = async (req, res) => {
 
       if (orderError) {
         console.error('Create order error:', orderError);
+        await releaseReserved();
         return res.status(400).json({ error: 'Failed to create order' });
       }
 
@@ -164,21 +182,12 @@ const checkout = async (req, res) => {
 
       if (itemsError) {
         console.error('Create order items error:', itemsError);
+        await releaseReserved();
         return res.status(400).json({ error: 'Failed to create order items' });
       }
 
-      // Update listing quantities and remove from cart (cash on pickup only)
+      // Remove from cart (cash on pickup only; stock was reserved above)
       if (paymentMethod === 'cash_on_pickup') {
-        for (const item of items) {
-          await supabaseAdmin
-            .from('listings')
-            .update({
-              quantity_available: item.listing.quantity_available - item.quantity,
-              sold_count: (item.listing.sold_count || 0) + item.quantity,
-            })
-            .eq('id', item.listing.id);
-        }
-
         const cartItemIdsForOrder = items.map(i => i.id);
         await supabaseAdmin
           .from('cart_items')
@@ -212,6 +221,11 @@ const checkout = async (req, res) => {
       }
 
       createdOrders.push(order);
+      // This group's reservation now belongs to a real order; keep it out of rollbacks.
+      for (const item of items) {
+        const idx = reserved.findIndex((r) => r.listingId === item.listing.id);
+        if (idx !== -1) reserved.splice(idx, 1);
+      }
     }
 
     const isPayMongo = paymentMethod !== 'cash_on_pickup';
@@ -260,29 +274,53 @@ const createWalkInOrder = async (req, res) => {
       return res.status(404).json({ error: 'Business not found' });
     }
 
+    const badItem = items.find(i => !i || !i.listingId || !Number.isInteger(i.quantity) || i.quantity < 1);
+    if (badItem) {
+      return res.status(400).json({ error: 'Each item needs a listing and a whole-number quantity of at least 1' });
+    }
+    if (new Set(items.map(i => i.listingId)).size !== items.length) {
+      return res.status(400).json({ error: 'Each listing may appear only once; combine quantities instead' });
+    }
+
     // Look up listings directly
     const listingIds = items.map(i => i.listingId);
     const { data: listings, error: listingsError } = await supabaseAdmin
       .from('listings')
-      .select('id, title, price, quantity_available, status, seller_id')
+      .select('id, title, price, quantity_available, status, seller_id, business_id')
       .in('id', listingIds);
 
     if (listingsError) {
-      return res.status(400).json({ error: listingsError.message });
+      console.error('Walk-in listing lookup error:', listingsError);
+      return res.status(400).json({ error: 'Invalid items' });
     }
 
     // Validate all items
     const listingsMap = {};
     (listings || []).forEach(l => { listingsMap[l.id] = l; });
 
+    // A business can only ring up its own listings
     const unavailableItems = items.filter(i => {
       const listing = listingsMap[i.listingId];
-      return !listing || listing.status !== 'active' || i.quantity > listing.quantity_available;
+      const isOwn = listing && (listing.seller_id === userId || listing.business_id === business.id);
+      return !listing || !isOwn || listing.status !== 'active' || i.quantity > listing.quantity_available;
     });
 
     if (unavailableItems.length > 0) {
       const titles = unavailableItems.map(i => listingsMap[i.listingId]?.title || 'Unknown');
       return res.status(400).json({ error: `Some items are unavailable: ${titles.join(', ')}` });
+    }
+
+    // Reserve stock atomically before the order exists; undo if anything below fails.
+    const reservedItems = [];
+    const releaseReserved = async () => {
+      for (const r of reservedItems.splice(0)) await releaseListingStock(r.listingId, r.quantity);
+    };
+    for (const i of items) {
+      if (!(await reserveListingStock(i.listingId, i.quantity))) {
+        await releaseReserved();
+        return res.status(400).json({ error: `Some items are unavailable: ${listingsMap[i.listingId].title}` });
+      }
+      reservedItems.push({ listingId: i.listingId, quantity: i.quantity });
     }
 
     // Build order items
@@ -331,6 +369,7 @@ const createWalkInOrder = async (req, res) => {
 
     if (orderError) {
       console.error('Create walk-in order error:', orderError);
+      await releaseReserved();
       return res.status(400).json({ error: 'Failed to create order' });
     }
 
@@ -346,19 +385,8 @@ const createWalkInOrder = async (req, res) => {
 
     if (itemsError) {
       console.error('Create walk-in order items error:', itemsError);
+      await releaseReserved();
       return res.status(400).json({ error: 'Failed to create order items' });
-    }
-
-    // Decrement listing quantities
-    for (const i of items) {
-      const listing = listingsMap[i.listingId];
-      await supabaseAdmin
-        .from('listings')
-        .update({
-          quantity_available: listing.quantity_available - i.quantity,
-          sold_count: (listing.sold_count || 0) + i.quantity,
-        })
-        .eq('id', listing.id);
     }
 
     // Create payment record
@@ -528,8 +556,12 @@ const getOrderById = async (req, res) => {
       .single();
 
     if (error) {
+      // PGRST116 = no row; 22P02 = malformed uuid. Neither should leak database text.
+      if (error.code === 'PGRST116' || error.code === '22P02') {
+        return res.status(404).json({ error: 'Order not found' });
+      }
       console.error('Get order query error:', error);
-      return res.status(400).json({ error: error.message });
+      return res.status(500).json({ error: 'Failed to fetch order' });
     }
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
@@ -591,7 +623,8 @@ const getOrderById = async (req, res) => {
     const isAdmin = userRole === 'admin';
 
     // For business owners, verify they own this business
-    if (isBusinessOwner && !isAdmin) {
+    // (skipped when they are the buyer of this order — layered model)
+    if (isBusinessOwner && !isAdmin && !isBuyer) {
       const { data: businessProfile } = await supabaseAdmin
         .from('businesses')
         .select('id')
@@ -796,6 +829,24 @@ const cancelOrder = async (req, res) => {
       });
     }
 
+    // Claim the cancellation atomically: only the request that flips the status from what we
+    // read proceeds to refund/restock, so racing cancels cannot refund or restock twice.
+    const { data: claimedOrder } = await supabaseAdmin
+      .from('orders')
+      .update({
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        cancellation_reason: cancellation_reason || null,
+      })
+      .eq('id', id)
+      .eq('status', order.status)
+      .select('id')
+      .maybeSingle();
+
+    if (!claimedOrder) {
+      return res.status(409).json({ error: 'This order was already updated. Please refresh.' });
+    }
+
     // Paid PayMongo orders: refund the captured payment before cancelling
     const needsRefund = order.payment_method !== 'cash_on_pickup' && order.payment_status === 'paid';
     if (needsRefund) {
@@ -814,24 +865,27 @@ const cancelOrder = async (req, res) => {
           );
         } catch (refundErr) {
           console.error('PayMongo refund on cancel failed:', refundErr?.response?.data || refundErr.message);
+          // Give the claim back so the order stays cancellable
+          await supabaseAdmin
+            .from('orders')
+            .update({ status: order.status, cancelled_at: null, cancellation_reason: null })
+            .eq('id', id);
           return res.status(502).json({ error: 'Could not refund the payment. The order was not cancelled; please try again.' });
         }
       }
     }
 
-    // Update order status
-    const { error: updateError } = await supabaseAdmin
-      .from('orders')
-      .update({
-        status: 'cancelled',
-        cancelled_at: new Date().toISOString(),
-        cancellation_reason: cancellation_reason || null,
-        ...(needsRefund ? { payment_status: 'refunded', refund_status: 'refunded', refunded_at: new Date().toISOString() } : {}),
-      })
-      .eq('id', id);
+    // Record the refund on the order (status was already set by the claim above)
+    if (needsRefund) {
+      const { error: updateError } = await supabaseAdmin
+        .from('orders')
+        .update({ payment_status: 'refunded', refund_status: 'refunded', refunded_at: new Date().toISOString() })
+        .eq('id', id);
 
-    if (updateError) {
-      return res.status(400).json({ error: updateError.message });
+      if (updateError) {
+        console.error('Cancel order refund-record error:', updateError);
+        return res.status(500).json({ error: 'Order cancelled and refunded, but recording the refund failed. Contact support.' });
+      }
     }
 
     // Stock is only reserved for cash orders and paid PayMongo orders
@@ -839,21 +893,7 @@ const cancelOrder = async (req, res) => {
 
     // Restore listing quantities
     for (const item of stockReserved ? order.items : []) {
-      const { data: listing } = await supabaseAdmin
-        .from('listings')
-        .select('quantity_available, sold_count')
-        .eq('id', item.listing_id)
-        .single();
-
-      if (listing) {
-        await supabaseAdmin
-          .from('listings')
-          .update({
-            quantity_available: listing.quantity_available + item.quantity,
-            sold_count: Math.max(0, (listing.sold_count || 0) - item.quantity),
-          })
-          .eq('id', item.listing_id);
-      }
+      await releaseListingStock(item.listing_id, item.quantity);
     }
 
     // Update payment status

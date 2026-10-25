@@ -12,8 +12,10 @@ const register = async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    if (!['resident', 'business'].includes(role)) {
-      return res.status(400).json({ error: 'Invalid role. Must be resident or business' });
+    if (role !== 'resident') {
+      return res.status(400).json({
+        error: 'All accounts start as resident. Register first, then apply for a business account from your dashboard.',
+      });
     }
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -104,8 +106,17 @@ const login = async (req, res) => {
     }
 
     if (profile && !profile.is_active) {
-      await supabase.auth.signOut();
-      return res.status(403).json({ error: 'Account is deactivated' });
+      return res.json({
+        message: 'Login successful',
+        suspended: true,
+        reason: profile.suspension_reason || null,
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          profile,
+        },
+        session: data.session,
+      });
     }
 
     res.json({

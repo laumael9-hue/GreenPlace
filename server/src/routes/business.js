@@ -2,10 +2,11 @@ const express = require('express');
 const multer = require('multer');
 const router = express.Router();
 const { authenticate, optionalAuth } = require('../middleware/auth');
-const { requireAdmin, requireBusiness } = require('../middleware/rbac');
+const { requireAdmin, requireBusiness, requireBusinessOwner } = require('../middleware/rbac');
 const {
   createBusiness,
   getMyBusiness,
+  getMyBusinessStats,
   updateBusiness,
   deleteBusiness,
   getBusinessHours,
@@ -95,27 +96,29 @@ router.patch('/admin/:id/reject', authenticate, requireAdmin, rejectBusiness);
 router.patch('/admin/:id/suspend', authenticate, requireAdmin, suspendBusiness);
 router.patch('/admin/:id/reactivate', authenticate, requireAdmin, reactivateBusiness);
 
-// Business owner routes
-router.post('/', authenticate, requireBusiness, createBusiness);
-router.get('/my', authenticate, requireBusiness, getMyBusiness);
-router.put('/:id', authenticate, requireBusiness, updateBusiness);
-router.delete('/:id', authenticate, requireBusiness, deleteBusiness);
+// Business owner routes — open to residents filing a pending/rejected application;
+// controllers enforce owner_id ownership
+router.post('/', authenticate, requireBusinessOwner, createBusiness);
+router.get('/my', authenticate, requireBusinessOwner, getMyBusiness);
+router.get('/my/stats', authenticate, requireBusiness, getMyBusinessStats);
+router.put('/:id', authenticate, requireBusinessOwner, updateBusiness);
+router.delete('/:id', authenticate, requireBusinessOwner, deleteBusiness);
 
 // Hours
 router.get('/:id/hours', authenticate, getBusinessHours);
-router.put('/:id/hours', authenticate, requireBusiness, updateBusinessHours);
+router.put('/:id/hours', authenticate, requireBusinessOwner, updateBusinessHours);
 
 // Materials
 router.get('/:id/materials', authenticate, getBusinessMaterials);
-router.put('/:id/materials', authenticate, requireBusiness, updateBusinessMaterials);
+router.put('/:id/materials', authenticate, requireBusinessOwner, updateBusinessMaterials);
 
 // Documents
 router.get('/:id/documents', authenticate, getBusinessDocuments);
-router.post('/:id/documents', authenticate, requireBusiness, uploadDoc.single('document'), handleMulterError, uploadDocument);
-router.delete('/:id/documents/:docId', authenticate, requireBusiness, deleteDocument);
+router.post('/:id/documents', authenticate, requireBusinessOwner, uploadDoc.single('document'), handleMulterError, uploadDocument);
+router.delete('/:id/documents/:docId', authenticate, requireBusinessOwner, deleteDocument);
 
 // Images
-router.post('/:id/logo', authenticate, requireBusiness, uploadImage.single('logo'), handleMulterError, uploadBusinessLogo);
-router.post('/:id/cover', authenticate, requireBusiness, uploadImage.single('cover'), handleMulterError, uploadBusinessCover);
+router.post('/:id/logo', authenticate, requireBusinessOwner, uploadImage.single('logo'), handleMulterError, uploadBusinessLogo);
+router.post('/:id/cover', authenticate, requireBusinessOwner, uploadImage.single('cover'), handleMulterError, uploadBusinessCover);
 
 module.exports = router;

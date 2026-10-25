@@ -72,7 +72,7 @@ const getListings = async (req, res) => {
     const {
       page = 1, limit = 20, search = '', category = '',
       minPrice, maxPrice, condition, sort = 'newest',
-      city = '', seller, business,
+      city = '', seller, business, featured,
     } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -121,6 +121,10 @@ const getListings = async (req, res) => {
 
     if (business) {
       query = query.eq('business_id', business);
+    }
+
+    if (featured === 'true') {
+      query = query.eq('is_featured', true);
     }
 
     let orderConfig;
@@ -173,6 +177,209 @@ const getListings = async (req, res) => {
   } catch (err) {
     console.error('Get listings error:', err);
     res.status(500).json({ error: 'Failed to fetch listings' });
+  }
+};
+
+// ============================================================
+// LISTINGS - RECOMMENDED (smart fallback mix)
+// ============================================================
+
+const LISTING_CARD_SELECT = `
+  id, title, slug, description, price, original_price, unit,
+  quantity_available, condition, material_type, status,
+  is_featured, view_count, sold_count, city,
+  rating_avg, rating_count,
+  created_at, published_at,
+  category:categories(id, name, slug, icon),
+  seller:profiles(id, first_name, last_name, avatar_url),
+  business:businesses(id, name, slug, logo_url),
+  listing_images(id, image_url, alt_text, is_primary, sort_order)
+`;
+
+const enrichListings = (listings) =>
+  (listings || []).map(l => ({
+    ...l,
+    primary_image: (l.listing_images || []).find(img => img.is_primary)?.image_url
+      || (l.listing_images || [])[0]?.image_url
+      || null,
+    image_count: (l.listing_images || []).length,
+  }));
+
+const getRecommendedListings = async (req, res) => {
+  try {
+    const { limit = 8 } = req.query;
+    const limitNum = Math.min(Math.max(parseInt(limit) || 8, 1), 24);
+    const userId = req.user?.id || null;
+
+    // Material values are interpolated into PostgREST .or() filters —
+    // strip characters that would break the filter grammar.
+    const sanitize = (v) => String(v).replace(/[,()%"]/g, ' ').trim();
+    const materialFilter = (values) =>
+      values
+        .map(sanitize)
+        .filter((v) => v.length >= 2)
+        .map((m) => `material_type.ilike.%${m}%`)
+        .join(',');
+
+    let personalized = [];
+    const purchasedIds = new Set();
+
+    // Build affinity from past orders + drop-off materials
+    if (userId) {
+      try {
+        const { data: orders } = await supabaseAdmin
+          .from('orders')
+          .select('id')
+          .eq('buyer_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        const orderIds = (orders || []).map(o => o.id);
+        if (orderIds.length > 0) {
+          const { data: items } = await supabaseAdmin
+            .from('order_items')
+            .select('listing_id')
+            .in('order_id', orderIds);
+
+          const listingIds = [...new Set((items || []).map(i => i.listing_id).filter(Boolean))];
+          listingIds.forEach(id => purchasedIds.add(id));
+
+          if (listingIds.length > 0) {
+            const { data: bought } = await supabaseAdmin
+              .from('listings')
+              .select('category_id, material_type')
+              .in('id', listingIds);
+
+            const categoryIds = [...new Set((bought || []).map(l => l.category_id).filter(Boolean))];
+            const materials = [
+              ...new Set((bought || []).map(l => l.material_type).filter(Boolean)),
+            ].slice(0, 10);
+
+            if (categoryIds.length > 0) {
+              const { data: byCategory } = await supabaseAdmin
+                .from('listings')
+                .select(LISTING_CARD_SELECT)
+                .eq('status', 'active')
+                .in('category_id', categoryIds)
+                .order('rating_avg', { ascending: false })
+                .range(0, limitNum * 3 - 1);
+              personalized = personalized.concat(byCategory || []);
+            }
+
+            if (materials.length > 0) {
+              const filter = materialFilter(materials);
+              if (filter) {
+                const { data: byMaterial } = await supabaseAdmin
+                  .from('listings')
+                  .select(LISTING_CARD_SELECT)
+                  .eq('status', 'active')
+                  .or(filter)
+                  .order('rating_avg', { ascending: false })
+                  .range(0, limitNum * 2 - 1);
+                personalized = personalized.concat(byMaterial || []);
+              }
+            }
+          }
+        }
+
+        // Drop-off material affinity
+        const { data: dropOffs } = await supabaseAdmin
+          .from('drop_offs')
+          .select('drop_off_items(material_name)')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        const dropOffMaterials = [
+          ...new Set(
+            (dropOffs || [])
+              .flatMap(d => d.drop_off_items || [])
+              .map(i => i.material_name)
+              .filter(Boolean)
+          ),
+        ].slice(0, 8);
+
+        if (dropOffMaterials.length > 0) {
+          const filter = materialFilter(dropOffMaterials);
+          if (filter) {
+            const { data: byDropOff } = await supabaseAdmin
+              .from('listings')
+              .select(LISTING_CARD_SELECT)
+              .eq('status', 'active')
+              .or(filter)
+              .order('rating_avg', { ascending: false })
+              .range(0, limitNum * 2 - 1);
+            personalized = personalized.concat(byDropOff || []);
+          }
+        }
+      } catch (affinityErr) {
+        console.error('Recommendation affinity error (falling back):', affinityErr.message);
+        personalized = [];
+      }
+    }
+
+    // Dedupe personalized, drop purchased items
+    const seen = new Set();
+    personalized = personalized.filter(l => {
+      if (purchasedIds.has(l.id) || seen.has(l.id)) return false;
+      seen.add(l.id);
+      return true;
+    });
+
+    const recommendations = personalized.slice(0, limitNum);
+    const isPersonalized = recommendations.length > 0;
+
+    // Fallback fill: top rated then newest
+    if (recommendations.length < limitNum) {
+      const excluded = [...seen];
+      let fillQuery = supabaseAdmin
+        .from('listings')
+        .select(LISTING_CARD_SELECT)
+        .eq('status', 'active');
+      if (excluded.length > 0) {
+        fillQuery = fillQuery.not('id', 'in', `(${excluded.join(',')})`);
+      }
+
+      const { data: topRated } = await fillQuery
+        .order('rating_avg', { ascending: false })
+        .range(0, limitNum * 2 - 1);
+
+      const fillSeen = new Set(excluded);
+      (topRated || []).forEach(l => {
+        if (recommendations.length < limitNum && !fillSeen.has(l.id)) {
+          recommendations.push(l);
+          fillSeen.add(l.id);
+        }
+      });
+
+      if (recommendations.length < limitNum) {
+        let newQuery = supabaseAdmin
+          .from('listings')
+          .select(LISTING_CARD_SELECT)
+          .eq('status', 'active');
+        if (fillSeen.size > 0) {
+          newQuery = newQuery.not('id', 'in', `(${[...fillSeen].join(',')})`);
+        }
+
+        const { data: newest } = await newQuery
+          .order('created_at', { ascending: false })
+          .range(0, limitNum - 1);
+
+        (newest || []).forEach(l => {
+          if (recommendations.length < limitNum) {
+            recommendations.push(l);
+          }
+        });
+      }
+    }
+
+    res.json({
+      listings: enrichListings(recommendations),
+      personalized: isPersonalized,
+    });
+  } catch (err) {
+    console.error('Get recommended listings error:', err);
+    res.status(500).json({ error: 'Failed to fetch recommendations' });
   }
 };
 
@@ -236,6 +443,13 @@ const getListingById = async (req, res) => {
       .single();
 
     if (error || !listing) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    // Only live listings are public; sellers and admins may preview their own drafts.
+    const viewer = req.user;
+    const canSeeUnpublished = viewer && (viewer.profile?.role === 'admin' || viewer.id === listing.seller_id);
+    if (listing.status !== 'active' && !canSeeUnpublished) {
       return res.status(404).json({ error: 'Listing not found' });
     }
 
@@ -954,7 +1168,7 @@ const getAdminListings = async (req, res) => {
     let query = supabaseAdmin
       .from('listings')
       .select(`
-        id, title, slug, price, unit, status, city, created_at,
+        id, title, slug, price, unit, status, city, is_featured, created_at,
         category:categories(id, name),
         seller:profiles(id, first_name, last_name),
         business:businesses(id, name),
@@ -1089,10 +1303,56 @@ const updateAdminListingStatus = async (req, res) => {
   }
 };
 
+const updateAdminListingFeature = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { featured } = req.body;
+
+    if (typeof featured !== 'boolean') {
+      return res.status(400).json({ error: 'featured must be a boolean' });
+    }
+
+    const { data: existing } = await supabaseAdmin
+      .from('listings')
+      .select('id, title, is_featured, status')
+      .eq('id', id)
+      .single();
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    const { data: updated, error } = await supabaseAdmin
+      .from('listings')
+      .update({ is_featured: featured })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    await logListingAudit(req.user.id, featured ? 'feature_listing' : 'unfeature_listing', id, {
+      title: existing.title,
+      previous_value: existing.is_featured,
+    });
+
+    res.json({
+      message: featured ? 'Listing featured successfully' : 'Listing removed from featured',
+      listing: updated,
+    });
+  } catch (err) {
+    console.error('Update listing feature error:', err);
+    res.status(500).json({ error: 'Failed to update featured status' });
+  }
+};
+
 module.exports = {
   getCategories,
   getCategoryBySlug,
   getListings,
+  getRecommendedListings,
   getListingBySlug,
   getListingById,
   createListing,
@@ -1102,6 +1362,7 @@ module.exports = {
   getMyListings,
   getAdminListings,
   updateAdminListingStatus,
+  updateAdminListingFeature,
   uploadListingImage,
   deleteListingImage,
   getCart,

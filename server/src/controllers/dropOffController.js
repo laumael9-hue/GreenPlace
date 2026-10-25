@@ -53,12 +53,12 @@ const createDropOff = async (req, res) => {
     const processedItems = items.map(item => {
       const rawName = item.materialName || item.material_name;
       if (!rawName || !rawName.trim()) {
-        throw new Error('Material name is required');
+        throw Object.assign(new Error('Material name is required'), { status: 400 });
       }
       const materialName = rawName.trim();
       const weight = parseFloat(item.quantity);
       if (isNaN(weight) || weight <= 0) {
-        throw new Error(`Invalid weight for ${materialName}`);
+        throw Object.assign(new Error(`Invalid weight for ${materialName}`), { status: 400 });
       }
       const pricePerKg = priceMap[materialName.toLowerCase()] || 0;
       const estimatedValue = Math.round(weight * pricePerKg * 100) / 100;
@@ -192,8 +192,10 @@ const createDropOff = async (req, res) => {
     });
   } catch (err) {
     console.error('Create drop-off error:', err);
-    const message = err.message || 'Failed to create drop-off';
-    res.status(500).json({ error: message });
+    if (err.status === 400) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: 'Failed to create drop-off' });
   }
 };
 
@@ -346,12 +348,14 @@ const getDropOffById = async (req, res) => {
       return res.status(404).json({ error: 'Drop-off not found' });
     }
 
-    // Check access: resident owns it, business owner, or admin
-    if (userRole === 'resident' && dropOff.user_id !== userId) {
-      return res.status(403).json({ error: 'Not authorized to view this drop-off' });
-    }
+    // Check access: they are the resident on the drop-off, own the
+    // receiving business, or are admin. Business accounts keep resident
+    // history (layered model), so user_id access is checked for all roles.
+    const isAdmin = userRole === 'admin';
+    const isResidentOnDropOff = dropOff.user_id === userId;
 
-    if (userRole === 'business') {
+    let ownsReceivingBusiness = false;
+    if (userRole === 'business' || isAdmin) {
       const { data: myBusiness } = await supabaseAdmin
         .from('businesses')
         .select('id')
@@ -361,9 +365,11 @@ const getDropOffById = async (req, res) => {
         .limit(1)
         .maybeSingle();
 
-      if (myBusiness && myBusiness.id !== dropOff.business_id) {
-        return res.status(403).json({ error: 'Not authorized to view this drop-off' });
-      }
+      ownsReceivingBusiness = !!(myBusiness && myBusiness.id === dropOff.business_id);
+    }
+
+    if (!isResidentOnDropOff && !ownsReceivingBusiness && !isAdmin) {
+      return res.status(403).json({ error: 'Not authorized to view this drop-off' });
     }
 
     res.json({
@@ -517,11 +523,14 @@ const cancelDropOff = async (req, res) => {
       return res.status(404).json({ error: 'Drop-off not found' });
     }
 
-    if (userRole === 'resident') {
-      if (existing.user_id !== userId) {
-        return res.status(403).json({ error: 'Not authorized' });
-      }
-    } else if (userRole === 'business') {
+    // Check access: they are the resident on the drop-off, own the
+    // receiving business, or are admin. Business accounts keep resident
+    // capabilities (layered model), so user_id access is checked for all roles.
+    const isAdmin = userRole === 'admin';
+    const isResidentOnDropOff = existing.user_id === userId;
+
+    let ownsReceivingBusiness = false;
+    if (userRole === 'business' || isAdmin) {
       const { data: myBusiness } = await supabaseAdmin
         .from('businesses')
         .select('id')
@@ -531,9 +540,11 @@ const cancelDropOff = async (req, res) => {
         .limit(1)
         .maybeSingle();
 
-      if (!myBusiness || existing.business_id !== myBusiness.id) {
-        return res.status(403).json({ error: 'Not authorized' });
-      }
+      ownsReceivingBusiness = !!(myBusiness && existing.business_id === myBusiness.id);
+    }
+
+    if (!isResidentOnDropOff && !ownsReceivingBusiness && !isAdmin) {
+      return res.status(403).json({ error: 'Not authorized' });
     }
 
     if (existing.status === 'processed' || existing.status === 'cancelled') {
@@ -550,7 +561,7 @@ const cancelDropOff = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    if (existing.user_id && userRole !== 'resident') {
+    if (existing.user_id && existing.user_id !== userId) {
       await createNotification({
         userId: existing.user_id,
         type: 'drop_off',
@@ -560,7 +571,7 @@ const cancelDropOff = async (req, res) => {
       });
     }
 
-    if (userRole === 'resident') {
+    if (isResidentOnDropOff && !ownsReceivingBusiness) {
       const { data: dropOffBusiness } = await supabaseAdmin
         .from('businesses')
         .select('owner_id')
