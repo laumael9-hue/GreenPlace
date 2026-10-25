@@ -36,3 +36,8 @@ coverage/
 *.pem
 .vercel
 .netlify
+# Supabase CLI local state
+supabase/.temp/
+
+# Stray local files
+server/adm.png

@@ -1,6 +1,7 @@
 const { supabaseAdmin } = require('../config/supabase');
 const paymongoService = require('../services/paymongo');
 const { createNotification, getOrderImage, notifyBusinessNewOrder } = require('../services/notifications');
+const { reserveListingStock, releaseListingStock } = require('../services/stock');
 const crypto = require('crypto');
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -28,21 +29,8 @@ const finalizePaidOrder = async (orderId) => {
 
   if (orderItems) {
     for (const item of orderItems) {
-      const { data: listing } = await supabaseAdmin
-        .from('listings')
-        .select('quantity_available, sold_count')
-        .eq('id', item.listing_id)
-        .single();
-
-      if (listing) {
-        await supabaseAdmin
-          .from('listings')
-          .update({
-            quantity_available: Math.max(0, listing.quantity_available - item.quantity),
-            sold_count: (listing.sold_count || 0) + item.quantity,
-          })
-          .eq('id', item.listing_id);
-      }
+      // Money is already received, so never refuse: take the stock and clamp at zero.
+      await reserveListingStock(item.listing_id, item.quantity, { force: true });
     }
 
     await supabaseAdmin
@@ -128,12 +116,6 @@ const createCheckout = async (req, res) => {
     if (attached.next_action?.redirect?.url) {
       checkoutUrl = attached.next_action.redirect.url;
     }
-
-    console.log('PayMongo checkout created:', {
-      intentId: intent.id,
-      methodId: method.id,
-      checkoutUrl,
-    });
 
     res.status(201).json({
       payment_id: intent.id,
@@ -221,8 +203,6 @@ const handleWebhook = async (req, res) => {
         .from('orders')
         .update({ payment_status: 'failed' })
         .eq('id', payment.order_id);
-
-      console.log(`Order ${payment.order_id} payment ${eventType}`);
 
       const { data: failedOrder } = await supabaseAdmin
         .from('orders')
@@ -740,21 +720,7 @@ const processRefund = async (req, res) => {
 
       if (orderItems) {
         for (const item of orderItems) {
-          const { data: listing } = await supabaseAdmin
-            .from('listings')
-            .select('quantity_available, sold_count')
-            .eq('id', item.listing_id)
-            .single();
-
-          if (listing) {
-            await supabaseAdmin
-              .from('listings')
-              .update({
-                quantity_available: listing.quantity_available + item.quantity,
-                sold_count: Math.max(0, (listing.sold_count || 0) - item.quantity),
-              })
-              .eq('id', item.listing_id);
-          }
+          await releaseListingStock(item.listing_id, item.quantity);
         }
       }
 
@@ -979,21 +945,7 @@ const requestWalkInRefund = async (req, res) => {
 
     if (orderItems) {
       for (const item of orderItems) {
-        const { data: listing } = await supabaseAdmin
-          .from('listings')
-          .select('quantity_available, sold_count')
-          .eq('id', item.listing_id)
-          .single();
-
-        if (listing) {
-          await supabaseAdmin
-            .from('listings')
-            .update({
-              quantity_available: listing.quantity_available + item.quantity,
-              sold_count: Math.max(0, (listing.sold_count || 0) - item.quantity),
-            })
-            .eq('id', item.listing_id);
-        }
+        await releaseListingStock(item.listing_id, item.quantity);
       }
     }
 

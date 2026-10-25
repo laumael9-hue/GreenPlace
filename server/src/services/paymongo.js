@@ -36,8 +36,6 @@ const createPaymentIntent = async ({ amount, description, metadata = {} }) => {
   });
 
   const intent = response.data.data;
-  console.log('PayMongo intent created:', intent.id, 'status:', intent.attributes?.status);
-
   return {
     id: intent.id,
     client_key: intent.attributes?.client_key,
@@ -51,8 +49,6 @@ const createPaymentMethod = async (type) => {
   });
 
   const method = response.data.data;
-  console.log('PayMongo method created:', method.id, 'type:', method.attributes?.type);
-
   return {
     id: method.id,
     type: method.attributes?.type,
@@ -70,8 +66,6 @@ const attachPaymentMethod = async (paymentIntentId, paymentMethodId, returnUrl) 
   });
 
   const intent = response.data.data;
-  console.log('PayMongo attached:', intent.id, 'status:', intent.attributes?.status);
-
   return {
     id: intent.id,
     status: intent.attributes?.status,
@@ -123,8 +117,6 @@ const refundPayment = async (intentId, amountInCentavos, reason) => {
   });
 
   const refund = response.data.data;
-  console.log('PayMongo refund created:', refund.id, 'status:', refund.attributes?.status);
-
   return {
     id: refund.id,
     amount: refund.attributes?.amount,

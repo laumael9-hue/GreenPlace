@@ -42,7 +42,7 @@ export default function PaymentSuccess() {
     };
 
     fetchStatus();
-  }, [orderId]);
+  }, [orderId, navigate]);
 
   if (loading) {
     return (

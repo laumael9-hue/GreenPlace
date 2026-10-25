@@ -109,17 +109,27 @@ Integrations:
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and fill in your values:
+Copy the example files and fill in your values:
 
 ```bash
-cp .env.example .env
+cp server/.env.example server/.env
+cp client/.env.example client/.env
 ```
+
+| Variable | Where | Notes |
+|---|---|---|
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | server | Service role key is server-only; never expose it to the client |
+| `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET` | server | Use `sk_test_` keys only |
+| `PAYMONGO_TEST_MODE` | server | Keep `true` |
+| `CLIENT_URL` | server | Allowed CORS origin and redirect base; **required** when `NODE_ENV=production` |
+| `NODE_ENV` | server | Set to `production` when deployed |
+| `VITE_API_URL` | client | API base URL including `/api`; set at build time |
 
 ### Database Setup
 
 1. Create a Supabase project
-2. Run the SQL migrations in `database/migrations/`
-3. Configure Row Level Security policies
+2. Run the SQL migrations in `database/migrations/` in numeric order (001-027). They enable Row Level Security on all tables and create the storage buckets and policies.
+3. The `business-documents` bucket is private; documents are served through short-lived signed URLs.
 
 ### Frontend
 
@@ -169,8 +179,8 @@ Uses OpenStreetMap with Leaflet - no API key required.
 ## Testing
 
 ```bash
-# Frontend
-cd client && npm run test
+# Frontend (no test runner; use lint and build)
+cd client && npm run lint && npm run build
 
 # Backend
 cd server && npm run test
@@ -200,6 +210,8 @@ cd server && npm run test
 - Environment variable protection
 - CORS configuration
 - Helmet.js security headers
+- Rate limiting on `/api/auth`
+- Private storage bucket with signed URLs for verification documents
 
 ## Free-Tier Limitations
 

@@ -4,6 +4,23 @@ const crypto = require('crypto');
 
 const BUCKET_DOCS = 'business-documents';
 const BUCKET_IMAGES = 'profile-images';
+const DOC_URL_TTL_SECONDS = 60 * 60;
+
+// The business-documents bucket is private; stored file_url values are
+// public-style URLs, so swap them for short-lived signed URLs on read.
+const signDocumentUrls = async (documents) => {
+  if (!documents || documents.length === 0) return documents || [];
+  return Promise.all(documents.map(async (doc) => {
+    const marker = `/${BUCKET_DOCS}/`;
+    const idx = doc.file_url ? doc.file_url.indexOf(marker) : -1;
+    if (idx === -1) return doc;
+    const filePath = decodeURIComponent(doc.file_url.slice(idx + marker.length).split('?')[0]);
+    const { data } = await supabaseAdmin.storage
+      .from(BUCKET_DOCS)
+      .createSignedUrl(filePath, DOC_URL_TTL_SECONDS);
+    return data?.signedUrl ? { ...doc, file_url: data.signedUrl } : doc;
+  }));
+};
 
 // ============================================================
 // UTILITY: Haversine Distance Calculation
@@ -115,7 +132,7 @@ const createBusiness = async (req, res) => {
 
     const { data: existing, error: existingError } = await supabaseAdmin
       .from('businesses')
-      .select('id')
+      .select('id, status')
       .eq('owner_id', userId)
       .is('deleted_at', null)
       .maybeSingle();
@@ -125,38 +142,74 @@ const createBusiness = async (req, res) => {
       return res.status(500).json({ error: 'Failed to verify business eligibility' });
     }
 
-    if (existing) {
+    if (existing && existing.status === 'pending') {
+      return res.status(400).json({ error: 'Your business application is already awaiting admin approval' });
+    }
+
+    if (existing && existing.status !== 'rejected') {
       return res.status(400).json({ error: 'You already have a registered business' });
     }
 
-    const slug = generateSlug(name);
+    const isResubmission = !!existing;
 
-    const { data: business, error: bizError } = await supabaseAdmin
-      .from('businesses')
-      .insert({
-        owner_id: userId,
-        name: name.trim(),
-        slug,
-        description: description?.trim() || null,
-        category: category.trim(),
-        address: address.trim(),
-        city: (city || 'Cebu City').trim(),
-        province: (province || 'Cebu').trim(),
-        latitude,
-        longitude,
-        phone: phone?.trim() || null,
-        email: email?.trim() || null,
-        website: website?.trim() || null,
-        accepts_drop_offs: !!acceptsDropOffs,
-        has_marketplace: !!hasMarketplace,
-        status: 'pending',
-      })
-      .select()
-      .single();
+    const fields = {
+      owner_id: userId,
+      name: name.trim(),
+      slug: generateSlug(name),
+      description: description?.trim() || null,
+      category: category.trim(),
+      address: address.trim(),
+      city: (city || 'Cebu City').trim(),
+      province: (province || 'Cebu').trim(),
+      latitude,
+      longitude,
+      phone: phone?.trim() || null,
+      email: email?.trim() || null,
+      website: website?.trim() || null,
+      accepts_drop_offs: !!acceptsDropOffs,
+      has_marketplace: !!hasMarketplace,
+      status: 'pending',
+    };
 
-    if (bizError) {
-      console.error('Create business error:', bizError);
-      return res.status(400).json({ error: bizError.message });
+    let business;
+
+    if (isResubmission) {
+      // Reapply path: reset the rejected application to pending with the new submission
+      const { data: updated, error: resetError } = await supabaseAdmin
+        .from('businesses')
+        .update({
+          ...fields,
+          rejection_reason: null,
+          is_verified: false,
+          approved_at: null,
+          approved_by: null,
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      if (resetError) {
+        console.error('Resubmit business error:', resetError);
+        return res.status(400).json({ error: resetError.message });
+      }
+
+      business = updated;
+
+      await supabaseAdmin.from('business_hours').delete().eq('business_id', business.id);
+      await supabaseAdmin.from('business_materials').delete().eq('business_id', business.id);
+    } else {
+      const { data: created, error: bizError } = await supabaseAdmin
+        .from('businesses')
+        .insert(fields)
+        .select()
+        .single();
+
+      if (bizError) {
+        console.error('Create business error:', bizError);
+        return res.status(400).json({ error: bizError.message });
+      }
+
+      business = created;
     }
 
     if (hours && Array.isArray(hours)) {
@@ -182,10 +235,17 @@ const createBusiness = async (req, res) => {
       await supabaseAdmin.from('business_materials').insert(matRows);
     }
 
-    await logAuditAction(userId, 'create_business', business.id, { name });
+    await logAuditAction(
+      userId,
+      isResubmission ? 'resubmit_business' : 'create_business',
+      business.id,
+      { name }
+    );
 
     res.status(201).json({
-      message: 'Business registered successfully. Awaiting admin approval.',
+      message: isResubmission
+        ? 'Application resubmitted. Awaiting admin approval.'
+        : 'Business registered successfully. Awaiting admin approval.',
       business,
     });
   } catch (err) {
@@ -234,12 +294,180 @@ const getMyBusiness = async (req, res) => {
         ...business,
         hours: hours || [],
         materials: materials || [],
-        documents: documents || [],
+        documents: await signDocumentUrls(documents),
       },
     });
   } catch (err) {
     console.error('Get my business error:', err);
     res.status(500).json({ error: 'Failed to fetch business' });
+  }
+};
+
+const getMyBusinessStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const requestedDays = parseInt(req.query.days, 10);
+    const days = [7, 30, 90, 365].includes(requestedDays) ? requestedDays : 30;
+
+    const { data: business, error: bizError } = await supabaseAdmin
+      .from('businesses')
+      .select('id, rating_avg, rating_count')
+      .eq('owner_id', userId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (bizError) {
+      return res.status(400).json({ error: bizError.message });
+    }
+    if (!business) {
+      return res.status(404).json({ error: 'No business found for this account' });
+    }
+
+    const businessId = business.id;
+    const sinceDate = new Date();
+    sinceDate.setUTCHours(0, 0, 0, 0);
+    sinceDate.setUTCDate(sinceDate.getUTCDate() - (days - 1));
+    const sinceIso = sinceDate.toISOString();
+
+    const [ordersRes, activeListingsRes, dropOffsRes, reviewsRes, orderItemsRes] =
+      await Promise.all([
+        supabaseAdmin
+          .from('orders')
+          .select('id, status, total, created_at')
+          .eq('business_id', businessId)
+          .gte('created_at', sinceIso)
+          .order('created_at', { ascending: true }),
+        supabaseAdmin
+          .from('listings')
+          .select('id', { count: 'exact', head: true })
+          .eq('business_id', businessId)
+          .eq('status', 'active'),
+        supabaseAdmin
+          .from('drop_offs')
+          .select('id, status, total_weight_kg, created_at')
+          .eq('business_id', businessId)
+          .gte('created_at', sinceIso),
+        supabaseAdmin
+          .from('reviews')
+          .select('rating')
+          .eq('business_id', businessId)
+          .eq('is_visible', true)
+          .is('listing_id', null),
+        supabaseAdmin
+          .from('order_items')
+          .select(
+            'listing_id, title, quantity, total, orders!inner(business_id, status, created_at)'
+          )
+          .eq('orders.business_id', businessId)
+          .eq('orders.status', 'completed')
+          .gte('orders.created_at', sinceIso),
+      ]);
+
+    if (ordersRes.error || dropOffsRes.error || reviewsRes.error || orderItemsRes.error) {
+      const firstError =
+        ordersRes.error || dropOffsRes.error || reviewsRes.error || orderItemsRes.error;
+      console.error('Get business stats supabase error:', firstError);
+      return res.status(400).json({ error: firstError.message });
+    }
+
+    const orders = ordersRes.data || [];
+    const dropOffs = dropOffsRes.data || [];
+    const reviews = reviewsRes.data || [];
+    const orderItems = orderItemsRes.data || [];
+
+    // Daily zero-filled buckets (UTC dates)
+    const buckets = new Map();
+    const dateKeys = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(sinceDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      dateKeys.push(key);
+      buckets.set(key, { date: key, revenue: 0, orders: 0, dropOffs: 0, dropOffWeightKg: 0 });
+    }
+
+    let revenue = 0;
+    let pendingCount = 0;
+    let completedCount = 0;
+    let cancelledCount = 0;
+
+    for (const order of orders) {
+      const key = String(order.created_at).slice(0, 10);
+      const bucket = buckets.get(key);
+      if (bucket) bucket.orders += 1;
+
+      if (order.status === 'completed') {
+        completedCount += 1;
+        revenue += Number(order.total) || 0;
+        if (bucket) bucket.revenue += Number(order.total) || 0;
+      } else if (order.status === 'pending') {
+        pendingCount += 1;
+      } else if (order.status === 'cancelled') {
+        cancelledCount += 1;
+      }
+    }
+
+    let dropOffCount = 0;
+    let dropOffWeightKg = 0;
+    for (const dropOff of dropOffs) {
+      if (dropOff.status === 'cancelled') continue;
+      dropOffCount += 1;
+      const weight = Number(dropOff.total_weight_kg) || 0;
+      dropOffWeightKg += weight;
+      const key = String(dropOff.created_at).slice(0, 10);
+      const bucket = buckets.get(key);
+      if (bucket) {
+        bucket.dropOffs += 1;
+        bucket.dropOffWeightKg += weight;
+      }
+    }
+
+    // Top products from completed order items
+    const productMap = new Map();
+    for (const item of orderItems) {
+      const key = item.listing_id || item.title;
+      const existing = productMap.get(key) || {
+        title: item.title,
+        quantity: 0,
+        revenue: 0,
+      };
+      existing.quantity += Number(item.quantity) || 0;
+      existing.revenue += Number(item.total) || 0;
+      productMap.set(key, existing);
+    }
+    const topProducts = [...productMap.values()]
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    const ratingBreakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const review of reviews) {
+      if (ratingBreakdown[review.rating] !== undefined) ratingBreakdown[review.rating] += 1;
+    }
+
+    res.json({
+      stats: {
+        summary: {
+          days,
+          revenue: Math.round(revenue * 100) / 100,
+          orderCount: orders.length,
+          completedCount,
+          pendingCount,
+          cancelledCount,
+          activeListings: activeListingsRes.count || 0,
+          dropOffCount,
+          dropOffWeightKg: Math.round(dropOffWeightKg * 100) / 100,
+          ratingAvg: Number(business.rating_avg) || 0,
+          ratingCount: business.rating_count || 0,
+        },
+        trend: dateKeys.map(key => buckets.get(key)),
+        topProducts,
+        ratingBreakdown,
+      },
+    });
+  } catch (err) {
+    console.error('Get business stats error:', err);
+    res.status(500).json({ error: 'Failed to fetch business stats' });
   }
 };
 
@@ -474,11 +702,21 @@ const updateBusinessMaterials = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
+    // Validate everything before touching existing rows (the replace below is delete-then-insert)
+    for (const m of materials) {
+      if (!m || typeof m.material_name !== 'string' || !m.material_name.trim()) {
+        return res.status(400).json({ error: 'Each material needs a name' });
+      }
+      if (m.price_per_kg != null && (!Number.isFinite(Number(m.price_per_kg)) || Number(m.price_per_kg) < 0)) {
+        return res.status(400).json({ error: 'Price per kg must be a non-negative number' });
+      }
+    }
+
     await supabaseAdmin.from('business_materials').delete().eq('business_id', id);
 
     const matRows = materials.map((m) => ({
       business_id: id,
-      material_name: m.material_name,
+      material_name: m.material_name.trim(),
       price_per_kg: m.price_per_kg ?? null,
       unit: m.unit || 'kg',
       description: m.description?.trim() || null,
@@ -490,7 +728,8 @@ const updateBusinessMaterials = async (req, res) => {
       .insert(matRows);
 
     if (insertError) {
-      return res.status(400).json({ error: insertError.message });
+      console.error('Update materials error:', insertError);
+      return res.status(400).json({ error: 'Failed to update materials' });
     }
 
     const { data: updatedMaterials } = await supabaseAdmin
@@ -615,7 +854,7 @@ const getBusinessDocuments = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    res.json({ documents: documents || [] });
+    res.json({ documents: await signDocumentUrls(documents) });
   } catch (err) {
     console.error('Get business documents error:', err);
     res.status(500).json({ error: 'Failed to fetch documents' });
@@ -920,7 +1159,7 @@ const getBusinessById = async (req, res) => {
         profiles: profile,
         hours: hours || [],
         materials: materials || [],
-        documents: documents || [],
+        documents: await signDocumentUrls(documents),
       },
     });
   } catch (err) {
@@ -965,14 +1204,56 @@ const approveBusiness = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    await logAuditAction(req.user.id, 'approve_business', id, { name: existing.name });
+    // Resident → business conversion: flip the owner's account role on approval
+    let ownerRoleChanged = false;
+    if (existing.owner_id) {
+      const { data: ownerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('id', existing.owner_id)
+        .single();
+
+      if (ownerProfile && ownerProfile.role === 'resident') {
+        const { error: roleError } = await supabaseAdmin
+          .from('profiles')
+          .update({ role: 'business' })
+          .eq('id', existing.owner_id);
+
+        if (roleError) {
+          console.error('Role flip error (approveBusiness):', roleError);
+        } else {
+          ownerRoleChanged = true;
+          // Keep auth metadata in sync so profile-recreation fallbacks don't revert the role
+          try {
+            const { data: ownerAuth } = await supabaseAdmin.auth.admin.getUserById(existing.owner_id);
+            if (ownerAuth?.user) {
+              await supabaseAdmin.auth.admin.updateUserById(existing.owner_id, {
+                user_metadata: {
+                  ...(ownerAuth.user.user_metadata || {}),
+                  role: 'business',
+                },
+              });
+            }
+          } catch (metaErr) {
+            console.error('Auth metadata sync error (approveBusiness, non-blocking):', metaErr);
+          }
+        }
+      }
+    }
+
+    await logAuditAction(req.user.id, 'approve_business', id, {
+      name: existing.name,
+      owner_role_changed: ownerRoleChanged,
+    });
 
     if (existing.owner_id) {
       await createNotification({
         userId: existing.owner_id,
         type: 'business',
         title: 'Business approved',
-        body: `"${existing.name}" has been approved. You can now publish listings and receive orders.`,
+        body: ownerRoleChanged
+          ? `"${existing.name}" has been approved and your account is now a Business account. You can now publish listings and receive orders.`
+          : `"${existing.name}" has been approved. You can now publish listings and receive orders.`,
         data: { link: '/dashboard/profile' },
       });
     }
@@ -1260,7 +1541,7 @@ const getAllDocuments = async (req, res) => {
       );
     }
 
-    const enriched = (documents || []).map(d => ({
+    const enriched = (await signDocumentUrls(documents)).map(d => ({
       ...d,
       business: businessMap[d.business_id] || null,
     }));
@@ -1685,6 +1966,7 @@ const getRecommendations = async (req, res) => {
 module.exports = {
   createBusiness,
   getMyBusiness,
+  getMyBusinessStats,
   updateBusiness,
   deleteBusiness,
   getBusinessHours,

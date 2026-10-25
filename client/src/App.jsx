@@ -1,59 +1,66 @@
-import { Routes, Route } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Routes, Route, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Profile from './pages/Profile';
-import FindEstablishments from './pages/FindEstablishments';
-import BusinessDetail from './pages/BusinessDetail';
-import Marketplace from './pages/Marketplace';
-import ProductDetail from './pages/ProductDetail';
-import Cart from './pages/Cart';
-import ResidentDashboard from './pages/dashboard/ResidentDashboard';
-import BusinessDashboard from './pages/dashboard/BusinessDashboard';
-import AdminDashboard from './pages/dashboard/AdminDashboard';
-import UserManagement from './pages/admin/UserManagement';
-import BusinessManagement from './pages/admin/BusinessManagement';
-import BusinessRegistration from './pages/business/BusinessRegistration';
-import BusinessProfileManagement from './pages/business/BusinessProfileManagement';
-import ListingManagement from './pages/dashboard/ListingManagement';
-import Forum from './pages/Forum';
-import ForumThread from './pages/ForumThread';
-import ForumBookmarks from './pages/ForumBookmarks';
-import ForumModeration from './pages/admin/ForumModeration';
-import ListingModeration from './pages/admin/ListingModeration';
-import Approvals from './pages/admin/Approvals';
-import Documents from './pages/admin/Documents';
-import Reports from './pages/admin/Reports';
-import AdminSettings from './pages/admin/Settings';
-import Checkout from './pages/Checkout';
-import OrderConfirmation from './pages/OrderConfirmation';
-import PaymentSuccess from './pages/PaymentSuccess';
-import PaymentFailed from './pages/PaymentFailed';
-import OrderHistory from './pages/OrderHistory';
-import OrderDetail from './pages/OrderDetail';
-import Receipt from './pages/Receipt';
-import DropOffReceipt from './pages/DropOffReceipt';
-import BusinessOrders from './pages/dashboard/BusinessOrders';
-import DropOffTracker from './pages/dashboard/DropOffTracker';
-import DropOffHistory from './pages/dashboard/DropOffHistory';
-import ReviewManagement from './pages/dashboard/ReviewManagement';
-import Messages from './pages/Messages';
-import Notifications from './pages/Notifications';
 import Landing from './pages/Landing';
-import { Leaf } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import CartDrawer from './components/cart/CartDrawer';
+
+const Register = lazy(() => import('./pages/Register'));
+const Suspended = lazy(() => import('./pages/Suspended'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Profile = lazy(() => import('./pages/Profile'));
+const FindEstablishments = lazy(() => import('./pages/FindEstablishments'));
+const BusinessDetail = lazy(() => import('./pages/BusinessDetail'));
+const Marketplace = lazy(() => import('./pages/Marketplace'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Cart = lazy(() => import('./pages/Cart'));
+const ResidentDashboard = lazy(() => import('./pages/dashboard/ResidentDashboard'));
+const BusinessDashboard = lazy(() => import('./pages/dashboard/BusinessDashboard'));
+const AdminDashboard = lazy(() => import('./pages/dashboard/AdminDashboard'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const BusinessManagement = lazy(() => import('./pages/admin/BusinessManagement'));
+const BusinessRegistration = lazy(() => import('./pages/business/BusinessRegistration'));
+const BusinessProfileManagement = lazy(() => import('./pages/business/BusinessProfileManagement'));
+const ListingManagement = lazy(() => import('./pages/dashboard/ListingManagement'));
+const Forum = lazy(() => import('./pages/Forum'));
+const ForumThread = lazy(() => import('./pages/ForumThread'));
+const ForumBookmarks = lazy(() => import('./pages/ForumBookmarks'));
+const ForumModeration = lazy(() => import('./pages/admin/ForumModeration'));
+const ListingModeration = lazy(() => import('./pages/admin/ListingModeration'));
+const Approvals = lazy(() => import('./pages/admin/Approvals'));
+const Documents = lazy(() => import('./pages/admin/Documents'));
+const Reports = lazy(() => import('./pages/admin/Reports'));
+const AdminSettings = lazy(() => import('./pages/admin/Settings'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const OrderConfirmation = lazy(() => import('./pages/OrderConfirmation'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
+const PaymentFailed = lazy(() => import('./pages/PaymentFailed'));
+const OrderHistory = lazy(() => import('./pages/OrderHistory'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const Receipt = lazy(() => import('./pages/Receipt'));
+const DropOffReceipt = lazy(() => import('./pages/DropOffReceipt'));
+const BusinessOrders = lazy(() => import('./pages/dashboard/BusinessOrders'));
+const DropOffTracker = lazy(() => import('./pages/dashboard/DropOffTracker'));
+const DropOffHistory = lazy(() => import('./pages/dashboard/DropOffHistory'));
+const ReviewManagement = lazy(() => import('./pages/dashboard/ReviewManagement'));
+const BusinessAnalytics = lazy(() => import('./pages/dashboard/BusinessAnalytics'));
+const Messages = lazy(() => import('./pages/Messages'));
+const Notifications = lazy(() => import('./pages/Notifications'));
 
 function App() {
   return (
-    <Routes>
+    <>
+      <CartDrawer />
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-gray-500">Loading…</div>}>
+      <Routes>
       {/* Auth pages — no layout */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/suspended" element={<Suspended />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -80,11 +87,11 @@ function App() {
         <Route path="/dashboard/reviews" element={<ReviewManagement />} />
         <Route path="/dashboard/messages" element={<Messages />} />
         <Route path="/dashboard/messages/:conversationId" element={<Messages />} />
-        <Route path="/dashboard/analytics" element={<Placeholder title="Analytics" desc="View business performance metrics." />} />
+        <Route path="/dashboard/analytics" element={<BusinessAnalytics />} />
       </Route>
 
-      {/* Resident pages — sidebar layout */}
-      <Route element={<ProtectedRoute roles={['resident']}><DashboardLayout /></ProtectedRoute>}>
+      {/* Resident pages — sidebar layout (business accounts keep resident powers) */}
+      <Route element={<ProtectedRoute roles={['resident', 'business']}><DashboardLayout /></ProtectedRoute>}>
         <Route path="/orders" element={<OrderHistory />} />
         <Route path="/drop-offs" element={<DropOffHistory />} />
       </Route>
@@ -113,7 +120,7 @@ function App() {
 
       {/* MainLayout — navbar (catch-all at end) */}
       <Route element={<MainLayout />}>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<AuthRedirect />} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/orders/:id/success" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
@@ -122,6 +129,8 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+      </Suspense>
+    </>
   );
 }
 
@@ -134,23 +143,26 @@ function SmartLayout() {
 }
 
 function RoleDashboard() {
-  const { role } = useAuth();
+  const { role, fetchProfile } = useAuth();
+
+  // Refetch profile so a conversion (resident → business) applies without re-login
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
   if (role === 'business') return <BusinessDashboard />;
   return <ResidentDashboard />;
 }
 
-function Placeholder({ title, desc }) {
-  return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="text-center max-w-md mx-auto px-4">
-        <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 mx-auto mb-4">
-          <Leaf className="w-8 h-8" />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <p className="mt-2 text-gray-500">{desc}</p>
-      </div>
-    </div>
-  );
+function AuthRedirect() {
+  const { isAuthenticated, role, loading } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (loading || !isAuthenticated) return;
+    navigate(role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+  }, [isAuthenticated, role, loading, navigate]);
+  if (loading || isAuthenticated) return null;
+  return <Landing />;
 }
 
 function NotFound() {
