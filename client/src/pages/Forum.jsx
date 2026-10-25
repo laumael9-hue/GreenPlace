@@ -92,7 +92,7 @@ function PostCard({ thread, onReact, onReport }) {
                     e.stopPropagation();
                     onReport(thread.id);
                   }}
-                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                  className="flex items-center gap-1 py-1.5 text-xs text-gray-400 hover:text-orange-500 transition-colors"
                 >
                   <Flag className="w-3.5 h-3.5" />
                   Report

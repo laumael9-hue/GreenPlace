@@ -30,7 +30,7 @@ const statusTimeline = ['pending', 'confirmed', 'processing', 'ready_for_pickup'
 export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, profile } = useAuth();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -55,6 +55,11 @@ export default function OrderDetail() {
   const [reviewChecked, setReviewChecked] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Layered accounts: a business user can also be the buyer of an order.
+  // Buyer view applies when this user placed the order; seller view otherwise.
+  const isBuyer = !!order?.buyer_id && order.buyer_id === profile?.id;
+  const isSeller = role === 'business' && !isBuyer;
+
   useEffect(() => {
     const fetchOrder = async () => {
       try {
@@ -73,7 +78,7 @@ export default function OrderDetail() {
   useEffect(() => {
     const checkReview = async () => {
       setReviewChecked(false);
-      if (!order || order.status !== 'completed' || !order.buyer_id || role === 'business') {
+      if (!order || order.status !== 'completed' || !order.buyer_id || !isBuyer) {
         setReviewChecked(true);
         return;
       }
@@ -88,7 +93,7 @@ export default function OrderDetail() {
       }
     };
     checkReview();
-  }, [order, role]);
+  }, [order, isBuyer]);
 
   const openListingReview = (item) => {
     const listingId = item.listing_id || item.listing?.id;
@@ -222,7 +227,7 @@ export default function OrderDetail() {
     setMessaging(true);
     setError('');
     try {
-      const body = role === 'business'
+      const body = isSeller
         ? { recipientId: order.buyer.id }
         : { businessId: order.business.id };
       const { data } = await api.post('/messages/conversations', body);
@@ -246,13 +251,13 @@ export default function OrderDetail() {
   };
 
   const canCancel = order && ['pending', 'confirmed', 'processing', 'ready_for_pickup'].includes(order.status);
-  const canUpdateStatus = role === 'business' && order && getNextStatus(order.status);
-  const canRequestRefund = role === 'resident' && order && order.buyer_id && order.status === 'completed' && order.payment_status === 'paid' && order.refund_status !== 'requested' && order.refund_status !== 'refunded';
-  const canRefundBusiness = role === 'business' && order && order.status === 'completed' && order.refund_status !== 'refunded';
-  const reviewEnabled = role !== 'business' && order && order.status === 'completed' && !!order.buyer_id && !!order.business;
+  const canUpdateStatus = isSeller && order && getNextStatus(order.status);
+  const canRequestRefund = isBuyer && order && order.buyer_id && order.status === 'completed' && order.payment_status === 'paid' && order.refund_status !== 'requested' && order.refund_status !== 'refunded';
+  const canRefundBusiness = isSeller && order && order.status === 'completed' && order.refund_status !== 'refunded';
+  const reviewEnabled = isBuyer && order && order.status === 'completed' && !!order.buyer_id && !!order.business;
   const canLeaveReview = reviewEnabled && reviewChecked && !myReview;
   const hasReviewed = reviewEnabled && reviewChecked && !!myReview;
-  const perItemReviewEnabled = role !== 'business' && order && order.status === 'completed' && !!order.buyer_id;
+  const perItemReviewEnabled = isBuyer && order && order.status === 'completed' && !!order.buyer_id;
   const refundRequested = order && order.refund_status === 'requested';
   const isRefunded = order && order.refund_status === 'refunded';
   const currentStepIndex = statusTimeline.indexOf(order?.status);
@@ -290,7 +295,7 @@ export default function OrderDetail() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link to={role === 'business' ? '/dashboard/orders' : '/orders'} className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium mb-4">
+          <Link to={isSeller ? '/dashboard/orders' : '/orders'} className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium mb-4">
             <ArrowLeft className="w-4 h-4" />
             Back to Orders
           </Link>
@@ -482,7 +487,7 @@ export default function OrderDetail() {
             </Card>
 
             {/* Customer Info */}
-            {role === 'business' && order.buyer && (
+            {isSeller && order.buyer && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -538,7 +543,7 @@ export default function OrderDetail() {
                       {order.business.phone}
                     </p>
                   )}
-                  {role === 'resident' && (
+                  {isBuyer && (
                     <Button
                       variant="outline"
                       className="w-full"
@@ -568,7 +573,7 @@ export default function OrderDetail() {
             )}
 
             {/* Actions */}
-            {(canUpdateStatus || canCancel || canRequestRefund || canRefundBusiness || refundRequested || isRefunded || (role === 'business' && refundRequested) || canLeaveReview || hasReviewed) && (
+            {(canUpdateStatus || canCancel || canRequestRefund || canRefundBusiness || refundRequested || isRefunded || (isSeller && refundRequested) || canLeaveReview || hasReviewed) && (
               <Card>
                 <CardHeader>
                   <CardTitle>Actions</CardTitle>
@@ -643,7 +648,7 @@ export default function OrderDetail() {
                       <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{myReview.body}</p>
                     </div>
                   )}
-                  {refundRequested && role === 'resident' && (
+                  {refundRequested && isBuyer && (
                     <div
                       className="p-4 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer hover:border-amber-300 transition-colors"
                       onClick={() => setShowRefundDetailModal(true)}
@@ -691,7 +696,7 @@ export default function OrderDetail() {
                       )}
                     </div>
                   )}
-                  {role === 'business' && refundRequested && order.refund && (
+                  {isSeller && refundRequested && order.refund && (
                     <div
                       className="p-4 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer hover:border-amber-300 transition-colors"
                       onClick={() => setShowRefundDetailModal(true)}
@@ -837,7 +842,7 @@ export default function OrderDetail() {
               </div>
             </div>
           )}
-          {role === 'business' && refundRequested && (
+          {isSeller && refundRequested && (
             <div className="flex gap-3 pt-2">
               <Button
                 className="flex-1"
@@ -858,7 +863,7 @@ export default function OrderDetail() {
               </Button>
             </div>
           )}
-          {role === 'resident' && refundRequested && (
+          {isBuyer && refundRequested && (
             <div className="flex gap-3 pt-2">
               <Button
                 variant="secondary"

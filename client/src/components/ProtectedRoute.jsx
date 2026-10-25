@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProtectedRoute({ children, roles }) {
-  const { isAuthenticated, role, loading } = useAuth();
+  const { isAuthenticated, role, loading, isSuspended } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -15,6 +15,10 @@ export default function ProtectedRoute({ children, roles }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (isSuspended) {
+    return <Navigate to="/suspended" replace />;
   }
 
   if (roles && role === null) {

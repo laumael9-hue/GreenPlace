@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Package, Flag, Eye, ChevronLeft, ChevronRight, Archive, RotateCcw, Loader2, AlertTriangle, Download } from 'lucide-react';
+import { Search, Package, Flag, Eye, ChevronLeft, ChevronRight, Archive, RotateCcw, Loader2, AlertTriangle, Download, Star } from 'lucide-react';
 import api from '../../lib/api';
 import { exportToCsv, csvFilename } from '../../lib/exportCsv';
 import Card from '../../components/ui/Card';
@@ -78,6 +78,19 @@ export default function ListingModeration() {
   const openArchiveModal = (listing) => {
     setArchiveReason('');
     setArchiveTarget(listing);
+  };
+
+  const handleFeatureToggle = async (listing) => {
+    setActionLoading(listing.id);
+    setError('');
+    try {
+      await api.patch(`/marketplace/admin/listings/${listing.id}/feature`, { featured: !listing.is_featured });
+      fetchListings(pagination.page);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update featured status.');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleExport = async () => {
@@ -220,9 +233,17 @@ export default function ListingModeration() {
                       ₱{parseFloat(l.price).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={statusConfig[l.status]?.variant || 'neutral'}>
-                        {statusConfig[l.status]?.label || l.status}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant={statusConfig[l.status]?.variant || 'neutral'}>
+                          {statusConfig[l.status]?.label || l.status}
+                        </Badge>
+                        {l.is_featured && (
+                          <Badge variant="warning">
+                            <Star className="w-3 h-3 mr-1 fill-current" />
+                            Featured
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {l.report_count > 0 ? (
@@ -243,6 +264,22 @@ export default function ListingModeration() {
                         >
                           <Eye className="w-4 h-4" />
                         </Link>
+                        <button
+                          onClick={() => handleFeatureToggle(l)}
+                          disabled={actionLoading === l.id}
+                          className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+                            l.is_featured
+                              ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50'
+                              : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'
+                          }`}
+                          title={l.is_featured ? 'Remove from featured' : 'Feature on home page'}
+                        >
+                          {actionLoading === l.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Star className={`w-4 h-4 ${l.is_featured ? 'fill-current' : ''}`} />
+                          )}
+                        </button>
                         {l.status === 'archived' ? (
                           <button
                             onClick={() => handleStatusChange(l.id, 'active')}

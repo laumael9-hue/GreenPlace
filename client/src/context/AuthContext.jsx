@@ -107,6 +107,8 @@ export function AuthProvider({ children }) {
     fetchProfile,
     isAuthenticated: !!user,
     role: profile?.role || null,
+    isSuspended: profile ? !profile.is_active : false,
+    suspensionReason: profile?.suspension_reason || null,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

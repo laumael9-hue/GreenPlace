@@ -267,7 +267,7 @@ function ListingRow({ listing, onEdit, onImages, onDelete, onPublish }) {
             <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
           </div>
 
-          <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
             {listing.category && <span>{listing.category.name}</span>}
             <span>{listing.quantity_available} in stock</span>
             <span>{listing.view_count || 0} views</span>
@@ -278,7 +278,7 @@ function ListingRow({ listing, onEdit, onImages, onDelete, onPublish }) {
             </span>
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="sm" onClick={onEdit}>
               <Edit2 className="w-3.5 h-3.5" /> Edit
             </Button>

@@ -10,6 +10,7 @@ export function CartProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [subtotal, setSubtotal] = useState(0);
   const [itemCount, setItemCount] = useState(0);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const fetchCart = useCallback(async () => {
     if (!isAuthenticated) {
@@ -39,6 +40,7 @@ export function CartProvider({ children }) {
     try {
       const { data } = await api.post('/marketplace/cart', { listingId, quantity });
       await fetchCart();
+      setIsCartOpen(true);
       return { success: true, cartItem: data.cartItem };
     } catch (err) {
       const message = err.response?.data?.error || 'Failed to add item';
@@ -86,6 +88,9 @@ export function CartProvider({ children }) {
     loading,
     subtotal,
     itemCount,
+    isCartOpen,
+    openCart: () => setIsCartOpen(true),
+    closeCart: () => setIsCartOpen(false),
     addItem,
     updateQuantity,
     removeItem,

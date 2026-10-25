@@ -14,3 +14,14 @@ body {
 #root {
   min-height: 100vh;
 }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-20px); }
+}
+
+@keyframes floatSpin {
+  0%   { transform: translateY(0px)   rotate(0deg); }
+  50%  { transform: translateY(-15px) rotate(180deg); }
+  100% { transform: translateY(0px)   rotate(360deg); }
+}

@@ -179,7 +179,7 @@ export default function ForumModeration() {
 
       {activeTab === 'reports' && (
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {['', 'pending', 'reviewed', 'resolved', 'dismissed'].map((status) => (
               <button
                 key={status}

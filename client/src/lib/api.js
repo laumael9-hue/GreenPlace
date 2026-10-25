@@ -19,7 +19,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const code = error.response?.data?.code;
+
+    if (status === 403 && code === 'ACCOUNT_SUSPENDED') {
+      if (window.location.pathname !== '/suspended') {
+        window.location.href = '/suspended';
+      }
+    } else if (status === 401) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       if (window.location.pathname !== '/login') {

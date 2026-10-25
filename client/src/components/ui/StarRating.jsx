@@ -27,7 +27,7 @@ export default function StarRating({ value = 0, onChange, size = 'md', className
           disabled={!interactive}
           onClick={() => interactive && onChange(star)}
           onMouseEnter={() => interactive && setHovered(star)}
-          className={`${interactive ? 'cursor-pointer hover:scale-110' : 'cursor-default'} transition-transform`}
+          className={`${interactive ? 'cursor-pointer hover:scale-110 p-1' : 'cursor-default'} transition-transform`}
           aria-label={`${star} star${star > 1 ? 's' : ''}`}
         >
           <Star

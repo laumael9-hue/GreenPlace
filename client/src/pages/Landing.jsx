@@ -122,10 +122,10 @@ function HeroSection() {
         {/* Stats row */}
         <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
           {[
-            { value: 500, suffix: '+', label: 'Establishments' },
-            { value: 10, suffix: 'K+', label: 'Active Users' },
-            { value: 50, suffix: '+', label: 'Tons Recycled' },
-            { value: 40, suffix: '+', label: 'Barangays' },
+            { value: 35,  suffix: '+',  label: 'Establishments' },
+            { value: 280, suffix: '+',  label: 'Active Members'  },
+            { value: 4,   suffix: 'T+', label: 'Tons Recycled'   },
+            { value: 12,  suffix: '',   label: 'Barangays'        },
           ].map((stat) => (
             <div key={stat.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
               <div className="text-2xl sm:text-3xl font-extrabold text-white">
@@ -151,10 +151,10 @@ function StatsBar() {
   const [ref, isVisible] = useInView();
 
   const stats = [
-    { icon: MapPin, value: 500, suffix: '+', label: 'Eco Establishments', color: 'text-blue-500' },
-    { icon: Users, value: 10000, suffix: '+', label: 'Community Members', color: 'text-purple-500' },
-    { icon: Recycle, value: 50, suffix: 'T+', label: 'Materials Recycled', color: 'text-emerald-500' },
-    { icon: Shield, value: 40, suffix: '+', label: 'Barangays Covered', color: 'text-amber-500' },
+    { icon: MapPin,  value: 35,  suffix: '+',  label: 'Eco Establishments', color: 'text-blue-500'    },
+    { icon: Users,   value: 280, suffix: '+',  label: 'Community Members',  color: 'text-purple-500'  },
+    { icon: Recycle, value: 4,   suffix: 'T+', label: 'Materials Recycled', color: 'text-emerald-500' },
+    { icon: Shield,  value: 12,  suffix: '',   label: 'Barangays Covered',  color: 'text-amber-500'   },
   ];
 
   return (
@@ -353,24 +353,24 @@ function TestimonialsSection() {
 
   const testimonials = [
     {
-      name: 'Maria Santos',
+      name: 'Ana Reyes',
       role: 'Resident, Cebu City',
-      quote: 'GreenPlace made it so easy to find recycling centers near me. I never knew I could earn from my recyclables!',
-      avatar: 'MS',
+      quote: 'I found a drop-off center just five minutes from home. GreenPlace made it so easy to start recycling as part of my daily routine.',
+      avatar: 'AR',
       color: 'bg-blue-500',
     },
     {
-      name: 'EcoCycle Philippines',
-      role: 'Recycling Business',
-      quote: 'We\'ve connected with hundreds of customers through GreenPlace. Our pickup orders increased by 200%.',
-      avatar: 'EC',
+      name: 'GreenHub Recycling',
+      role: 'Recycling Business, Talisay City',
+      quote: 'Listing our accepted materials on GreenPlace connected us with customers in barangays we\'ve never reached before.',
+      avatar: 'GH',
       color: 'bg-emerald-500',
     },
     {
-      name: 'Juan Dela Cruz',
+      name: 'Carlo Mendoza',
       role: 'Resident, Mandaue City',
-      quote: 'The marketplace is amazing. I sold all my old electronics and bought upcycled furniture. Win-win!',
-      avatar: 'JD',
+      quote: 'The drop-off tracker is a game changer. I can check availability before leaving home — no more wasted trips.',
+      avatar: 'CM',
       color: 'bg-purple-500',
     },
   ];
@@ -448,7 +448,7 @@ function CTASection() {
           <span className="bg-gradient-to-r from-emerald-200 to-white bg-clip-text text-transparent">Real Impact?</span>
         </h2>
         <p className="mt-6 text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">
-          Join thousands of residents and businesses in Metro Cebu working together for a sustainable future. Every item recycled makes a difference.
+          Join hundreds of residents and businesses in Metro Cebu working together for a sustainable future. Every item recycled makes a difference.
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">

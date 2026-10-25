@@ -3,7 +3,12 @@
 
 const escapeCell = (value) => {
   if (value === null || value === undefined) return '';
-  const str = value instanceof Date ? value.toISOString() : String(value);
+  let str = value instanceof Date ? value.toISOString() : String(value);
+  // Neutralise spreadsheet formulas (CSV injection): text starting with = + - @ is
+  // prefixed with a quote so Excel/Sheets treat it as text. Real numbers are left alone.
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
   if (/[",\n\r]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }

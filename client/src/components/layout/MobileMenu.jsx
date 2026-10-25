@@ -1,72 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
-import {
-  LayoutDashboard, MapPin, ShoppingBag, ClipboardList,
-  Package, MessageCircle, User, Building2, List,
-  Clock, Star, BarChart3, Users, FileText, Settings, Mail, Bell,
-  CheckCircle, FolderCheck
-} from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import NavItem from './NavItem';
 import { useAuth } from '../../context/AuthContext';
 import { useMessages } from '../../context/MessagesContext';
 import { useNotifications } from '../../context/NotificationsContext';
-
-const residentNav = [
-  { to: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
-  { to: '/establishments', icon: <MapPin className="w-5 h-5" />, label: 'Find Establishments' },
-  { to: '/marketplace', icon: <ShoppingBag className="w-5 h-5" />, label: 'Marketplace' },
-  { to: '/orders', icon: <ClipboardList className="w-5 h-5" />, label: 'My Orders' },
-  { to: '/drop-offs', icon: <Package className="w-5 h-5" />, label: 'Drop-offs' },
-  { to: '/dashboard/messages', icon: <Mail className="w-5 h-5" />, label: 'Messages' },
-  { to: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
-  { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
-  { to: '/profile', icon: <User className="w-5 h-5" />, label: 'Profile' },
-];
-
-const businessNav = [
-  { to: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
-  { to: '/dashboard/profile', icon: <Building2 className="w-5 h-5" />, label: 'Business Profile' },
-  { to: '/dashboard/listings', icon: <List className="w-5 h-5" />, label: 'Listings' },
-  { to: '/dashboard/orders', icon: <ClipboardList className="w-5 h-5" />, label: 'Orders' },
-  { to: '/dashboard/drop-offs', icon: <Clock className="w-5 h-5" />, label: 'Drop-offs' },
-  { to: '/dashboard/reviews', icon: <Star className="w-5 h-5" />, label: 'Reviews' },
-  { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
-  { to: '/dashboard/messages', icon: <Mail className="w-5 h-5" />, label: 'Messages' },
-  { to: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
-  { to: '/dashboard/analytics', icon: <BarChart3 className="w-5 h-5" />, label: 'Analytics' },
-];
-
-const adminNav = [
-  { to: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
-  { to: '/admin/approvals', icon: <CheckCircle className="w-5 h-5" />, label: 'Approvals' },
-  { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Users' },
-  { to: '/admin/businesses', icon: <Building2 className="w-5 h-5" />, label: 'Businesses' },
-  { to: '/admin/documents', icon: <FolderCheck className="w-5 h-5" />, label: 'Documents' },
-  { to: '/admin/listings', icon: <List className="w-5 h-5" />, label: 'Listings' },
-  { to: '/admin/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
-  { to: '/admin/reports', icon: <FileText className="w-5 h-5" />, label: 'Reports' },
-  { to: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
-  { to: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings' },
-];
-
-const navMap = { resident: residentNav, business: businessNav, admin: adminNav };
+import { getNavGroups } from './navConfig';
 
 export default function MobileMenu({ open, onClose }) {
   const { isAuthenticated, profile } = useAuth();
   const { unreadCount } = useMessages();
   const { unreadCount: notifCount } = useNotifications();
   const location = useLocation();
-  const baseItems = navMap[profile?.role] || navMap.resident;
-  const items = baseItems.map(item => {
-    if (item.to === '/dashboard/messages' && unreadCount > 0) {
-      return { ...item, badge: unreadCount > 9 ? '9+' : unreadCount };
-    }
-    if (item.to === '/notifications' && notifCount > 0) {
-      return { ...item, badge: notifCount > 9 ? '9+' : notifCount };
-    }
-    return item;
-  });
+  const groups = getNavGroups(profile?.role, unreadCount, notifCount);
   const prevPath = useRef(location.pathname);
 
   useEffect(() => {
@@ -91,10 +37,17 @@ export default function MobileMenu({ open, onClose }) {
             <span className="text-lg font-bold text-gray-900">GreenPlace</span>
           </Link>
         </div>
-        <nav className="px-3 py-4 space-y-1">
-          {items.map(item => (
-            <div key={item.to}>
-              <NavItem {...item} />
+        <nav className="px-3 py-4 space-y-4">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{group.label}</p>
+              <div className="space-y-1">
+                {group.items.map((item) => (
+                  <div key={item.to}>
+                    <NavItem {...item} />
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </nav>

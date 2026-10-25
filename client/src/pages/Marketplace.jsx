@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, Filter, ChevronDown, ChevronUp, X, ShoppingBag, Tag, Loader2, Package, Flag, Star } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, Filter, ChevronDown, ChevronUp, X, ShoppingBag, Loader2, Flag } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Button from '../components/ui/Button';
-import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
+import ListingCard from '../components/marketplace/ListingCard';
 
 const CEBU_CITIES = [
   'Cebu City', 'Mandaue City', 'Lapu-Lapu City', 'Talisay City',
@@ -39,16 +39,17 @@ export default function Marketplace() {
   const { isAuthenticated, user } = useAuth();
   const { addItem } = useCart();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [listings, setListings] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || '');
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedCondition, setSelectedCondition] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'newest');
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -176,61 +177,67 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Marketplace</h1>
-            <p className="mt-1 text-gray-500">
+      {/* Gradient hero — heading, search bar, category chips */}
+      <div className="relative bg-gradient-to-r from-primary-600 to-emerald-500 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.12)_0%,transparent_60%)] pointer-events-none" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Marketplace</h1>
+            <p className="mt-1 text-white/80 text-sm sm:text-base">
               Browse recyclable materials and eco-friendly products from local sellers
             </p>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Category Quick Filters */}
-        <div className="mb-6 overflow-x-auto">
-          <div className="flex gap-2 pb-2">
-            <button
-              onClick={() => setSelectedCategory('')}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                !selectedCategory
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
-              }`}
-            >
-              All
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(selectedCategory === cat.id ? '' : cat.id)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                  selectedCategory === cat.id
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Search & Filter Bar */}
-        <div className="mb-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          {/* Prominent rounded search bar */}
+          <div className="max-w-2xl mx-auto mb-6">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search products, materials..."
                 value={search}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                className="w-full pl-12 pr-4 py-3.5 rounded-full shadow-lg border-0 focus:ring-2 focus:ring-white/50 outline-none text-gray-800 bg-white placeholder-gray-400 text-sm sm:text-base"
               />
             </div>
+          </div>
+
+          {/* Category chips — active = white fill, inactive = frosted */}
+          <div>
+            <div className="flex gap-2 justify-center flex-wrap">
+              <button
+                onClick={() => setSelectedCategory('')}
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  !selectedCategory
+                    ? 'bg-white text-primary-700'
+                    : 'bg-white/20 text-white border border-white/30 hover:bg-white/30'
+                }`}
+              >
+                All
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(selectedCategory === cat.id ? '' : cat.id)}
+                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    selectedCategory === cat.id
+                      ? 'bg-white text-primary-700'
+                      : 'bg-white/20 text-white border border-white/30 hover:bg-white/30'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* Filter Bar */}
+        <div className="mb-6">
+          <div className="flex justify-end">
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-4 py-2.5 border rounded-lg font-medium transition-colors ${
@@ -451,115 +458,3 @@ export default function Marketplace() {
   );
 }
 
-function ListingCard({ listing, onAddToCart, addingToCart, onReport, currentUser }) {
-  const isAdding = addingToCart === listing.id;
-  const seller = listing.seller;
-  const business = listing.business;
-  const sellerName = business?.name || (seller ? `${seller.first_name} ${seller.last_name}` : 'Seller');
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col">
-      <Link to={`/marketplace/${listing.slug}`} className="block">
-        <div className="relative h-48 bg-gray-100">
-          {listing.primary_image ? (
-            <img
-              src={listing.primary_image}
-              alt={listing.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="w-12 h-12 text-gray-300" />
-            </div>
-          )}
-          {listing.original_price && parseFloat(listing.original_price) > listing.price && (
-            <div className="absolute top-2 left-2">
-              <Badge variant="danger" className="text-[10px]">
-                {Math.round((1 - listing.price / listing.original_price) * 100)}% OFF
-              </Badge>
-            </div>
-          )}
-          {listing.is_featured && (
-            <div className="absolute top-2 right-2">
-              <Badge variant="warning" className="text-[10px]">Featured</Badge>
-            </div>
-          )}
-        </div>
-      </Link>
-
-      <div className="p-4 flex flex-col flex-1">
-        <div className="flex-1">
-          <Link to={`/marketplace/${listing.slug}`}>
-            <h3 className="font-semibold text-gray-900 line-clamp-2 hover:text-primary-600 transition-colors">
-              {listing.title}
-            </h3>
-          </Link>
-          <p className="text-xs text-gray-500 mt-1">{sellerName}</p>
-          {(listing.rating_count || 0) > 0 && (
-            <div className="flex items-center gap-1 mt-1">
-              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-              <span className="text-xs font-medium text-gray-700">
-                {parseFloat(listing.rating_avg || 0).toFixed(1)}
-              </span>
-              <span className="text-xs text-gray-400">({listing.rating_count})</span>
-            </div>
-          )}
-          {listing.category && (
-            <div className="mt-2">
-              <Badge variant="neutral" className="text-[10px]">
-                {listing.category.name}
-              </Badge>
-            </div>
-          )}
-          <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-            {listing.condition && (
-              <span className="flex items-center gap-1">
-                <Tag className="w-3 h-3" />
-                {CONDITION_LABELS[listing.condition] || listing.condition}
-              </span>
-            )}
-            {listing.city && <span>{listing.city}</span>}
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-end justify-between">
-          <div>
-            <p className="text-lg font-bold text-primary-600">
-              ₱{parseFloat(listing.price).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-            </p>
-            {listing.unit && listing.unit !== 'piece' && (
-              <p className="text-[10px] text-gray-400">per {listing.unit}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            {(!currentUser || listing.seller?.id !== currentUser.id) && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onReport(listing.id);
-                }}
-                className="p-1.5 text-gray-400 hover:text-orange-500 transition-colors"
-                title="Report listing"
-              >
-                <Flag className="w-4 h-4" />
-              </button>
-            )}
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => onAddToCart(listing.id)}
-              disabled={isAdding || listing.quantity_available < 1}
-            >
-              {isAdding ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ShoppingBag className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

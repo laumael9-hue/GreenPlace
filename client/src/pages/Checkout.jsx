@@ -190,6 +190,29 @@ export default function Checkout() {
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Checkout</h1>
           <p className="mt-1 text-gray-500">Review your order and confirm pickup details</p>
+
+          <div className="flex items-center mt-6 max-w-xs">
+            {[{ step: 1, label: 'Cart' }, { step: 2, label: 'Checkout' }, { step: 3, label: 'Confirmation' }].map(({ step, label }, idx) => {
+              const done = step < 2;
+              const active = step === 2;
+              return (
+                <div key={step} className="flex items-center flex-1 last:flex-none">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
+                      ${done ? 'bg-primary-600 text-white' : active ? 'bg-primary-600 text-white ring-4 ring-primary-100' : 'bg-gray-100 text-gray-400'}`}>
+                      {done ? '✓' : step}
+                    </div>
+                    <span className={`text-xs font-medium ${active ? 'text-primary-600' : done ? 'text-gray-600' : 'text-gray-400'}`}>
+                      {label}
+                    </span>
+                  </div>
+                  {idx < 2 && (
+                    <div className={`flex-1 h-0.5 mx-2 mb-5 ${done ? 'bg-primary-600' : 'bg-gray-200'}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

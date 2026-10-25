@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Leaf, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Leaf, Eye, EyeOff, AlertCircle, ShoppingBag, MapPin, Users } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -21,8 +21,12 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      const data = await login(email, password);
+      if (data?.user?.profile?.is_active === false) {
+        navigate('/suspended', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
     } finally {
@@ -30,26 +34,91 @@ export default function Login() {
     }
   };
 
+  const features = [
+    { icon: ShoppingBag, title: 'Sustainable Marketplace', desc: 'Buy & sell recyclables from local businesses' },
+    { icon: MapPin,      title: 'Drop-off Tracking',       desc: 'Find and track waste drop-off locations' },
+    { icon: Users,       title: 'Eco Community',           desc: 'Forum and messaging for green advocates' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <Link to="/" className="w-12 h-12 bg-primary-600 rounded-lg flex items-center justify-center hover:bg-primary-700 transition-colors">
-            <Leaf className="w-7 h-7 text-white" />
-          </Link>
+    <div className="min-h-screen flex">
+      {/* Left brand panel — desktop only */}
+      <div className="hidden md:flex md:w-1/2 lg:w-[55%] relative flex-col justify-between bg-gradient-to-br from-primary-700 via-primary-600 to-emerald-500 overflow-hidden p-10 lg:p-14">
+        {/* Decorative orbs + floating leaves */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-[float_8s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl animate-[float_12s_ease-in-out_infinite]" style={{ animationDelay: '4s' }} />
+          <Leaf className="absolute top-1/4 right-10 w-16 h-16 text-white/10 animate-[floatSpin_15s_linear_infinite]" />
+          <Leaf className="absolute bottom-1/3 left-8 w-10 h-10 text-white/10 animate-[floatSpin_20s_linear_infinite]" style={{ animationDelay: '7s' }} />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">Sign in to GreenPlace</h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
-            create a new account
-          </Link>
-        </p>
+
+        {/* Logo */}
+        <Link to="/" className="relative flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+            <Leaf className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-xl font-bold text-white">GreenPlace</span>
+        </Link>
+
+        {/* Tagline + feature bullets */}
+        <div className="relative">
+          <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight">
+            Join Metro Cebu's<br />Sustainability Platform
+          </h2>
+          <p className="mt-3 text-white/75 text-base">
+            Connect with eco-friendly businesses, trade recyclables, and track your environmental impact.
+          </p>
+          <ul className="mt-8 space-y-5">
+            {features.map(({ icon: Icon, title, desc }) => (
+              <li key={title} className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-white text-sm">{title}</p>
+                  <p className="text-white/65 text-xs">{desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Bottom stats */}
+        <div className="relative border-t border-white/20 pt-5">
+          <p className="text-[11px] text-white/50 uppercase tracking-widest mb-3">Serving Metro Cebu</p>
+          <div className="flex gap-8">
+            {[['35+', 'Establishments'], ['280+', 'Members'], ['4T+', 'Recycled']].map(([val, lbl]) => (
+              <div key={lbl}>
+                <p className="text-white font-bold text-lg leading-none">{val}</p>
+                <p className="text-white/55 text-xs mt-0.5">{lbl}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+      {/* Right form panel */}
+      <div className="flex-1 flex flex-col justify-center py-12 px-6 sm:px-10 lg:px-16 bg-white overflow-y-auto">
+        {/* Mobile-only logo */}
+        <div className="flex md:hidden justify-center mb-8">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+              <Leaf className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">GreenPlace</span>
+          </Link>
+        </div>
+
+        <div className="max-w-sm w-full mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900">Sign in to GreenPlace</h2>
+          <p className="mt-1.5 text-sm text-gray-500">
+            Or{' '}
+            <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
+              create a new account
+            </Link>
+          </p>
+
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />

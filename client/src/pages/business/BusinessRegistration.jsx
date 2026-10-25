@@ -10,7 +10,7 @@ import LocationPicker from '../../components/ui/LocationPicker';
 import {
   Building2, FileText, Package,
   Check, ChevronRight, ChevronLeft, Upload, Trash2,
-  Loader2, AlertTriangle, ShieldCheck
+  Loader2, AlertTriangle, ShieldCheck, Clock
 } from 'lucide-react';
 
 const STEPS = [
@@ -63,6 +63,7 @@ export default function BusinessRegistration() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [existingBusiness, setExistingBusiness] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
 
   // Step 1: Business info
   const [form, setForm] = useState({
@@ -230,7 +231,7 @@ export default function BusinessRegistration() {
         }),
       ]);
 
-      navigate('/dashboard');
+      setSubmitted(true);
     } catch (err) {
       setErrors({ submit: err.response?.data?.error || 'Failed to save' });
     } finally {
@@ -243,8 +244,139 @@ export default function BusinessRegistration() {
   };
 
   // ============================================================
-  // Existing business guard
+  // Reapply: prefill wizard from a rejected application
   // ============================================================
+  const handleStartReapply = () => {
+    if (existingBusiness) {
+      setForm({
+        name: existingBusiness.name || '',
+        description: existingBusiness.description || '',
+        category: existingBusiness.category || '',
+        address: existingBusiness.address || '',
+        city: existingBusiness.city || 'Cebu City',
+        province: existingBusiness.province || 'Cebu',
+        latitude: existingBusiness.latitude,
+        longitude: existingBusiness.longitude,
+        phone: existingBusiness.phone || profile?.phone || '',
+        email: existingBusiness.email || '',
+        website: existingBusiness.website || '',
+        acceptsDropOffs: !!existingBusiness.accepts_drop_offs,
+        hasMarketplace: !!existingBusiness.has_marketplace,
+      });
+      if (Array.isArray(existingBusiness.hours) && existingBusiness.hours.length > 0) {
+        setHours(existingBusiness.hours.map(h => ({
+          day: h.day,
+          open_time: h.open_time,
+          close_time: h.close_time,
+          is_closed: !!h.is_closed,
+        })));
+      }
+      if (Array.isArray(existingBusiness.materials) && existingBusiness.materials.length > 0) {
+        setMaterials(existingBusiness.materials.map(m => ({
+          material_name: m.material_name,
+          price_per_kg: m.price_per_kg != null ? String(m.price_per_kg) : '',
+          unit: m.unit || 'kg',
+          description: m.description || '',
+          is_accepted: m.is_accepted !== false,
+        })));
+      }
+      setDocuments(existingBusiness.documents || []);
+    }
+    setExistingBusiness(null);
+    setStep(1);
+  };
+
+  // ============================================================
+  // Submitted confirmation
+  // ============================================================
+  if (submitted) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Card>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShieldCheck className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Application Submitted</h2>
+            <p className="text-gray-500 mt-2">
+              Your business application is now under review. We'll notify you once an admin approves it.
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              You can keep using GreenPlace as a resident in the meantime.
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
+              <Button variant="ghost" onClick={() => navigate('/dashboard/profile')}>
+                View Application
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // Existing business guard — status aware
+  // ============================================================
+  if (existingBusiness && existingBusiness.status === 'rejected') {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Card>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Application Needs Attention</h2>
+            <p className="text-gray-500 mt-2">
+              Your application for <strong>{existingBusiness.name}</strong> was not approved.
+            </p>
+            {existingBusiness.rejection_reason && (
+              <p className="text-sm text-red-600 mt-2 bg-red-50 border border-red-100 rounded-lg px-4 py-2 inline-block">
+                {existingBusiness.rejection_reason}
+              </p>
+            )}
+            <div className="mt-6 flex justify-center gap-3">
+              <Button onClick={handleStartReapply}>Reapply</Button>
+              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                Back to Dashboard
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (existingBusiness && existingBusiness.status === 'pending') {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Card>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Application Under Review</h2>
+            <p className="text-gray-500 mt-2">
+              Your application for <strong>{existingBusiness.name}</strong> is awaiting admin approval.
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              You can keep using GreenPlace as a resident in the meantime.
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button onClick={() => navigate('/dashboard/profile')}>
+                View Business Profile
+              </Button>
+              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                Back to Dashboard
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   if (existingBusiness) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">

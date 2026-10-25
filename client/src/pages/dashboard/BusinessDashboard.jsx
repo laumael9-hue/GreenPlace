@@ -14,6 +14,8 @@ export default function BusinessDashboard() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pendingOrders, setPendingOrders] = useState(0);
+  const [ordersPreview, setOrdersPreview] = useState([]);
+  const [activeListings, setActiveListings] = useState(0);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -31,18 +33,30 @@ export default function BusinessDashboard() {
 
     const fetchPendingOrders = async () => {
       try {
-        const { data } = await api.get('/orders/business', { params: { status: 'pending', limit: 1 } });
+        const { data } = await api.get('/orders/business', { params: { status: 'pending', limit: 5 } });
         setPendingOrders(data.pagination?.total || 0);
+        setOrdersPreview(data.orders || []);
       } catch {
         // Ignore
       }
     };
     fetchPendingOrders();
 
+    const fetchStats = async () => {
+      try {
+        const { data } = await api.get('/businesses/my/stats', { params: { days: 30 } });
+        setActiveListings(data.stats?.summary?.activeListings || 0);
+      } catch {
+        // Ignore
+      }
+    };
+    fetchStats();
+
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         fetchBusiness();
         fetchPendingOrders();
+        fetchStats();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
@@ -189,8 +203,8 @@ export default function BusinessDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={<ClipboardList className="w-6 h-6" />} label="Pending Orders" value={String(pendingOrders)} change={pendingOrders > 0 ? 'Needs attention' : 'No pending orders'} changeType={pendingOrders > 0 ? 'warning' : 'neutral'} />
-        <StatCard icon={<List className="w-6 h-6" />} label="Active Listings" value="0" change="Create your first listing" changeType="neutral" />
-        <StatCard icon={<Clock className="w-6 h-6" />} label="Drop-offs" value="0" change="No drop-offs scheduled" changeType="neutral" />
+        <StatCard icon={<List className="w-6 h-6" />} label="Active Listings" value={String(activeListings)} change={activeListings > 0 ? 'Live on marketplace' : 'Create your first listing'} changeType="neutral" />
+        <StatCard icon={<Clock className="w-6 h-6" />} label="Drop-offs" value={String(business.total_drop_offs || 0)} change="All-time drop-offs" changeType="neutral" />
         <StatCard icon={<Star className="w-6 h-6" />} label="Avg Rating" value={business.rating_avg || '0.0'} change={`${business.rating_count || 0} reviews`} changeType="neutral" />
       </div>
 
@@ -219,7 +233,38 @@ export default function BusinessDashboard() {
               </Link>
             </div>
           </CardHeader>
-          <p className="text-sm text-gray-500 text-center py-8">No pending orders.</p>
+          {ordersPreview.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <ClipboardList className="w-5 h-5 text-green-600" />
+              </div>
+              <p className="text-sm font-medium text-gray-700">All caught up!</p>
+              <p className="text-xs text-gray-400 mt-1">No pending orders right now.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {ordersPreview.map((order) => (
+                <Link
+                  key={order.id}
+                  to={`/orders/${order.id}`}
+                  className="flex items-center justify-between py-3 hover:bg-gray-50 -mx-6 px-6 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{order.order_number}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {new Date(order.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-gray-900">
+                      ₱{parseFloat(order.total_amount).toLocaleString('en-PH', { minimumFractionDigits: 0 })}
+                    </p>
+                    <span className="text-xs text-amber-600 font-medium">Pending</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </Card>
 
         <Card>
