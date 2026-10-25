@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Leaf, Mail, Eye, EyeOff, AlertCircle, Building2, Check, ShoppingBag, MapPin, Users } from 'lucide-react';
+import { Leaf, Eye, EyeOff, AlertCircle, Building2, Check, ShoppingBag, MapPin, Users } from 'lucide-react';
 
 const PASSWORD_MIN_LENGTH = 6;
 
@@ -35,7 +35,6 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [confirmEmail, setConfirmEmail] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -61,7 +60,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const result = await register({
+      await register({
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
@@ -69,10 +68,6 @@ export default function Register() {
         role: 'resident',
         phone: formData.phone ? formData.phone.replace(/\s-/g, '') : undefined,
       });
-      if (result.requiresConfirmation) {
-        setConfirmEmail(formData.email);
-        return;
-      }
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed');
@@ -160,24 +155,6 @@ export default function Register() {
           </Link>
         </div>
 
-        {confirmEmail ? (
-          <div className="max-w-sm w-full mx-auto text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center">
-              <Mail className="w-6 h-6 text-primary-600" />
-            </div>
-            <h2 className="mt-4 text-2xl font-bold text-gray-900">Check your email</h2>
-            <p className="mt-2 text-sm text-gray-500">
-              We sent a confirmation link to <span className="font-medium text-gray-700">{confirmEmail}</span>.
-              Click it to activate your account, then sign in.
-            </p>
-            <Link
-              to="/login"
-              className="mt-6 inline-block px-5 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-medium hover:bg-primary-500 transition-colors"
-            >
-              Go to sign in
-            </Link>
-          </div>
-        ) : (
         <div className="max-w-sm w-full mx-auto">
           <h2 className="text-2xl font-bold text-gray-900">Create your account</h2>
           <p className="mt-1.5 text-sm text-gray-500">
@@ -334,7 +311,6 @@ export default function Register() {
             </div>
           </form>
         </div>
-        )}
       </div>
     </div>
   );
