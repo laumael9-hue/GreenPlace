@@ -89,6 +89,6 @@ export function getNavGroups(role, unreadCount = 0, notifCount = 0) {
     }));
   }
 
-  const label = role === 'admin' ? 'Administration' : 'Menu';
+  const label = role === 'admin' ? 'Moderation' : 'Menu';
   return [{ label, items: withBadges(nav, unreadCount, notifCount) }];
 }

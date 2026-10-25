@@ -67,7 +67,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Moderator Dashboard</h1>
         <p className="text-gray-500 mt-1">System overview and management.</p>
       </div>
 
@@ -190,7 +190,7 @@ export default function AdminDashboard() {
             <Link to="/admin/users?role=admin" className="p-3 bg-red-50 rounded-lg text-center hover:bg-red-100 transition-colors">
               <Shield className="w-5 h-5 text-red-600 mx-auto mb-1" />
               <p className="text-2xl font-bold text-red-700">{roleStats.admins}</p>
-              <p className="text-xs text-red-600">Admins</p>
+              <p className="text-xs text-red-600">Moderators</p>
             </Link>
           </div>
         </Card>

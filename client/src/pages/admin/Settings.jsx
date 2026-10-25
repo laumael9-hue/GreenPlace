@@ -46,7 +46,7 @@ const GROUPS = [
     title: 'System',
     icon: <Server className="w-4 h-4" />,
     fields: [
-      { key: 'maintenance_mode', label: 'Maintenance Mode', type: 'bool', hint: 'Block non-admin access while under maintenance.' },
+      { key: 'maintenance_mode', label: 'Maintenance Mode', type: 'bool', hint: 'Block non-moderator access while under maintenance.' },
       { key: 'paymongo_test_mode', label: 'PayMongo Test Mode', type: 'bool', hint: 'Use PayMongo test environment (no real charges).' },
       { key: 'notification_retention_days', label: 'Notification Retention (days)', type: 'int', hint: 'Days before old notifications are pruned.' },
     ],
@@ -249,7 +249,7 @@ export default function SettingsPage() {
 
       <p className="text-xs text-gray-400 flex items-center gap-1">
         <Settings className="w-3.5 h-3.5" />
-        Changes are recorded in the admin audit log. Keys: {Object.keys(descriptions).length} settings loaded.
+        Changes are recorded in the moderator audit log. Keys: {Object.keys(descriptions).length} settings loaded.
       </p>
     </div>
   );

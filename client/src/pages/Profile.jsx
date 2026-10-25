@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
 import { Camera, Trash2, Save, Loader2, Clock } from 'lucide-react';
+import { roleLabel } from '../lib/roleLabel';
 
 export default function Profile() {
   const { profile, updateProfile, fetchProfile, logout } = useAuth();
@@ -347,7 +348,7 @@ export default function Profile() {
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-500">Role</span>
-            <span className="font-medium text-gray-900 capitalize">{profile?.role}</span>
+            <span className="font-medium text-gray-900 capitalize">{roleLabel(profile?.role)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Status</span>

@@ -299,7 +299,7 @@ export default function BusinessRegistration() {
             </div>
             <h2 className="text-xl font-bold text-gray-900">Application Submitted</h2>
             <p className="text-gray-500 mt-2">
-              Your business application is now under review. We'll notify you once an admin approves it.
+              Your business application is now under review. We'll notify you once a moderator approves it.
             </p>
             <p className="text-sm text-gray-400 mt-1">
               You can keep using GreenPlace as a resident in the meantime.
@@ -358,7 +358,7 @@ export default function BusinessRegistration() {
             </div>
             <h2 className="text-xl font-bold text-gray-900">Application Under Review</h2>
             <p className="text-gray-500 mt-2">
-              Your application for <strong>{existingBusiness.name}</strong> is awaiting admin approval.
+              Your application for <strong>{existingBusiness.name}</strong> is awaiting moderator approval.
             </p>
             <p className="text-sm text-gray-400 mt-1">
               You can keep using GreenPlace as a resident in the meantime.

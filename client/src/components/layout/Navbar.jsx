@@ -4,6 +4,7 @@ import { Leaf, Menu, X, ShoppingBag, ChevronDown, User, LayoutDashboard, LogOut 
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import Avatar from '../ui/Avatar';
+import { roleLabel } from '../../lib/roleLabel';
 
 export default function Navbar({ onMenuToggle, menuOpen }) {
   const { isAuthenticated, profile, logout } = useAuth();
@@ -78,7 +79,7 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
                   <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg py-1 z-50">
                     <div className="px-4 py-2.5 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-900">{profile?.first_name} {profile?.last_name}</p>
-                      <p className="text-xs text-gray-500 capitalize">{profile?.role}</p>
+                      <p className="text-xs text-gray-500 capitalize">{roleLabel(profile?.role)}</p>
                     </div>
                     <Link
                       to={dashboardLink}

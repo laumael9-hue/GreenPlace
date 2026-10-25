@@ -111,7 +111,7 @@ export default function BusinessDashboard() {
             <h2 className="text-xl font-bold text-gray-900">Upload Verification Documents</h2>
             <p className="text-gray-500 mt-2 max-w-md mx-auto">
               Please upload at least one verification document (business permit, DTI/SEC registration, etc.)
-              to access dashboard features. This is required for admin approval.
+              to access dashboard features. This is required for moderator approval.
             </p>
             <div className="mt-6 flex justify-center gap-3">
               <Link to="/dashboard/profile">
@@ -151,7 +151,7 @@ export default function BusinessDashboard() {
       iconColor: 'text-amber-600',
       icon: <AlertTriangle className="w-5 h-5" />,
       title: 'Awaiting Approval',
-      desc: 'Your business registration is being reviewed by an admin. You will be notified once approved.',
+      desc: 'Your business registration is being reviewed by a moderator. You will be notified once approved.',
     },
     rejected: {
       color: 'bg-red-50 border-red-200',

@@ -9,6 +9,7 @@ import Badge from '../../components/ui/Badge';
 import Avatar from '../../components/ui/Avatar';
 import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
+import { roleLabel } from '../../lib/roleLabel';
 import {
   Search, Users, ChevronLeft, ChevronRight, Shield,
   Ban, CheckCircle, Trash2, Eye, AlertTriangle, Clock, Building2, Download
@@ -18,7 +19,7 @@ const ROLE_TABS = [
   { key: '', label: 'All Users', icon: Users },
   { key: 'resident', label: 'Residents', icon: Users },
   { key: 'business', label: 'Business Owners', icon: Building2 },
-  { key: 'admin', label: 'Admins', icon: Shield },
+  { key: 'admin', label: 'Moderators', icon: Shield },
 ];
 
 export default function UserManagement() {
@@ -494,7 +495,7 @@ export default function UserManagement() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge variant={roleVariant(user.role)}>{user.role}</Badge>
+                        <Badge variant={roleVariant(user.role)}>{roleLabel(user.role)}</Badge>
                       </td>
                       {roleFilter === 'business' && (
                         <td className="px-4 py-3">
@@ -600,7 +601,7 @@ export default function UserManagement() {
               </div>
               <div>
                 <p className="text-gray-500">Role</p>
-                <Badge variant={roleVariant(selectedUser.role)}>{selectedUser.role}</Badge>
+                <Badge variant={roleVariant(selectedUser.role)}>{roleLabel(selectedUser.role)}</Badge>
               </div>
               <div>
                 <p className="text-gray-500">Status</p>
@@ -782,7 +783,7 @@ export default function UserManagement() {
           >
             <option value="resident">Resident</option>
             <option value="business">Business</option>
-            <option value="admin">Admin</option>
+            <option value="admin">Moderator</option>
           </select>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setShowRoleModal(false)}>Cancel</Button>

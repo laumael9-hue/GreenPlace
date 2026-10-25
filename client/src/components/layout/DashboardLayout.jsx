@@ -8,6 +8,7 @@ import Avatar from '../ui/Avatar';
 import NotificationBell from './NotificationBell';
 import { Mail, Search, ChevronDown, User, LayoutDashboard, LogOut, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { roleLabel } from '../../lib/roleLabel';
 
 export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -110,7 +111,7 @@ export default function DashboardLayout() {
                   />
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-medium text-gray-900 leading-tight">{profile?.first_name} {profile?.last_name}</p>
-                    <p className="text-xs text-gray-500 capitalize leading-tight">{role}</p>
+                    <p className="text-xs text-gray-500 capitalize leading-tight">{roleLabel(role)}</p>
                   </div>
                   <ChevronDown className={`hidden md:block w-4 h-4 text-gray-400 transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -119,7 +120,7 @@ export default function DashboardLayout() {
                   <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg py-1 z-50">
                     <div className="px-4 py-2.5 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-900">{profile?.first_name} {profile?.last_name}</p>
-                      <p className="text-xs text-gray-500 capitalize">{role}</p>
+                      <p className="text-xs text-gray-500 capitalize">{roleLabel(role)}</p>
                     </div>
                     <Link
                       to="/profile"
