@@ -158,6 +158,8 @@ Runs on http://localhost:3001
 3. Enable Email/Password auth in Authentication > Providers
 4. Create storage buckets: `profile-images`, `business-documents`, `product-images`
 5. Run migrations from `database/migrations/`
+6. For real email signups: enable "Confirm email" (Authentication > Providers > Email) and configure custom SMTP (Authentication > SMTP Settings). The built-in mailer is rate-limited and only emails project team members.
+7. Under Authentication > URL Configuration, set the Site URL to your deployed client URL and add `<CLIENT_URL>/login` and `<CLIENT_URL>/reset-password` to the Redirect URLs. Set `CLIENT_URL` to the same value in the server environment.
 
 ## PayMongo Test Setup
 

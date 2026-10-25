@@ -22,6 +22,7 @@ const register = async (req, res) => {
       options: {
         data: {
           first_name: firstName,
+        emailRedirectTo: `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`,
           last_name: lastName,
           role,
         },
@@ -53,6 +54,7 @@ const register = async (req, res) => {
       session: authData.session,
     });
   } catch (err) {
+      requiresConfirmation: !authData.session,
     console.error('Register error:', err);
     res.status(500).json({ error: 'Registration failed' });
   }
@@ -74,6 +76,12 @@ const login = async (req, res) => {
     if (error) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+      if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)) {
+        return res.status(401).json({
+          error: 'Please confirm your email address first. Check your inbox for the confirmation link.',
+          code: 'EMAIL_NOT_CONFIRMED',
+        });
+      }
 
     let { data: profile } = await supabaseAdmin
       .from('profiles')
