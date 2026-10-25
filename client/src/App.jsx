@@ -9,6 +9,7 @@ import Landing from './pages/Landing';
 import CartDrawer from './components/cart/CartDrawer';
 
 const Register = lazy(() => import('./pages/Register'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const Suspended = lazy(() => import('./pages/Suspended'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
@@ -60,6 +61,7 @@ function App() {
       {/* Auth pages — no layout */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/suspended" element={<Suspended />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />

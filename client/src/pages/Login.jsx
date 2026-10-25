@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import SocialLogin from '../components/ui/SocialLogin';
 import { Leaf, Eye, EyeOff, AlertCircle, ShoppingBag, MapPin, Users } from 'lucide-react';
 
 export default function Login() {
@@ -177,6 +178,7 @@ export default function Login() {
               </button>
             </div>
           </form>
+          <SocialLogin verb="Sign in" />
         </div>
       </div>
     </div>

@@ -159,6 +159,14 @@ Runs on http://localhost:3001
 4. Create storage buckets: `profile-images`, `business-documents`, `product-images`
 5. Run migrations from `database/migrations/`
 
+## Google / Facebook Sign-In
+
+1. Run `database/migrations/027_oauth_profile_names.sql`.
+2. Set `VITE_SUPABASE_URL` in the client env to your Supabase project URL. The buttons are hidden when it is unset.
+3. Add `<CLIENT_URL>/auth/callback` to Authentication > URL Configuration > Redirect URLs.
+4. Google: create an OAuth client (Web application) in Google Cloud Console, add `https://<project-ref>.supabase.co/auth/v1/callback` as an authorized redirect URI, then paste the client ID and secret into Authentication > Sign In / Providers > Google.
+5. Facebook: create an app at developers.facebook.com, add Facebook Login, add the same Supabase callback URL as a valid OAuth redirect URI, then paste the App ID and secret into Authentication > Sign In / Providers > Facebook.
+
 ## PayMongo Test Setup
 
 1. Create a PayMongo account
