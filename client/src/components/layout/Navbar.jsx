@@ -112,7 +112,7 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
           ) : (
             <div className="flex items-center gap-3">
               <Link to="/login" className={`text-sm transition-colors ${dark ? "text-white/80 hover:text-white" : "text-gray-600 hover:text-primary-600"}`}>Login</Link>
-              <Link to="/register" className={dark ? "text-sm font-semibold bg-primary-500 text-gray-950 px-5 py-2 rounded-full hover:bg-primary-400 transition-colors" : "text-sm bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"}>Get Started</Link>
+              <Link to="/register" className={dark ? "text-sm font-semibold bg-white text-primary-700 px-5 py-2 rounded-full hover:bg-primary-50 transition-colors shadow-sm" : "text-sm bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"}>Get Started</Link>
             </div>
           )}
         </div>

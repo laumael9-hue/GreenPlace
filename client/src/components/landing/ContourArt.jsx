@@ -30,8 +30,9 @@ function buildRings({ cx, cy, count, from, to, seedStart, seedStep, amplitude })
   });
 }
 
-// Decorative glowing topographic lines in brand greens.
-export default function ContourArt({ className = '' }) {
+// Decorative topographic lines. tone="light" draws white lines for green backgrounds;
+// tone="brand" draws green lines for white backgrounds.
+export default function ContourArt({ className = '', tone = 'light' }) {
   const rings = useMemo(
     () => [
       ...buildRings({ cx: 340, cy: 330, count: 26, from: 28, to: 300, seedStart: 0.4, seedStep: 0.1, amplitude: 0.2 }),
@@ -40,27 +41,14 @@ export default function ContourArt({ className = '' }) {
     []
   );
 
+  const stroke = tone === 'light' ? '#ffffff' : '#16a34a';
+
   return (
     <svg viewBox="0 0 720 720" className={className} aria-hidden="true" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <linearGradient id="contour-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4ade80" />
-          <stop offset="50%" stopColor="#22d3ee" />
-          <stop offset="100%" stopColor="#a3e635" />
-        </linearGradient>
-        <filter id="contour-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="5" />
-        </filter>
-      </defs>
-      <g fill="none" stroke="url(#contour-stroke)" strokeLinejoin="round">
-        <g filter="url(#contour-glow)" strokeWidth="4" opacity="0.55">
+      <g fill="none" stroke={stroke} strokeLinejoin="round">
+        <g strokeWidth="1.3">
           {rings.map((r, i) => (
-            <path key={`g${i}`} d={r.d} opacity={r.opacity} />
-          ))}
-        </g>
-        <g strokeWidth="1.4">
-          {rings.map((r, i) => (
-            <path key={i} d={r.d} opacity={r.opacity} />
+            <path key={i} d={r.d} opacity={r.opacity * 0.75} />
           ))}
         </g>
       </g>
