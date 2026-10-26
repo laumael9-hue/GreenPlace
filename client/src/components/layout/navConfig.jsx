@@ -29,7 +29,7 @@ const businessNav = [
       { to: '/dashboard/profile', icon: <Building2 className="w-5 h-5" />, label: 'Business Profile' },
       { to: '/dashboard/listings', icon: <List className="w-5 h-5" />, label: 'Listings' },
       { to: '/dashboard/orders', icon: <ClipboardList className="w-5 h-5" />, label: 'Incoming Orders' },
-      { to: '/dashboard/drop-offs', icon: <Clock className="w-5 h-5" />, label: 'Incoming Drop-offs' },
+      { to: '/dashboard/drop-offs', icon: <Clock className="w-5 h-5" />, label: 'Drop-offs' },
       { to: '/dashboard/reviews', icon: <Star className="w-5 h-5" />, label: 'Reviews' },
       { to: '/dashboard/analytics', icon: <BarChart3 className="w-5 h-5" />, label: 'Analytics' },
     ],
