@@ -295,7 +295,7 @@ export default function BusinessDetail() {
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">{business.address}{business.city ? `, ${business.city}` : ''}</p>
                 </div>
-                <div className="h-64">
+                <div className="h-64 relative isolate">
                   <MapContainer center={[lat, lng]} zoom={15} className="w-full h-full">
                     <TileLayer
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

@@ -322,7 +322,7 @@ export default function Checkout() {
 
                     {/* Map */}
                     {group.storeLatitude && group.storeLongitude ? (
-                      <div className="h-48 relative">
+                      <div className="h-48 relative isolate">
                         <MapContainer
                           center={[group.storeLatitude, group.storeLongitude]}
                           zoom={15}
