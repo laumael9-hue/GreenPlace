@@ -15,7 +15,7 @@ export default function PaymentFailed() {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <XCircle className="w-8 h-8 text-red-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mb-2">Payment Failed</h1>
             <p className="text-gray-500 mb-1">Your payment could not be completed.</p>
             <p className="text-sm text-gray-400">
               This may have been cancelled or the payment was declined.

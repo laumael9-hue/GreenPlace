@@ -55,10 +55,10 @@ export default function OrderHistory() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">My Orders</h1>
-          <p className="mt-1 text-gray-500">{pagination.total} total orders</p>
+      <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-emerald-500 text-white rounded-3xl">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">My Orders</h1>
+          <p className="mt-1 text-white/85">{pagination.total} total orders</p>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export default function OrderHistory() {
             <button
               key={opt.value}
               onClick={() => setFilter(opt.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                 filter === opt.value
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
@@ -108,10 +108,10 @@ export default function OrderHistory() {
 
               return (
                 <Link key={order.id} to={`/orders/${order.id}`}>
-                  <Card className="hover:shadow-lg hover:border-primary-300 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group">
+                  <Card padding={false} className="p-4 sm:p-6 hover:shadow-lg hover:border-primary-300 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group">
                     <div className="flex items-center gap-4">
                       {/* Item Image */}
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden group-hover:ring-2 group-hover:ring-primary-200 transition-all">
+                      <div className="w-12 h-12 sm:w-20 sm:h-20 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden group-hover:ring-2 group-hover:ring-primary-200 transition-all">
                         {firstItem?.listing_image ? (
                           <img
                             src={firstItem.listing_image}
@@ -119,14 +119,14 @@ export default function OrderHistory() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <Package className="w-8 h-8 text-gray-300" />
+                          <Package className="w-6 h-6 sm:w-8 sm:h-8 text-gray-300" />
                         )}
                       </div>
 
                       {/* Order Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-bold text-gray-900">#{order.order_number}</span>
+                          <span className="text-sm font-bold text-gray-900 whitespace-nowrap">#{order.order_number}</span>
                           <span className="flex items-center gap-1.5">
                             <span className={`w-2 h-2 rounded-full ${statusInfo.dot}`}></span>
                             <span className="text-xs font-medium text-gray-600">{statusInfo.label}</span>
@@ -137,7 +137,7 @@ export default function OrderHistory() {
                           {itemTitle}{itemCount > 1 ? ` +${itemCount - 1} more` : ''} × {itemQty}
                         </p>
 
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-400">
                           <span className="flex items-center gap-1">
                             <Store className="w-3 h-3" />
                             {order.business?.name || 'Individual Seller'}
@@ -158,7 +158,7 @@ export default function OrderHistory() {
                         <span className="text-base sm:text-lg font-bold text-primary-600">
                           ₱{parseFloat(order.total || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                         </span>
-                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary-400 transition-colors" />
+                        <ChevronRight className="hidden sm:block w-5 h-5 text-gray-300 group-hover:text-primary-400 transition-colors" />
                       </div>
                     </div>
                   </Card>

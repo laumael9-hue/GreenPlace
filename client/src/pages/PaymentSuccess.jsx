@@ -85,7 +85,7 @@ export default function PaymentSuccess() {
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isPaid ? 'bg-green-100' : 'bg-amber-100'}`}>
               <CheckCircle className={`w-8 h-8 ${isPaid ? 'text-green-600' : 'text-amber-600'}`} />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mb-2">
               {isPaid ? 'Payment Successful!' : 'Payment Processing'}
             </h1>
             <p className="text-gray-500 mb-1">

@@ -293,22 +293,22 @@ export default function OrderDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link to={isSeller ? '/dashboard/orders' : '/orders'} className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium mb-4">
+      <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-emerald-500 text-white rounded-3xl">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Link to={isSeller ? '/dashboard/orders' : '/orders'} className="flex items-center gap-2 text-sm text-white/90 hover:text-white font-medium mb-4">
             <ArrowLeft className="w-4 h-4" />
             Back to Orders
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Order #{order.order_number}</h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <h1 className="text-2xl font-semibold tracking-tight text-white">Order #{order.order_number}</h1>
+              <p className="text-sm text-white/85 mt-1">
                 Placed on {new Date(order.created_at).toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
               {!order.buyer_id && order.guest_name && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Walk-in: <span className="font-medium text-gray-700">{order.guest_name}</span>
-                  {order.guest_phone && <span className="text-gray-400 ml-2">({order.guest_phone})</span>}
+                <p className="text-sm text-white/85 mt-1">
+                  Walk-in: <span className="font-medium text-white">{order.guest_name}</span>
+                  {order.guest_phone && <span className="text-white/70 ml-2">({order.guest_phone})</span>}
                 </p>
               )}
             </div>
@@ -362,7 +362,7 @@ export default function OrderDetail() {
               <div className="space-y-3">
                 {order.items?.map(item => (
                   <div key={item.id} className="flex gap-3">
-                    <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                    <div className="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
                       {item.listing?.primary_image ? (
                         <img src={item.listing.primary_image} alt={item.title} className="w-full h-full object-cover" />
                       ) : (
@@ -422,7 +422,7 @@ export default function OrderDetail() {
               </CardHeader>
               <p className="text-sm text-gray-700">{order.pickup_address}</p>
               {order.preferred_pickup_date && (
-                <div className="mt-3 p-3 bg-primary-50 rounded-lg">
+                <div className="mt-3 p-3 bg-primary-50 rounded-xl">
                   <p className="text-sm font-medium text-primary-800">
                     Pickup Date: {new Date(order.preferred_pickup_date + 'T00:00:00').toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                   </p>
@@ -630,7 +630,7 @@ export default function OrderDetail() {
                     </Button>
                   )}
                   {hasReviewed && (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
                       <div className="flex items-center justify-between mb-1.5">
                         <p className="text-sm font-semibold text-yellow-800">Your Review</p>
                         <button
@@ -650,7 +650,7 @@ export default function OrderDetail() {
                   )}
                   {refundRequested && isBuyer && (
                     <div
-                      className="p-4 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer hover:border-amber-300 transition-colors"
+                      className="p-4 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer hover:border-amber-300 transition-colors"
                       onClick={() => setShowRefundDetailModal(true)}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -665,7 +665,7 @@ export default function OrderDetail() {
                               key={idx}
                               src={url}
                               alt={`Refund proof ${idx + 1}`}
-                              className="w-14 h-14 object-cover rounded-lg border border-amber-200"
+                              className="w-14 h-14 object-cover rounded-xl border border-amber-200"
                             />
                           ))}
                         </div>
@@ -674,7 +674,7 @@ export default function OrderDetail() {
                   )}
                   {isRefunded && (
                     <div
-                      className="p-4 bg-green-50 border border-green-200 rounded-lg cursor-pointer hover:border-green-300 transition-colors"
+                      className="p-4 bg-green-50 border border-green-200 rounded-xl cursor-pointer hover:border-green-300 transition-colors"
                       onClick={() => setShowRefundDetailModal(true)}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -689,7 +689,7 @@ export default function OrderDetail() {
                               key={idx}
                               src={url}
                               alt={`Refund proof ${idx + 1}`}
-                              className="w-14 h-14 object-cover rounded-lg border border-green-200"
+                              className="w-14 h-14 object-cover rounded-xl border border-green-200"
                             />
                           ))}
                         </div>
@@ -698,7 +698,7 @@ export default function OrderDetail() {
                   )}
                   {isSeller && refundRequested && order.refund && (
                     <div
-                      className="p-4 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer hover:border-amber-300 transition-colors"
+                      className="p-4 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer hover:border-amber-300 transition-colors"
                       onClick={() => setShowRefundDetailModal(true)}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -716,7 +716,7 @@ export default function OrderDetail() {
                               key={idx}
                               src={url}
                               alt={`Refund proof ${idx + 1}`}
-                              className="w-14 h-14 object-cover rounded-lg border border-amber-200"
+                              className="w-14 h-14 object-cover rounded-xl border border-amber-200"
                             />
                           ))}
                         </div>
@@ -734,7 +734,7 @@ export default function OrderDetail() {
       <Modal open={showCancelModal} onClose={() => setShowCancelModal(false)} title="Cancel Order">
         <p className="text-gray-600 mb-4">Are you sure you want to cancel this order?</p>
         <textarea
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          className="w-full px-3.5 py-2.5 border border-gray-200 hover:border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all"
           rows={3}
           placeholder="Reason for cancellation (optional)"
           value={cancelReason}
@@ -754,7 +754,7 @@ export default function OrderDetail() {
         <p className="text-gray-600 mb-2">Please provide a reason for your refund request.</p>
         <p className="text-xs text-gray-400 mb-4">The seller will review your request. Approved refunds will be processed back to your original payment method.</p>
         <textarea
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          className="w-full px-3.5 py-2.5 border border-gray-200 hover:border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all"
           rows={3}
           placeholder="Reason for refund (required)"
           value={refundReason}
@@ -781,7 +781,7 @@ export default function OrderDetail() {
                 <img
                   src={typeof file === 'string' ? file : URL.createObjectURL(file)}
                   alt={`Proof ${idx + 1}`}
-                  className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                  className="w-20 h-20 object-cover rounded-xl border border-gray-200"
                 />
                 <button
                   type="button"
@@ -835,7 +835,7 @@ export default function OrderDetail() {
                     key={idx}
                     src={url}
                     alt={`Refund proof ${idx + 1}`}
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                    className="w-32 h-32 object-cover rounded-xl border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={() => { setViewingImages(order.refund.images); setViewingIndex(idx); }}
                   />
                 ))}
@@ -899,7 +899,7 @@ export default function OrderDetail() {
         <p className="text-gray-600 mb-2">Process a refund for this order. The order will be cancelled and listing quantities restored.</p>
         <p className="text-xs text-gray-400 mb-4">For cash orders, the refund is handled in person. For online payments, the refund will be processed back to the original payment method.</p>
         <textarea
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          className="w-full px-3.5 py-2.5 border border-gray-200 hover:border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all"
           rows={3}
           placeholder="Reason for refund (required)"
           value={walkInRefundReason}

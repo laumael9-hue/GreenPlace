@@ -302,7 +302,7 @@ export default function Messages() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search people..."
-              className="pl-9 pr-4 py-2 w-full border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-colors"
+              className="pl-9 pr-4 py-2 w-full border border-gray-200 rounded-full text-sm bg-gray-50 focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 focus:bg-white transition-colors"
             />
           </div>
         </div>
@@ -401,7 +401,7 @@ export default function Messages() {
             <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
               <button
                 onClick={() => navigate('/dashboard/messages')}
-                className="lg:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                className="lg:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
