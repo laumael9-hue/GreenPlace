@@ -84,13 +84,15 @@ function HeroSection() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="grid lg:grid-cols-2 gap-14 lg:gap-16 items-center">
+        <div className="text-center lg:text-left">
         <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
           <Sparkles className="w-4 h-4 text-emerald-300" />
           <span className="text-sm font-medium text-white/90">Metro Cebu's #1 Sustainability Platform</span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-tight">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-tight lg:text-6xl xl:text-7xl">
           Sustainable Living
           <br />
           <span className="bg-gradient-to-r from-emerald-200 to-white bg-clip-text text-transparent">
@@ -98,12 +100,12 @@ function HeroSection() {
           </span>
         </h1>
 
-        <p className="mt-6 text-lg sm:text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
+        <p className="mt-6 text-lg sm:text-xl text-white/80 max-w-xl mx-auto lg:mx-0 leading-relaxed">
           Connect with waste management establishments, buy and sell recyclable materials,
           and join a community dedicated to making Metro Cebu greener.
         </p>
 
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
           <Link
             to="/register"
             className="group w-full sm:w-auto bg-white text-primary-700 px-8 py-4 rounded-xl font-bold hover:bg-emerald-50 transition-all duration-300 text-lg shadow-xl shadow-black/10 hover:shadow-2xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
@@ -119,8 +121,30 @@ function HeroSection() {
           </Link>
         </div>
 
+        </div>
+
+        {/* Hero photo (Unsplash, free to use: Nareeta Martin) */}
+        <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
+          <div className="absolute -inset-4 bg-white/10 rounded-[2rem] blur-2xl" />
+          <img
+            src="/images/hero-bins.jpg"
+            alt="Compost, general waste and recycling bins side by side"
+            className="relative w-full aspect-[4/3] object-cover rounded-3xl shadow-2xl ring-1 ring-white/30"
+          />
+          <div className="absolute -bottom-5 left-4 sm:left-6 flex items-center gap-3 bg-white rounded-2xl shadow-xl px-4 py-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center">
+              <Recycle className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-gray-900">Segregate at the source</p>
+              <p className="text-xs text-gray-500">Compost · Waste · Recycle</p>
+            </div>
+          </div>
+        </div>
+        </div>
+
         {/* Stats row */}
-        <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
+        <div className="mt-20 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto">
           {[
             { value: 35,  suffix: '+',  label: 'Establishments' },
             { value: 280, suffix: '+',  label: 'Active Members'  },
