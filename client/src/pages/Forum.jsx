@@ -471,7 +471,7 @@ export default function Forum() {
               type="text"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="What's your post about?"
               required
             />
@@ -482,7 +482,7 @@ export default function Forum() {
               value={newBody}
               onChange={(e) => setNewBody(e.target.value)}
               rows={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Share your thoughts..."
               required
             />
@@ -565,7 +565,7 @@ export default function Forum() {
       <Modal open={showReport} onClose={() => setShowReport(false)} title="Report Content">
         <form onSubmit={handleReport} className="space-y-4">
           {reportError && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
               {reportError}
             </p>
           )}
@@ -574,7 +574,7 @@ export default function Forum() {
             <select
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500"
               required
             >
               <option value="">Select a reason...</option>
@@ -592,7 +592,7 @@ export default function Forum() {
               value={reportDescription}
               onChange={(e) => setReportDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500"
               placeholder="Provide more context..."
             />
           </div>
