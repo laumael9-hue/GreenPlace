@@ -270,8 +270,8 @@ export default function ProductDetail() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Image Gallery */}
-          <div>
-            <div className="bg-white rounded-2xl border border-gray-200/70 overflow-hidden">
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <div className="bg-white rounded-3xl border border-gray-200/70 shadow-sm overflow-hidden">
               <div className="relative aspect-square bg-gray-100">
                 {images.length > 0 ? (
                   <>
@@ -312,8 +312,8 @@ export default function ProductDetail() {
                   <button
                     key={img.id}
                     onClick={() => setSelectedImage(i)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImage === i ? 'border-primary-500' : 'border-gray-200 hover:border-gray-300'
+                    className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${
+                      selectedImage === i ? 'border-primary-500 ring-2 ring-primary-100' : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <img src={img.image_url} alt="" className="w-full h-full object-cover" />
@@ -354,7 +354,7 @@ export default function ProductDetail() {
 
             {/* Price */}
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-primary-600">
+              <span className="text-4xl font-bold tracking-tight text-primary-600">
                 ₱{parseFloat(listing.price).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               </span>
               {listing.original_price && parseFloat(listing.original_price) > listing.price && (
@@ -370,24 +370,24 @@ export default function ProductDetail() {
             {/* Meta */}
             <div className="flex flex-wrap gap-3">
               {listing.condition && (
-                <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                <div className="flex items-center gap-1.5 text-sm text-gray-600 bg-white border border-gray-200/70 rounded-full px-3 py-1">
                   <Tag className="w-4 h-4" />
                   {CONDITION_LABELS[listing.condition] || listing.condition}
                 </div>
               )}
               {listing.quantity_available > 0 ? (
-                <div className="flex items-center gap-1.5 text-sm text-green-600">
+                <div className="flex items-center gap-1.5 text-sm text-green-700 bg-green-50 border border-green-100 rounded-full px-3 py-1">
                   <Package className="w-4 h-4" />
                   {listing.quantity_available} available
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-sm text-red-600">
+                <div className="flex items-center gap-1.5 text-sm text-red-700 bg-red-50 border border-red-100 rounded-full px-3 py-1">
                   <Package className="w-4 h-4" />
                   Out of stock
                 </div>
               )}
               {listing.city && (
-                <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                <div className="flex items-center gap-1.5 text-sm text-gray-600 bg-white border border-gray-200/70 rounded-full px-3 py-1">
                   <MapPin className="w-4 h-4" />
                   {listing.city}
                 </div>
