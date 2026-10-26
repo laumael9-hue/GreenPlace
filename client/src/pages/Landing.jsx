@@ -35,16 +35,16 @@ function useInView(options = {}) {
 function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-end overflow-hidden text-white">
-      {/* Full-bleed photo: Cebu City skyline across the bay (Unsplash, Pao Dayag) */}
+      {/* Full-bleed photo: Cebu waterfront and skyline (Unsplash, Jericho Padayhag) */}
       <img
         src="/images/hero-cebu.jpg"
-        alt="Cebu City skyline across the bay at sunset"
-        className="absolute inset-0 w-full h-full object-cover object-bottom scale-110 origin-bottom"
+        alt="Cebu waterfront with the bridge and city skyline"
+        className="absolute inset-0 w-full h-full object-cover object-bottom scale-125 origin-bottom brightness-110 saturate-110"
       />
       {/* Legibility + brand tint */}
-      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-gray-950/35 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-950/40 via-gray-950/10 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-gray-950/60 via-gray-950/10 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-gray-950/25 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-gray-950/30 via-gray-950/5 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-primary-950/45 via-transparent to-transparent" />
       
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 pb-14 sm:pb-20">
         <p className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium tracking-wide text-white/90 uppercase mb-5">
