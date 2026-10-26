@@ -551,7 +551,7 @@ export default function ForumThread() {
                 )}
 
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mt-2">{thread.title}</h1>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mt-2">{thread.title}</h1>
               <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                 <span>{thread.author?.first_name} {thread.author?.last_name}</span>
                 <span>{new Date(thread.created_at).toLocaleDateString('en-US', {

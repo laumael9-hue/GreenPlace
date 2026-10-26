@@ -171,7 +171,7 @@ export default function BusinessDetail() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Store className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Business Not Found</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 mb-2">Business Not Found</h1>
           <p className="text-gray-500 mb-6">{error || 'This business does not exist or is no longer available.'}</p>
           <Link to="/establishments" className="text-primary-600 hover:text-primary-700 font-medium">
             ← Back to Establishments
@@ -195,7 +195,7 @@ export default function BusinessDetail() {
         </Link>
 
         {/* Header */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+        <div className="bg-white rounded-2xl border border-gray-200/70 overflow-hidden mb-6">
           {business.cover_image_url && (
             <img src={business.cover_image_url} alt="" className="w-full h-48 object-cover" />
           )}
@@ -209,7 +209,7 @@ export default function BusinessDetail() {
                 </div>
               )}
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-gray-900">{business.name}</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{business.name}</h1>
                 <p className="text-gray-500 mt-1">{business.category}</p>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
                   {business.rating_avg > 0 && (

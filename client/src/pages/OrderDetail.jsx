@@ -301,7 +301,7 @@ export default function OrderDetail() {
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Order #{order.order_number}</h1>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Order #{order.order_number}</h1>
               <p className="text-sm text-gray-500 mt-1">
                 Placed on {new Date(order.created_at).toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </p>

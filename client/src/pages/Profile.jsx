@@ -159,7 +159,7 @@ export default function Profile() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Profile</h1>
         <p className="text-gray-500 mt-1">Manage your account information.</p>
       </div>
 

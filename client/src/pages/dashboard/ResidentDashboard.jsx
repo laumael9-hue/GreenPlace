@@ -37,7 +37,7 @@ const formatDate = (d) =>
 function SectionHeader({ icon, title, actionTo, actionLabel }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+      <h2 className="text-lg font-semibold tracking-tight text-gray-900 flex items-center gap-2">
         {icon}
         {title}
       </h2>
@@ -57,7 +57,7 @@ function RowSkeleton({ count = 4 }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {[...Array(count)].map((_, i) => (
-        <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
+        <div key={i} className="bg-white rounded-2xl border border-gray-200/70 overflow-hidden animate-pulse">
           <div className="h-40 bg-gray-200" />
           <div className="p-4 space-y-3">
             <div className="h-4 bg-gray-200 rounded w-3/4" />
@@ -107,7 +107,7 @@ function BecomeBusinessCard() {
   if (!business) {
     if (dismissed) return null;
     return (
-      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-primary-50 to-green-50 rounded-xl border border-primary-100">
+      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-primary-50 to-green-50 rounded-2xl border border-primary-100">
         <button
           onClick={dismiss}
           className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white/60 rounded-lg transition-colors"
@@ -137,7 +137,7 @@ function BecomeBusinessCard() {
 
   if (business.status === 'pending') {
     return (
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-amber-50 rounded-xl border border-amber-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-amber-50 rounded-2xl border border-amber-200">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
             <Clock className="w-6 h-6 text-amber-600" />
@@ -158,7 +158,7 @@ function BecomeBusinessCard() {
 
   if (business.status === 'rejected') {
     return (
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-red-50 rounded-xl border border-red-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-red-50 rounded-2xl border border-red-200">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
             <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -274,36 +274,38 @@ export default function ResidentDashboard() {
   return (
     <div className="space-y-8">
       {/* Hero: greeting + search */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 sm:p-8 text-white">
-        <p className="text-primary-100 text-sm font-medium">Welcome back,</p>
-        <h1 className="text-2xl sm:text-3xl font-bold mt-1">{firstName} 👋</h1>
-        <p className="text-primary-100 mt-1 text-sm sm:text-base">
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-600 to-emerald-500 rounded-3xl p-6 sm:p-10 text-white shadow-lg shadow-primary-600/20">
+        <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/3 w-56 h-56 rounded-full bg-emerald-300/20 blur-3xl" />
+        <p className="relative text-primary-100 text-sm font-medium">Welcome back,</p>
+        <h1 className="relative text-2xl sm:text-4xl font-bold tracking-tight mt-1">{firstName}</h1>
+        <p className="relative text-primary-100 mt-1 text-sm sm:text-base">
           Find recyclable materials, eco-friendly products, and local green stores.
         </p>
-        <form onSubmit={handleSearch} className="mt-5 relative max-w-xl">
+        <form onSubmit={handleSearch} className="mt-6 relative max-w-xl">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search products, materials, stores..."
-            className="w-full pl-11 pr-28 py-3 rounded-xl text-gray-900 text-sm bg-white border border-white/20 focus:ring-2 focus:ring-white outline-none"
+            className="w-full pl-11 pr-28 py-3.5 rounded-full text-gray-900 text-sm bg-white shadow-md focus:ring-2 focus:ring-white/70 outline-none"
           />
           <button
             type="submit"
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-5 py-2 rounded-full transition-colors"
           >
             Search
           </button>
         </form>
         {/* Category chips */}
         {!loading && categories.length > 0 && (
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="relative mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             {categories.map((cat) => (
               <Link
                 key={cat.id}
                 to={`/marketplace?category=${cat.id}`}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-white/15 hover:bg-white/25 border border-white/20 transition-colors whitespace-nowrap"
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/25 transition-colors whitespace-nowrap"
               >
                 {cat.name}
               </Link>
@@ -322,7 +324,7 @@ export default function ResidentDashboard() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-white rounded-xl border border-gray-200 animate-pulse" />
+              <div key={i} className="h-32 bg-white rounded-2xl border border-gray-200/70 animate-pulse" />
             ))}
           </div>
         ) : stores.length === 0 ? (

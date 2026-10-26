@@ -233,7 +233,7 @@ export default function ProductDetail() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900">Product Not Found</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Product Not Found</h1>
           <p className="mt-2 text-gray-500">{error}</p>
           <Link to="/marketplace" className="mt-6 inline-block">
             <Button>Back to Marketplace</Button>
@@ -271,7 +271,7 @@ export default function ProductDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Image Gallery */}
           <div>
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-200/70 overflow-hidden">
               <div className="relative aspect-square bg-gray-100">
                 {images.length > 0 ? (
                   <>
@@ -330,7 +330,7 @@ export default function ProductDetail() {
                 {listing.category && (
                   <Badge variant="neutral" className="mb-2">{listing.category.name}</Badge>
                 )}
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{listing.title}</h1>
+                <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">{listing.title}</h1>
                 <div className="flex items-center gap-2 mt-2">
                   <StarRating value={parseFloat(listing.rating_avg) || 0} size="sm" />
                   <span className="text-sm font-medium text-gray-700">

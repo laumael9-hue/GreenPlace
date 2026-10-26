@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Moderator Dashboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Moderator Dashboard</h1>
         <p className="text-gray-500 mt-1">System overview and management.</p>
       </div>
 
@@ -105,9 +105,9 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Link
           to="/admin/approvals"
-          className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all"
+          className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200/70 shadow-sm hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all"
         >
-          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
+          <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
             <Clock className="w-5 h-5" />
           </div>
           <div>
@@ -117,9 +117,9 @@ export default function AdminDashboard() {
         </Link>
         <Link
           to="/admin/approvals"
-          className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all"
+          className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200/70 shadow-sm hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all"
         >
-          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600">
+          <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center text-teal-600">
             <FolderCheck className="w-5 h-5" />
           </div>
           <div>
@@ -129,9 +129,9 @@ export default function AdminDashboard() {
         </Link>
         <Link
           to="/admin/reports"
-          className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all"
+          className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200/70 shadow-sm hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all"
         >
-          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-red-600">
+          <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
             <Flag className="w-5 h-5" />
           </div>
           <div>
@@ -139,8 +139,8 @@ export default function AdminDashboard() {
             <p className="text-xs text-gray-500">Open Reports</p>
           </div>
         </Link>
-        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+        <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200/70 shadow-sm">
+          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
             <HeartHandshake className="w-5 h-5" />
           </div>
           <div>
@@ -155,9 +155,9 @@ export default function AdminDashboard() {
           <Link
             key={action.to}
             to={action.to}
-            className="flex flex-col items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all text-center group"
+            className="flex flex-col items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200/70 shadow-sm hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all text-center group"
           >
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${action.color}`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${action.color}`}>
               {action.icon}
             </div>
             <span className="text-sm font-medium text-gray-700 group-hover:text-primary-600 transition-colors">{action.label}</span>
@@ -176,17 +176,17 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <div className="grid grid-cols-3 gap-4">
-            <Link to="/admin/users?role=resident" className="p-3 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition-colors">
+            <Link to="/admin/users?role=resident" className="p-3 bg-blue-50 rounded-xl text-center hover:bg-blue-100 transition-colors">
               <User className="w-5 h-5 text-blue-600 mx-auto mb-1" />
               <p className="text-2xl font-bold text-blue-700">{roleStats.residents}</p>
               <p className="text-xs text-blue-600">Residents</p>
             </Link>
-            <Link to="/admin/users?role=business" className="p-3 bg-amber-50 rounded-lg text-center hover:bg-amber-100 transition-colors">
+            <Link to="/admin/users?role=business" className="p-3 bg-amber-50 rounded-xl text-center hover:bg-amber-100 transition-colors">
               <Building2 className="w-5 h-5 text-amber-600 mx-auto mb-1" />
               <p className="text-2xl font-bold text-amber-700">{roleStats.businesses}</p>
               <p className="text-xs text-amber-600">Business</p>
             </Link>
-            <Link to="/admin/users?role=admin" className="p-3 bg-red-50 rounded-lg text-center hover:bg-red-100 transition-colors">
+            <Link to="/admin/users?role=admin" className="p-3 bg-red-50 rounded-xl text-center hover:bg-red-100 transition-colors">
               <Shield className="w-5 h-5 text-red-600 mx-auto mb-1" />
               <p className="text-2xl font-bold text-red-700">{roleStats.admins}</p>
               <p className="text-xs text-red-600">Moderators</p>
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-3">
               {pendingBusinesses.map(b => (
-                <div key={b.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={b.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{b.name}</p>
                     <p className="text-xs text-gray-500">{b.category} — {b.city}</p>
@@ -235,19 +235,19 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 bg-green-50 rounded-lg text-center">
+            <div className="p-3 bg-green-50 rounded-xl text-center">
               <p className="text-2xl font-bold text-green-700">{biz.approved}</p>
               <p className="text-xs text-green-600">Approved</p>
             </div>
-            <div className="p-3 bg-amber-50 rounded-lg text-center">
+            <div className="p-3 bg-amber-50 rounded-xl text-center">
               <p className="text-2xl font-bold text-amber-700">{biz.pending}</p>
               <p className="text-xs text-amber-600">Pending</p>
             </div>
-            <div className="p-3 bg-red-50 rounded-lg text-center">
+            <div className="p-3 bg-red-50 rounded-xl text-center">
               <p className="text-2xl font-bold text-red-700">{biz.rejected}</p>
               <p className="text-xs text-red-600">Rejected</p>
             </div>
-            <div className="p-3 bg-orange-50 rounded-lg text-center">
+            <div className="p-3 bg-orange-50 rounded-xl text-center">
               <p className="text-2xl font-bold text-orange-700">{biz.suspended}</p>
               <p className="text-xs text-orange-600">Suspended</p>
             </div>
@@ -264,19 +264,19 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 bg-purple-50 rounded-lg text-center">
+            <div className="p-3 bg-purple-50 rounded-xl text-center">
               <p className="text-2xl font-bold text-purple-700">{stats.forum.threads}</p>
               <p className="text-xs text-purple-600">Forum Threads</p>
             </div>
-            <div className="p-3 bg-indigo-50 rounded-lg text-center">
+            <div className="p-3 bg-indigo-50 rounded-xl text-center">
               <p className="text-2xl font-bold text-indigo-700">{stats.forum.posts}</p>
               <p className="text-xs text-indigo-600">Forum Posts</p>
             </div>
-            <div className="p-3 bg-teal-50 rounded-lg text-center">
+            <div className="p-3 bg-teal-50 rounded-xl text-center">
               <p className="text-2xl font-bold text-teal-700">{stats.listings.total}</p>
               <p className="text-xs text-teal-600">Listings</p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg text-center">
+            <div className="p-3 bg-gray-50 rounded-xl text-center">
               <p className="text-2xl font-bold text-gray-700">{stats.users.inactive}</p>
               <p className="text-xs text-gray-600">Inactive Users</p>
             </div>

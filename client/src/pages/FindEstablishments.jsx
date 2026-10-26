@@ -277,7 +277,7 @@ export default function FindEstablishments() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Find Establishments</h1>
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Find Establishments</h1>
               <p className="mt-1 text-gray-500">
                 Discover waste management facilities, recycling centers, and junk shops near you
               </p>
@@ -632,7 +632,7 @@ export default function FindEstablishments() {
             {loading ? (
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+                  <div key={i} className="bg-white rounded-2xl border border-gray-200/70 p-4 animate-pulse">
                     <div className="flex gap-3">
                       <div className="w-12 h-12 bg-gray-200 rounded-lg" />
                       <div className="flex-1 space-y-2">

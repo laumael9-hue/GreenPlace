@@ -188,7 +188,7 @@ export default function Checkout() {
             <ArrowLeft className="w-4 h-4" />
             Back to Cart
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Checkout</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Checkout</h1>
           <p className="mt-1 text-gray-500">Review your order and confirm pickup details</p>
 
           <div className="flex items-center mt-6 max-w-xs">

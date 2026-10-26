@@ -171,7 +171,7 @@ export default function Cart() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Shopping Cart</h1>
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Shopping Cart</h1>
               <p className="mt-1 text-gray-500">
                 {itemCount} {itemCount === 1 ? 'item' : 'items'} from {storeGroups.length} {storeGroups.length === 1 ? 'store' : 'stores'}
               </p>

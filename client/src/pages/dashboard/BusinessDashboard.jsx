@@ -71,7 +71,7 @@ export default function BusinessDashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Business Dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Business Dashboard</h1>
           <p className="text-gray-500 mt-1">Get started by registering your business.</p>
         </div>
         <Card>
@@ -99,7 +99,7 @@ export default function BusinessDashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Business Dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Business Dashboard</h1>
           <p className="text-gray-500 mt-1">Complete your registration to access all features.</p>
         </div>
 
@@ -183,12 +183,12 @@ export default function BusinessDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Business Dashboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Business Dashboard</h1>
         <p className="text-gray-500 mt-1">Manage your business, listings, and orders.</p>
       </div>
 
       {statusInfo && (
-        <div className={`p-4 border rounded-xl ${statusInfo.color}`}>
+        <div className={`p-4 border rounded-2xl ${statusInfo.color}`}>
           <div className="flex items-start gap-3">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-white ${statusInfo.iconColor}`}>
               {statusInfo.icon}
@@ -213,9 +213,9 @@ export default function BusinessDashboard() {
           <Link
             key={action.to}
             to={action.to}
-            className="flex flex-col items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all text-center group"
+            className="flex flex-col items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200/70 shadow-sm hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all text-center group"
           >
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${action.color}`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${action.color}`}>
               {action.icon}
             </div>
             <span className="text-sm font-medium text-gray-700 group-hover:text-primary-600 transition-colors">{action.label}</span>
