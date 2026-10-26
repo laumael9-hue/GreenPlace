@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  MessageCircle, Flag, Eye, Pin, Lock, Unlock, Loader2, ChevronLeft, ChevronRight, Megaphone,
+  MessageCircle, Flag, Eye, Pin, Lock, Unlock, Loader2, ChevronLeft, ChevronRight, Megaphone, Trash2,
 } from 'lucide-react';
 import api from '../../lib/api';
 import Card from '../../components/ui/Card';
@@ -34,6 +34,8 @@ export default function ForumModeration() {
   const [resolveNote, setResolveNote] = useState('');
   const [resolveError, setResolveError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState(null);
+  const [removeError, setRemoveError] = useState('');
 
   const fetchReports = useCallback(async (page = 1) => {
     setLoading(true);
@@ -134,6 +136,21 @@ export default function ForumModeration() {
       fetchThreads(threadPagination.page);
     } catch (err) {
       console.error('Failed to moderate thread:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRemoveThread = async () => {
+    if (!removeTarget) return;
+    setActionLoading(true);
+    setRemoveError('');
+    try {
+      await api.delete(`/forum/threads/${removeTarget.id}`);
+      setRemoveTarget(null);
+      fetchThreads(threadPagination.page);
+    } catch (err) {
+      setRemoveError(err?.response?.data?.error || 'Failed to remove thread. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -397,6 +414,14 @@ export default function ForumModeration() {
                       >
                         <Eye className="w-4 h-4" />
                       </Link>
+                      <button
+                        onClick={() => { setRemoveError(''); setRemoveTarget(thread); }}
+                        disabled={actionLoading}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Remove thread"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </Card>
@@ -421,6 +446,27 @@ export default function ForumModeration() {
           )}
         </div>
       )}
+
+      <Modal open={!!removeTarget} onClose={() => setRemoveTarget(null)} title="Remove Thread" maxWidth="max-w-sm">
+        <div className="space-y-4">
+          {removeError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {removeError}
+            </p>
+          )}
+          <p className="text-sm text-gray-600">
+            This permanently deletes <span className="font-medium text-gray-900">{removeTarget?.title}</span> and
+            all of its replies. This cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setRemoveTarget(null)}>Cancel</Button>
+            <Button type="button" variant="danger" onClick={handleRemoveThread} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Remove
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={showResolveModal} onClose={() => setShowResolveModal(false)} title="Resolve Report">
         <form onSubmit={handleResolve} className="space-y-4">
