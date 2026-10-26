@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Leaf, Ban, LogOut, AlertCircle } from 'lucide-react';
+import { Ban, LogOut, AlertCircle } from 'lucide-react';
+import { LogoMark } from '../components/ui/Logo';
 
 export default function Suspended() {
   const { isAuthenticated, loading, profile, suspensionReason, logout } = useAuth();
@@ -33,8 +34,8 @@ export default function Suspended() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <Link to="/" className="w-12 h-12 bg-primary-600 rounded-lg flex items-center justify-center hover:bg-primary-700 transition-colors">
-            <Leaf className="w-7 h-7 text-white" />
+          <Link to="/" className="hover:opacity-90 transition-opacity">
+            <LogoMark className="w-12 h-12" />
           </Link>
         </div>
       </div>

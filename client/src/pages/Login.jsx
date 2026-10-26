@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SocialLogin from '../components/ui/SocialLogin';
 import { Leaf, Eye, EyeOff, AlertCircle, ShoppingBag, MapPin, Users } from 'lucide-react';
+import Logo from '../components/ui/Logo';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -55,10 +56,7 @@ export default function Login() {
 
         {/* Logo */}
         <Link to="/" className="relative flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-            <Leaf className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-bold text-white">GreenPlace</span>
+          <Logo tone="light" size="lg" />
         </Link>
 
         {/* Tagline + feature bullets */}
@@ -103,10 +101,7 @@ export default function Login() {
         {/* Mobile-only logo */}
         <div className="flex md:hidden justify-center mb-8">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">GreenPlace</span>
+            <Logo size="lg" />
           </Link>
         </div>
 

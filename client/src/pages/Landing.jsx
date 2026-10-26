@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle, ArrowRight, ArrowUpRight, Search, Home, Building2, CheckCircle2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle, ArrowRight, ArrowUpRight, Home, Building2, CheckCircle2 } from 'lucide-react';
 import ContourArt from '../components/landing/ContourArt';
 
 // ============================================================
@@ -33,62 +33,32 @@ function useInView(options = {}) {
 // ============================================================
 
 function HeroSection() {
-  const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const q = query.trim();
-    navigate(q ? `/marketplace?search=${encodeURIComponent(q)}` : '/marketplace');
-  };
-
   return (
     <section className="relative min-h-screen flex items-end overflow-hidden text-white">
-      {/* Full-bleed photo: aerial causeway through mangroves (Unsplash, Jerry Manlangit) */}
+      {/* Full-bleed photo: Cebu City skyline across the bay (Unsplash, Pao Dayag) */}
       <img
-        src="/images/hero-aerial.jpg"
-        alt="Aerial view of a road crossing mangroves and coastal waters in the Philippines"
-        className="absolute inset-0 w-full h-full object-cover brightness-110 saturate-125"
+        src="/images/hero-cebu.jpg"
+        alt="Cebu City skyline across the bay at sunset"
+        className="absolute inset-0 w-full h-full object-cover object-bottom scale-110 origin-bottom"
       />
       {/* Legibility + brand tint */}
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-950/55 via-gray-950/20 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-gray-950/50 via-transparent to-gray-950/10" />
-      <div className="absolute inset-0 bg-primary-600/10 mix-blend-multiply" />
-
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-gray-950/35 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-gray-950/40 via-gray-950/10 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-gray-950/60 via-gray-950/10 to-transparent" />
+      
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 pb-14 sm:pb-20">
         <p className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium tracking-wide text-white/90 uppercase mb-5">
           <span className="w-8 h-px bg-white/70" />
           Metro Cebu's sustainability platform
         </p>
 
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight leading-[1.02] max-w-4xl">
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.02] max-w-4xl">
           Sustainable living,
           <br />
           made simple.
         </h1>
 
-        <form
-          onSubmit={handleSearch}
-          className="mt-9 flex items-center gap-2 max-w-lg bg-white/15 backdrop-blur-md border border-white/30 rounded-full pl-5 pr-1.5 py-1.5 focus-within:bg-white/25 transition-colors"
-        >
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search recyclables, products, materials..."
-            aria-label="Search the marketplace"
-            className="flex-1 min-w-0 bg-transparent text-white placeholder-white/65 text-sm sm:text-base focus:outline-none py-2"
-          />
-          <button
-            type="submit"
-            aria-label="Search"
-            className="shrink-0 w-10 h-10 rounded-full bg-white text-primary-700 flex items-center justify-center hover:bg-primary-50 transition-colors"
-          >
-            <Search className="w-5 h-5" />
-          </button>
-        </form>
-
-        <div className="mt-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="mt-9 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <p className="text-base sm:text-lg text-white/85 max-w-xl leading-relaxed">
             Find waste management establishments, trade recyclable materials, and join a community
             making Metro Cebu greener, one small action at a time.

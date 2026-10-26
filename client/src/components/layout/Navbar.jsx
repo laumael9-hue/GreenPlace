@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Menu, X, ShoppingBag, ChevronDown, User, LayoutDashboard, LogOut } from 'lucide-react';
+import { Menu, X, ShoppingBag, ChevronDown, User, LayoutDashboard, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import Avatar from '../ui/Avatar';
 import { roleLabel } from '../../lib/roleLabel';
+import Logo from '../ui/Logo';
 
 export default function Navbar({ onMenuToggle, menuOpen }) {
   const { isAuthenticated, profile, logout } = useAuth();
@@ -38,10 +39,7 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
             {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-white" />
-            </div>
-            <span className={`text-lg font-bold hidden sm:block ${dark ? "text-white" : "text-gray-900"}`}>GreenPlace</span>
+            <Logo tone={dark ? "light" : "dark"} hideTextOnMobile />
           </Link>
         </div>
 

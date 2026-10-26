@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Leaf, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { LogoMark } from '../components/ui/Logo';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -41,9 +42,7 @@ export default function ResetPassword() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-12 h-12 bg-primary-600 rounded-lg flex items-center justify-center">
-            <Leaf className="w-7 h-7 text-white" />
-          </div>
+          <LogoMark className="w-12 h-12" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">Set new password</h2>
       </div>

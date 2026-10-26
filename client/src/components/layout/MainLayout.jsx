@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import MobileMenu from './MobileMenu';
 import { Link } from 'react-router-dom';
-import { Leaf } from 'lucide-react';
+import Logo from '../ui/Logo';
 
 export default function MainLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -24,10 +24,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                <Leaf className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold">GreenPlace</span>
+              <Logo tone="light" size="lg" />
             </div>
             <p className="text-gray-400 text-sm">Promoting sustainable living in Metro Cebu through proper waste management and recycling.</p>
           </div>

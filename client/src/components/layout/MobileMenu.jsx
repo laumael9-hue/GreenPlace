@@ -1,11 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import NavItem from './NavItem';
 import { useAuth } from '../../context/AuthContext';
 import { useMessages } from '../../context/MessagesContext';
 import { useNotifications } from '../../context/NotificationsContext';
 import { getNavGroups, publicNavGroups } from './navConfig';
+import Logo from '../ui/Logo';
 
 export default function MobileMenu({ open, onClose }) {
   const { isAuthenticated, profile } = useAuth();
@@ -33,10 +33,7 @@ export default function MobileMenu({ open, onClose }) {
       <div className="fixed inset-y-0 left-0 w-72 bg-white shadow-xl overflow-y-auto">
         <div className="flex items-center justify-between px-6 h-16 border-b border-gray-100">
           <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-bold text-gray-900">GreenPlace</span>
+            <Logo />
           </Link>
         </div>
         <nav className="px-3 py-4 space-y-4">
