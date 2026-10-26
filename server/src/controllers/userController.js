@@ -26,6 +26,51 @@ const revokeAllSessions = async (userId) => {
   }
 };
 
+const OPEN_ORDER_STATUSES = ['pending', 'confirmed', 'processing'];
+const OPEN_DROP_OFF_STATUSES = ['scheduled', 'in_transit'];
+
+// Cancels everything still in flight for the user and takes their storefront down,
+// so a deleted account never leaves live orders, listings or a visible store behind.
+const closeOutUserActivity = async (userId) => {
+  const { data: businesses } = await supabaseAdmin
+    .from('businesses')
+    .select('id')
+    .eq('owner_id', userId)
+    .is('deleted_at', null);
+  const businessIds = (businesses || []).map(b => b.id);
+
+  await supabaseAdmin
+    .from('orders')
+    .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancellation_reason: 'Account deleted' })
+    .eq('buyer_id', userId)
+    .in('status', OPEN_ORDER_STATUSES);
+
+  if (businessIds.length > 0) {
+    await supabaseAdmin
+      .from('orders')
+      .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancellation_reason: 'Seller account deleted' })
+      .in('business_id', businessIds)
+      .in('status', OPEN_ORDER_STATUSES);
+
+    await supabaseAdmin
+      .from('businesses')
+      .update({ deleted_at: new Date().toISOString() })
+      .in('id', businessIds);
+  }
+
+  await supabaseAdmin
+    .from('drop_offs')
+    .update({ status: 'cancelled' })
+    .eq('user_id', userId)
+    .in('status', OPEN_DROP_OFF_STATUSES);
+
+  await supabaseAdmin
+    .from('listings')
+    .update({ status: 'archived' })
+    .eq('seller_id', userId)
+    .in('status', ['active', 'pending', 'draft']);
+};
+
 const anonymizeUser = async (userId, performedBy = null) => {
   const anonymizedEmail = `deleted-${userId.toString().slice(0, 8)}@deleted.local`;
 
@@ -330,26 +375,7 @@ const deleteUser = async (req, res) => {
     if (immediate) {
       const deps = await checkDeletionDependencies(id);
 
-      if (Object.values(deps).some(v => v > 0)) {
-        await supabaseAdmin
-          .from('orders')
-          .update({ status: 'cancelled' })
-          .eq('buyer_id', id)
-          .in('status', ['pending', 'confirmed', 'processing']);
-
-        await supabaseAdmin
-          .from('drop_offs')
-          .update({ status: 'cancelled' })
-          .eq('user_id', id)
-          .in('status', ['scheduled', 'in_transit']);
-
-        await supabaseAdmin
-          .from('listings')
-          .update({ status: 'archived' })
-          .eq('seller_id', id)
-          .eq('status', 'active');
-      }
-
+      await closeOutUserActivity(id);
       await revokeAllSessions(id);
       await anonymizeUser(id, req.user.id);
 
@@ -372,6 +398,7 @@ const deleteUser = async (req, res) => {
       })
       .eq('id', id);
 
+    await closeOutUserActivity(id);
     await revokeAllSessions(id);
 
     await logAuditAction(req.user.id, 'delete_user_pending', id, {
@@ -412,6 +439,39 @@ const selfDeleteAccount = async (req, res) => {
       return res.status(400).json({ error: 'Account is already pending deletion. Contact support to reverse.' });
     }
 
+    // Like Shopee: an account with unfinished orders cannot be deleted until they are settled.
+    const { count: openBuying } = await supabaseAdmin
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('buyer_id', userId)
+      .in('status', OPEN_ORDER_STATUSES);
+
+    const { data: ownedBusinesses } = await supabaseAdmin
+      .from('businesses')
+      .select('id')
+      .eq('owner_id', userId)
+      .is('deleted_at', null);
+    const ownedIds = (ownedBusinesses || []).map(b => b.id);
+
+    let openSelling = 0;
+    if (ownedIds.length > 0) {
+      const { count } = await supabaseAdmin
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .in('business_id', ownedIds)
+        .in('status', OPEN_ORDER_STATUSES);
+      openSelling = count || 0;
+    }
+
+    if ((openBuying || 0) > 0 || openSelling > 0) {
+      return res.status(409).json({
+        error: 'You still have unfinished orders. Complete or cancel them before deleting your account.',
+        code: 'OPEN_ORDERS',
+        open_purchases: openBuying || 0,
+        open_sales: openSelling,
+      });
+    }
+
     await supabaseAdmin
       .from('profiles')
       .update({
@@ -420,6 +480,8 @@ const selfDeleteAccount = async (req, res) => {
       })
       .eq('id', userId);
 
+    // Hide the storefront and listings straight away so they leave search and recommendations.
+    await closeOutUserActivity(userId);
     await revokeAllSessions(userId);
 
     await logAuditAction(userId, 'self_delete_pending', userId, {
@@ -463,6 +525,14 @@ const reactivateDeletedAccount = async (req, res) => {
       return res.status(400).json({ error: 'Account is not pending deletion' });
     }
 
+    // Bring back storefronts that were hidden when deletion was requested.
+    // Archived listings stay archived; the seller republishes them.
+    await supabaseAdmin
+      .from('businesses')
+      .update({ deleted_at: null })
+      .eq('owner_id', id)
+      .gte('deleted_at', profile.pending_deletion_at);
+
     const { data: updated, error } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -492,68 +562,53 @@ const reactivateDeletedAccount = async (req, res) => {
   }
 };
 
+// Anonymizes every account whose grace period has ended. Used by the scheduler and the admin endpoint.
+const runExpiredDeletions = async () => {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - GRACE_PERIOD_DAYS);
+
+  const { data: expiredUsers, error: fetchError } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .not('pending_deletion_at', 'is', null)
+    .is('deleted_at', null)
+    .lte('pending_deletion_at', cutoffDate.toISOString());
+
+  if (fetchError) {
+    throw fetchError;
+  }
+
+  let processed = 0;
+  let failed = 0;
+
+  for (const user of expiredUsers || []) {
+    try {
+      await closeOutUserActivity(user.id);
+      await revokeAllSessions(user.id);
+      await anonymizeUser(user.id, null);
+
+      await logAuditAction(null, 'auto_delete_expired', user.id, {
+        grace_period_days: GRACE_PERIOD_DAYS,
+      });
+
+      processed++;
+    } catch (err) {
+      console.error(`Failed to process deletion for user ${user.id}:`, err);
+      failed++;
+    }
+  }
+
+  return { processed, failed };
+};
+
 const processExpiredDeletions = async (req, res) => {
   try {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - GRACE_PERIOD_DAYS);
-
-    const { data: expiredUsers, error: fetchError } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .not('pending_deletion_at', 'is', null)
-      .is('deleted_at', null)
-      .lte('pending_deletion_at', cutoffDate.toISOString());
-
-    if (fetchError) {
-      return res.status(400).json({ error: fetchError.message });
-    }
-
-    if (!expiredUsers || expiredUsers.length === 0) {
-      return res.json({
-        message: 'No expired deletions to process',
-        processed: 0,
-      });
-    }
-
-    let processed = 0;
-    let failed = 0;
-
-    for (const user of expiredUsers) {
-      try {
-        await supabaseAdmin
-          .from('orders')
-          .update({ status: 'cancelled' })
-          .eq('buyer_id', user.id)
-          .in('status', ['pending', 'confirmed', 'processing']);
-
-        await supabaseAdmin
-          .from('drop_offs')
-          .update({ status: 'cancelled' })
-          .eq('user_id', user.id)
-          .in('status', ['scheduled', 'in_transit']);
-
-        await supabaseAdmin
-          .from('listings')
-          .update({ status: 'archived' })
-          .eq('seller_id', user.id)
-          .eq('status', 'active');
-
-        await revokeAllSessions(user.id);
-        await anonymizeUser(user.id, null);
-
-        await logAuditAction(null, 'auto_delete_expired', user.id, {
-          grace_period_days: GRACE_PERIOD_DAYS,
-        });
-
-        processed++;
-      } catch (err) {
-        console.error(`Failed to process deletion for user ${user.id}:`, err);
-        failed++;
-      }
-    }
+    const { processed, failed } = await runExpiredDeletions();
 
     res.json({
-      message: `Processed ${processed} expired deletions (${failed} failed)`,
+      message: processed === 0 && failed === 0
+        ? 'No expired deletions to process'
+        : `Processed ${processed} expired deletions (${failed} failed)`,
       processed,
       failed,
     });
@@ -719,6 +774,7 @@ module.exports = {
   selfDeleteAccount,
   reactivateDeletedAccount,
   processExpiredDeletions,
+  runExpiredDeletions,
   getDeletionDependencies,
   uploadAvatar,
   removeAvatar,

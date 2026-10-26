@@ -196,6 +196,9 @@ const LISTING_CARD_SELECT = `
   listing_images(id, image_url, alt_text, is_primary, sort_order)
 `;
 
+// Inner join on the seller so listings from suspended or deleted accounts are never recommended
+const RECOMMENDED_CARD_SELECT = LISTING_CARD_SELECT.replace('seller:profiles(', 'seller:profiles!inner(');
+
 const enrichListings = (listings) =>
   (listings || []).map(l => ({
     ...l,
@@ -258,8 +261,9 @@ const getRecommendedListings = async (req, res) => {
             if (categoryIds.length > 0) {
               const { data: byCategory } = await supabaseAdmin
                 .from('listings')
-                .select(LISTING_CARD_SELECT)
+                .select(RECOMMENDED_CARD_SELECT)
                 .eq('status', 'active')
+                .eq('seller.is_active', true)
                 .in('category_id', categoryIds)
                 .order('rating_avg', { ascending: false })
                 .range(0, limitNum * 3 - 1);
@@ -271,8 +275,9 @@ const getRecommendedListings = async (req, res) => {
               if (filter) {
                 const { data: byMaterial } = await supabaseAdmin
                   .from('listings')
-                  .select(LISTING_CARD_SELECT)
+                  .select(RECOMMENDED_CARD_SELECT)
                   .eq('status', 'active')
+                  .eq('seller.is_active', true)
                   .or(filter)
                   .order('rating_avg', { ascending: false })
                   .range(0, limitNum * 2 - 1);
@@ -304,8 +309,9 @@ const getRecommendedListings = async (req, res) => {
           if (filter) {
             const { data: byDropOff } = await supabaseAdmin
               .from('listings')
-              .select(LISTING_CARD_SELECT)
+              .select(RECOMMENDED_CARD_SELECT)
               .eq('status', 'active')
+              .eq('seller.is_active', true)
               .or(filter)
               .order('rating_avg', { ascending: false })
               .range(0, limitNum * 2 - 1);
@@ -334,8 +340,9 @@ const getRecommendedListings = async (req, res) => {
       const excluded = [...seen];
       let fillQuery = supabaseAdmin
         .from('listings')
-        .select(LISTING_CARD_SELECT)
-        .eq('status', 'active');
+        .select(RECOMMENDED_CARD_SELECT)
+        .eq('status', 'active')
+        .eq('seller.is_active', true);
       if (excluded.length > 0) {
         fillQuery = fillQuery.not('id', 'in', `(${excluded.join(',')})`);
       }
@@ -355,8 +362,9 @@ const getRecommendedListings = async (req, res) => {
       if (recommendations.length < limitNum) {
         let newQuery = supabaseAdmin
           .from('listings')
-          .select(LISTING_CARD_SELECT)
-          .eq('status', 'active');
+          .select(RECOMMENDED_CARD_SELECT)
+          .eq('status', 'active')
+          .eq('seller.is_active', true);
         if (fillSeen.size > 0) {
           newQuery = newQuery.not('id', 'in', `(${[...fillSeen].join(',')})`);
         }

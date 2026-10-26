@@ -51,6 +51,7 @@ const messageRoutes = require('./routes/messages');
 const notificationRoutes = require('./routes/notifications');
 const reviewRoutes = require('./routes/reviews');
 const adminRoutes = require('./routes/admin');
+const { runExpiredDeletions } = require('./controllers/userController');
 // Throttle credential endpoints against brute force
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -83,8 +84,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Anonymize accounts whose 30-day deletion grace period has ended
+const DELETION_SWEEP_MS = 60 * 60 * 1000;
+const sweepExpiredDeletions = async () => {
+  try {
+    const { processed, failed } = await runExpiredDeletions();
+    if (processed || failed) {
+      console.log(`Deletion sweep: ${processed} anonymized, ${failed} failed`);
+    }
+  } catch (err) {
+    console.error('Deletion sweep error:', err);
+  }
+};
+
 app.listen(PORT, () => {
   console.log(`GreenPlace API server running on port ${PORT}`);
+  if (process.env.DISABLE_DELETION_SWEEP !== 'true') {
+    sweepExpiredDeletions();
+    setInterval(sweepExpiredDeletions, DELETION_SWEEP_MS).unref();
+  }
 });
 
 module.exports = app;
