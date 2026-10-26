@@ -16,6 +16,13 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
   // Landing page has a dark hero: float the navbar over it instead of a white bar.
   const dark = pathname === '/' && !isAuthenticated;
 
+  const pill = (to) => {
+    const active = to === '/' ? pathname === '/' : pathname.startsWith(to);
+    const base = 'text-sm font-medium px-4 py-2 rounded-full transition-colors ';
+    if (dark) return base + (active ? 'bg-white text-primary-700' : 'text-white/90 hover:text-white hover:bg-white/10');
+    return base + (active ? 'bg-primary-600 text-white' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100');
+  };
+
   const dashboardLink = profile?.role === 'admin' ? '/admin' : '/dashboard';
 
   useEffect(() => {
@@ -29,12 +36,12 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
   }, []);
 
   return (
-    <header className={dark ? "absolute top-0 inset-x-0 z-40 px-3 sm:px-6 pt-3 sm:pt-5" : "sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100"}>
-      <div className={`flex items-center justify-between h-16 px-4 sm:px-6 ${dark ? "max-w-6xl mx-auto rounded-full bg-white/15 backdrop-blur-md border border-white/30 shadow-lg shadow-black/10" : ""}`}>
+    <header className={dark ? "absolute top-0 inset-x-0 z-40 px-3 sm:px-6 pt-3 sm:pt-5" : "sticky top-0 z-40 px-3 sm:px-6 pt-3 pb-3"}>
+      <div className={`flex items-center justify-between h-16 px-4 sm:px-6 mx-auto rounded-full backdrop-blur-md ${dark ? "max-w-6xl bg-white/15 border border-white/30 shadow-lg shadow-black/10" : "max-w-7xl bg-white/85 border border-gray-200/80 shadow-sm"}`}>
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuToggle}
-            className={`lg:hidden p-2 rounded-lg ${dark ? "text-white hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"}`}
+            className={`lg:hidden p-2 rounded-full ${dark ? "text-white hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"}`}
           >
             {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -43,14 +50,12 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
           </Link>
         </div>
 
-        <nav className={`hidden md:flex items-center ${dark ? "gap-1" : "gap-8"}`}>
-          {dark && (
-            <Link to="/" className="text-sm font-medium bg-white text-primary-700 px-5 py-2 rounded-full">Home</Link>
-          )}
-          <Link to="/establishments" className={`text-sm transition-colors ${dark ? "text-white/90 hover:text-white px-4 py-2" : "text-gray-600 hover:text-primary-600"}`}>Establishments</Link>
-          <Link to="/marketplace" className={`text-sm transition-colors ${dark ? "text-white/90 hover:text-white px-4 py-2" : "text-gray-600 hover:text-primary-600"}`}>Marketplace</Link>
+        <nav className="hidden md:flex items-center gap-1">
+          {!isAuthenticated && <Link to="/" className={pill("/")}>Home</Link>}
+          <Link to="/establishments" className={pill("/establishments")}>Establishments</Link>
+          <Link to="/marketplace" className={pill("/marketplace")}>Marketplace</Link>
           {!isAuthenticated && (
-            <Link to="/forum" className={`text-sm transition-colors ${dark ? "text-white/90 hover:text-white px-4 py-2" : "text-gray-600 hover:text-primary-600"}`}>Forum</Link>
+            <Link to="/forum" className={pill("/forum")}>Forum</Link>
           )}
         </nav>
 
@@ -72,7 +77,7 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
               <div ref={profileRef} className="relative hidden sm:block">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors"
+                  className="flex items-center gap-2 hover:bg-gray-100 rounded-full pl-1.5 pr-3 py-1 transition-colors"
                 >
                   <Avatar name={`${profile?.first_name} ${profile?.last_name}`} size="sm" src={profile?.avatar_url} />
                   <span className="hidden md:inline text-sm text-gray-700 font-medium">{profile?.first_name}</span>
@@ -80,7 +85,7 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
                 </button>
 
                 {profileOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg py-1 z-50">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl border border-gray-200/70 shadow-xl py-1.5 z-50">
                     <div className="px-4 py-2.5 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-900">{profile?.first_name} {profile?.last_name}</p>
                       <p className="text-xs text-gray-500 capitalize">{roleLabel(profile?.role)}</p>
@@ -112,8 +117,8 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
             </>
           ) : (
             <div className="flex items-center gap-3">
-              <Link to="/login" className={`text-sm transition-colors ${dark ? "text-white font-medium border border-white/60 hover:bg-white/15 px-5 py-2 rounded-full" : "text-gray-600 hover:text-primary-600"}`}>Login</Link>
-              <Link to="/register" className={dark ? "text-sm font-semibold bg-white text-primary-700 px-5 py-2 rounded-full hover:bg-primary-50 transition-colors shadow-sm" : "text-sm bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"}>Get Started</Link>
+              <Link to="/login" className={`text-sm transition-colors ${dark ? "text-white font-medium border border-white/60 hover:bg-white/15 px-5 py-2 rounded-full" : "text-gray-700 font-medium border border-gray-300 hover:bg-gray-50 px-5 py-2 rounded-full"}`}>Login</Link>
+              <Link to="/register" className={dark ? "text-sm font-semibold bg-white text-primary-700 px-5 py-2 rounded-full hover:bg-primary-50 transition-colors shadow-sm" : "text-sm font-semibold bg-primary-600 text-white px-5 py-2 rounded-full hover:bg-primary-700 transition-colors shadow-sm"}>Get Started</Link>
             </div>
           )}
         </div>

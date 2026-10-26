@@ -12,7 +12,7 @@ export default function Sidebar({ role = 'resident' }) {
   const groups = getNavGroups(role, unreadCount, notifCount);
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-gray-200 min-h-screen">
+    <aside className="hidden lg:flex lg:flex-col lg:w-64 shrink-0 bg-white border-r border-gray-200/70 sticky top-0 h-screen">
       <div className="flex items-center gap-2.5 px-6 h-16 border-b border-gray-100">
         <Link to="/" className="flex items-center gap-2.5">
           <Logo />

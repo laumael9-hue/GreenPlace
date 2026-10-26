@@ -48,12 +48,12 @@ export default function DashboardLayout() {
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
-          <div className="flex items-center justify-between h-16 px-4 sm:px-6">
+        <header className="sticky top-0 z-40 px-4 sm:px-6 pt-3">
+          <div className="flex items-center justify-between h-14 px-3 sm:px-4 rounded-full bg-white/85 backdrop-blur-md border border-gray-200/80 shadow-sm">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-full"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -64,7 +64,7 @@ export default function DashboardLayout() {
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="pl-9 pr-4 py-2 w-64 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-colors"
+                  className="pl-9 pr-4 py-2 w-64 border border-gray-200 rounded-full text-sm bg-gray-50 focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 focus:bg-white transition-all"
                 />
               </div>
             </div>
@@ -74,7 +74,7 @@ export default function DashboardLayout() {
                 <Link
                   to="/dashboard/messages"
                   aria-label="Messages"
-                  className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
                 >
                   <Mail className="w-5 h-5" />
                   {unreadCount > 0 && (
@@ -87,7 +87,7 @@ export default function DashboardLayout() {
               <button
                 onClick={openCart}
                 aria-label="Cart"
-                className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <ShoppingBag className="w-5 h-5" />
                 {itemCount > 0 && (
@@ -102,7 +102,7 @@ export default function DashboardLayout() {
               <div ref={profileRef} className="relative flex items-center pl-4 border-l border-gray-200">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2.5 hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors"
+                  className="flex items-center gap-2.5 hover:bg-gray-100 rounded-full pl-1.5 pr-3 py-1 transition-colors"
                 >
                   <Avatar
                     name={`${profile?.first_name} ${profile?.last_name}`}
@@ -117,7 +117,7 @@ export default function DashboardLayout() {
                 </button>
 
                 {profileOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg py-1 z-50">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl border border-gray-200/70 shadow-xl py-1.5 z-50">
                     <div className="px-4 py-2.5 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-900">{profile?.first_name} {profile?.last_name}</p>
                       <p className="text-xs text-gray-500 capitalize">{roleLabel(role)}</p>
@@ -150,7 +150,7 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6"><Outlet /></main>
+        <main className="flex-1 p-4 sm:p-6 pt-5"><Outlet /></main>
       </div>
     </div>
   );

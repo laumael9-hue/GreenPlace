@@ -6,10 +6,10 @@ export default function NavItem({ to, icon, label, badge }) {
       to={to}
       end={to === '/dashboard'}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+        `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
           isActive
-            ? 'bg-primary-50 text-primary-700'
-            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            ? 'bg-primary-600 text-white shadow-sm shadow-primary-600/20'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
         }`
       }
     >

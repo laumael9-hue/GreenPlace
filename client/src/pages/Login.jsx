@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SocialLogin from '../components/ui/SocialLogin';
-import { Leaf, Eye, EyeOff, AlertCircle, ShoppingBag, MapPin, Users } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ShoppingBag, MapPin, Users } from 'lucide-react';
 import Logo from '../components/ui/Logo';
 
 export default function Login() {
@@ -45,14 +45,10 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       {/* Left brand panel — desktop only */}
-      <div className="hidden md:flex md:w-1/2 lg:w-[55%] relative flex-col justify-between bg-gradient-to-br from-primary-700 via-primary-600 to-emerald-500 overflow-hidden p-10 lg:p-14">
-        {/* Decorative orbs + floating leaves */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-[float_8s_ease-in-out_infinite]" />
-          <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl animate-[float_12s_ease-in-out_infinite]" style={{ animationDelay: '4s' }} />
-          <Leaf className="absolute top-1/4 right-10 w-16 h-16 text-white/10 animate-[floatSpin_15s_linear_infinite]" />
-          <Leaf className="absolute bottom-1/3 left-8 w-10 h-10 text-white/10 animate-[floatSpin_20s_linear_infinite]" style={{ animationDelay: '7s' }} />
-        </div>
+      <div className="hidden md:flex md:w-1/2 lg:w-[55%] relative flex-col justify-between bg-primary-800 overflow-hidden p-10 lg:p-14">
+        {/* Cebu City skyline photo (Unsplash, Pao Dayag) with brand tint */}
+        <img src="/images/hero-cebu.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-950/90 via-primary-900/60 to-primary-800/40" />
 
         {/* Logo */}
         <Link to="/" className="relative flex items-center gap-3">
@@ -82,18 +78,9 @@ export default function Login() {
           </ul>
         </div>
 
-        {/* Bottom stats */}
-        <div className="relative border-t border-white/20 pt-5">
-          <p className="text-[11px] text-white/50 uppercase tracking-widest mb-3">Serving Metro Cebu</p>
-          <div className="flex gap-8">
-            {[['35+', 'Establishments'], ['280+', 'Members'], ['4T+', 'Recycled']].map(([val, lbl]) => (
-              <div key={lbl}>
-                <p className="text-white font-bold text-lg leading-none">{val}</p>
-                <p className="text-white/55 text-xs mt-0.5">{lbl}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <p className="relative border-t border-white/20 pt-5 text-sm text-white/70">
+          Making Metro Cebu greener, one drop-off at a time.
+        </p>
       </div>
 
       {/* Right form panel */}
@@ -167,7 +154,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>
