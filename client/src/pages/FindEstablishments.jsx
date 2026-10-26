@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { Search, Filter, MapPin, Star, ChevronDown, ChevronUp, X, Navigation, Store, Loader2, Maximize2 } from 'lucide-react';
+import { Search, Filter, MapPin, Star, ChevronDown, ChevronUp, X, Navigation, Store, Maximize2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { searchAddresses } from '../lib/geocoding';
@@ -121,7 +121,6 @@ export default function FindEstablishments() {
   const [addressQuery, setAddressQuery] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
-  const [geocoding] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [acceptsDropOffs, setAcceptsDropOffs] = useState(false);
@@ -248,7 +247,6 @@ export default function FindEstablishments() {
   };
 
   const handleAddressSearch = (value) => {
-    setAddressQuery(value);
     setShowAddressSuggestions(true);
     if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
     if (value.trim().length < 3) {
@@ -263,6 +261,7 @@ export default function FindEstablishments() {
 
   const handleSelectAddress = (suggestion) => {
     setAddressQuery(suggestion.displayName);
+    setSearch('');
     setShowAddressSuggestions(false);
     setAddressSuggestions([]);
     setMapCenter([suggestion.lat, suggestion.lng]);
@@ -307,51 +306,38 @@ export default function FindEstablishments() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Address Search Bar */}
-        <div className="mb-4">
-          <div className="relative" ref={addressSearchRef}>
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
-            {geocoding && (
-              <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin z-10" />
-            )}
-            <input
-              type="text"
-              value={addressQuery}
-              onChange={(e) => handleAddressSearch(e.target.value)}
-              onFocus={() => setShowAddressSuggestions(true)}
-              placeholder="Search location (e.g., 'Mandaue City, Cebu' or 'Colon Street, Cebu City')..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-full text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none shadow-sm"
-            />
-            {showAddressSuggestions && addressSuggestions.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {addressSuggestions.map((s, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleSelectAddress(s)}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-primary-50 border-b border-gray-100 last:border-0 flex items-start gap-2"
-                  >
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <span className="line-clamp-2">{s.displayName}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Search & Filter Bar */}
         <div className="mb-6 space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="relative flex-1" ref={addressSearchRef}>
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
               <input
                 type="text"
-                placeholder="Search businesses, materials..."
+                placeholder="Search businesses, materials, or a place (e.g., Mandaue City)..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  handleAddressSearch(e.target.value);
+                }}
+                onFocus={() => setShowAddressSuggestions(true)}
+                className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-full text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none shadow-sm"
               />
+              {showAddressSuggestions && addressSuggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-2xl shadow-lg max-h-60 overflow-y-auto">
+                  <p className="px-4 pt-3 pb-1 text-xs font-medium uppercase tracking-wide text-gray-400">Jump to location</p>
+                  {addressSuggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleSelectAddress(s)}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-primary-50 border-b border-gray-100 last:border-0 flex items-start gap-2"
+                    >
+                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-2">{s.displayName}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -380,6 +366,21 @@ export default function FindEstablishments() {
               </button>
             )}
           </div>
+
+          {addressQuery && (
+            <div className="inline-flex max-w-full items-center gap-2 pl-3 pr-1.5 py-1.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-full text-sm">
+              <MapPin className="w-4 h-4 shrink-0" />
+              <span className="truncate">Near {addressQuery}</span>
+              <button
+                type="button"
+                onClick={() => { setAddressQuery(''); setUserLocation(null); }}
+                aria-label="Clear location"
+                className="p-1 rounded-full hover:bg-primary-100"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Filter Panel */}
           {showFilters && (
