@@ -7,9 +7,10 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
+import BusinessDocumentsReview from '../../components/admin/BusinessDocumentsReview';
 import {
   Search, Building2, ChevronLeft, ChevronRight,
-  CheckCircle, XCircle, Eye, Clock, FileText,
+  CheckCircle, XCircle, Eye, Clock,
   Download, AlertTriangle, MapPin, Mail, Phone
 } from 'lucide-react';
 
@@ -390,27 +391,12 @@ export default function Approvals() {
               </span></p>
             </div>
 
-            {selectedBusiness.documents && selectedBusiness.documents.length > 0 && (
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-1.5">
-                  <FileText className="w-4 h-4" />
-                  Submitted Documents ({selectedBusiness.documents.length})
-                </p>
-                <div className="space-y-1 text-sm">
-                  {selectedBusiness.documents.map(doc => (
-                    <div key={doc.id} className="flex justify-between items-center">
-                      <span className="text-gray-700 truncate">{doc.file_name}</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant={doc.verification_status === 'approved' ? 'success' : doc.verification_status === 'rejected' ? 'danger' : 'warning'}>
-                          {doc.verification_status || 'pending'}
-                        </Badge>
-                        <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline">View</a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <BusinessDocumentsReview
+              documents={selectedBusiness.documents}
+              onUpdated={(docId, patch) => setSelectedBusiness(prev => prev
+                ? { ...prev, documents: prev.documents.map(d => (d.id === docId ? { ...d, ...patch } : d)) }
+                : prev)}
+            />
 
             {selectedBusiness.status === 'pending' && (
               <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">

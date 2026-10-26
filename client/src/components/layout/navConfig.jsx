@@ -2,7 +2,7 @@ import {
   LayoutDashboard, MapPin, ShoppingBag, ClipboardList,
   Package, MessageCircle, User, Building2, List,
   Clock, Star, BarChart3, Users, FileText, Settings, Bookmark, Mail, Bell,
-  CheckCircle, FolderCheck, Home, LogIn, UserPlus
+  CheckCircle, Home, LogIn, UserPlus
 } from 'lucide-react';
 
 // Shown to visitors who are not logged in (mobile menu only; desktop uses the Navbar).
@@ -69,7 +69,6 @@ const adminNav = [
   { to: '/admin/approvals', icon: <CheckCircle className="w-5 h-5" />, label: 'Approvals' },
   { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Users' },
   { to: '/admin/businesses', icon: <Building2 className="w-5 h-5" />, label: 'Businesses' },
-  { to: '/admin/documents', icon: <FolderCheck className="w-5 h-5" />, label: 'Documents' },
   { to: '/admin/listings', icon: <List className="w-5 h-5" />, label: 'Listings' },
   { to: '/admin/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
   { to: '/bookmarks', icon: <Bookmark className="w-5 h-5" />, label: 'Saved Posts' },

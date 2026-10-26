@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
+import BusinessDocumentsReview from '../../components/admin/BusinessDocumentsReview';
 import {
   Search, Building2, ChevronLeft, ChevronRight,
   CheckCircle, Ban, XCircle, Eye, Clock, MapPin,
@@ -543,29 +544,12 @@ export default function BusinessManagement() {
             )}
 
             {/* Documents */}
-            {selectedBusiness.documents && selectedBusiness.documents.length > 0 && (
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-gray-900">Documents ({selectedBusiness.documents.length})</p>
-                  <Link to="/admin/documents" className="text-xs text-primary-600 hover:text-primary-700 font-medium">
-                    Manage →
-                  </Link>
-                </div>
-                <div className="space-y-1 text-sm">
-                  {selectedBusiness.documents.map(doc => (
-                    <div key={doc.id} className="flex justify-between items-center gap-2">
-                      <span className="text-gray-700 truncate">{doc.file_name}</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant={doc.verification_status === 'approved' ? 'success' : doc.verification_status === 'rejected' ? 'danger' : 'warning'}>
-                          {doc.verification_status || 'pending'}
-                        </Badge>
-                        <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline">View</a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <BusinessDocumentsReview
+              documents={selectedBusiness.documents}
+              onUpdated={(docId, patch) => setSelectedBusiness(prev => prev
+                ? { ...prev, documents: prev.documents.map(d => (d.id === docId ? { ...d, ...patch } : d)) }
+                : prev)}
+            />
 
             {/* Actions */}
             <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">

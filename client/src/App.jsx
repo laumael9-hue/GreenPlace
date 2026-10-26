@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, useNavigate, Link } from 'react-router-dom';
+import { Routes, Route, useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
@@ -33,7 +33,6 @@ const ForumBookmarks = lazy(() => import('./pages/ForumBookmarks'));
 const ForumModeration = lazy(() => import('./pages/admin/ForumModeration'));
 const ListingModeration = lazy(() => import('./pages/admin/ListingModeration'));
 const Approvals = lazy(() => import('./pages/admin/Approvals'));
-const Documents = lazy(() => import('./pages/admin/Documents'));
 const Reports = lazy(() => import('./pages/admin/Reports'));
 const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 const Checkout = lazy(() => import('./pages/Checkout'));
@@ -113,7 +112,7 @@ function App() {
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/businesses" element={<BusinessManagement />} />
         <Route path="/admin/approvals" element={<Approvals />} />
-        <Route path="/admin/documents" element={<Documents />} />
+        <Route path="/admin/documents" element={<Navigate to="/admin/approvals" replace />} />
         <Route path="/admin/listings" element={<ListingModeration />} />
         <Route path="/admin/forum" element={<ForumModeration />} />
         <Route path="/admin/reports" element={<Reports />} />

@@ -14,7 +14,6 @@ const quickActions = [
   { to: '/admin/approvals', icon: <CheckCircle className="w-5 h-5" />, label: 'Approvals', color: 'bg-amber-100 text-amber-600' },
   { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Manage Users', color: 'bg-blue-100 text-blue-600' },
   { to: '/admin/businesses', icon: <Building2 className="w-5 h-5" />, label: 'Businesses', color: 'bg-orange-100 text-orange-600' },
-  { to: '/admin/documents', icon: <FolderCheck className="w-5 h-5" />, label: 'Documents', color: 'bg-teal-100 text-teal-600' },
   { to: '/admin/listings', icon: <ShoppingBag className="w-5 h-5" />, label: 'Listings', color: 'bg-indigo-100 text-indigo-600' },
   { to: '/admin/reports', icon: <Flag className="w-5 h-5" />, label: 'Reports', color: 'bg-red-100 text-red-600' },
   { to: '/admin/forum', icon: <FileText className="w-5 h-5" />, label: 'Forum', color: 'bg-purple-100 text-purple-600' },
@@ -117,7 +116,7 @@ export default function AdminDashboard() {
           </div>
         </Link>
         <Link
-          to="/admin/documents"
+          to="/admin/approvals"
           className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all"
         >
           <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600">
