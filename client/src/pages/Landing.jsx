@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle, ArrowRight, ChevronRight, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle, ArrowRight, ChevronRight, Sparkles, Search } from 'lucide-react';
+import ContourArt from '../components/landing/ContourArt';
 
 // ============================================================
 // INTERSECTION OBSERVER HOOK
@@ -59,110 +60,109 @@ function AnimatedCounter({ end, suffix = '', duration = 2000 }) {
 // ============================================================
 
 function HeroSection() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const q = query.trim();
+    navigate(q ? `/marketplace?search=${encodeURIComponent(q)}` : '/marketplace');
+  };
+
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-500">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.15)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(16,185,129,0.3)_0%,transparent_50%)]" />
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-[#040806] text-white">
+      {/* Ambient glows */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-40 -left-32 w-[560px] h-[560px] bg-primary-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 -right-40 w-[700px] h-[700px] bg-emerald-400/10 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,197,94,0.08)_0%,transparent_60%)]" />
       </div>
 
-      {/* Floating decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-[10%] w-72 h-72 bg-white/5 rounded-full blur-3xl animate-[float_8s_ease-in-out_infinite]" />
-        <div className="absolute top-40 right-[15%] w-96 h-96 bg-emerald-300/10 rounded-full blur-3xl animate-[float_10s_ease-in-out_infinite_1s]" />
-        <div className="absolute bottom-20 left-[20%] w-64 h-64 bg-white/5 rounded-full blur-2xl animate-[float_7s_ease-in-out_infinite_2s]" />
-        <div className="absolute bottom-40 right-[10%] w-48 h-48 bg-emerald-200/10 rounded-full blur-2xl animate-[float_9s_ease-in-out_infinite_0.5s]" />
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-28">
+        <div className="grid lg:grid-cols-12 gap-12 lg:gap-6 items-center">
+          {/* Copy */}
+          <div className="lg:col-span-7 text-center lg:text-left">
+            <p className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium tracking-wide text-primary-300 uppercase mb-6">
+              <span className="w-8 h-px bg-primary-400" />
+              Metro Cebu's sustainability platform
+            </p>
 
-        {/* Floating leaf icons */}
-        <Leaf className="absolute top-[15%] left-[8%] w-8 h-8 text-white/10 animate-[floatSpin_12s_linear_infinite]" />
-        <Leaf className="absolute top-[25%] right-[12%] w-6 h-6 text-white/10 animate-[floatSpin_15s_linear_infinite_2s]" />
-        <Leaf className="absolute bottom-[30%] left-[15%] w-10 h-10 text-white/10 animate-[floatSpin_10s_linear_infinite_4s]" />
-        <Leaf className="absolute bottom-[20%] right-[8%] w-5 h-5 text-white/10 animate-[floatSpin_14s_linear_infinite_1s]" />
-        <Recycle className="absolute top-[60%] left-[5%] w-7 h-7 text-white/8 animate-[floatSpin_11s_linear_infinite_3s]" />
-        <Sparkles className="absolute top-[10%] right-[25%] w-5 h-5 text-white/10 animate-[floatSpin_13s_linear_infinite_5s]" />
-      </div>
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight leading-[0.98]">
+              Sustainable
+              <br />
+              living,{' '}
+              <span className="bg-gradient-to-r from-primary-400 via-emerald-300 to-lime-300 bg-clip-text text-transparent">
+                made simple.
+              </span>
+            </h1>
 
-      {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="grid lg:grid-cols-2 gap-14 lg:gap-16 items-center">
-        <div className="text-center lg:text-left">
-        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
-          <Sparkles className="w-4 h-4 text-emerald-300" />
-          <span className="text-sm font-medium text-white/90">Metro Cebu's #1 Sustainability Platform</span>
-        </div>
+            <p className="mt-6 text-base sm:text-lg text-white/65 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              Find waste management establishments, trade recyclable materials, and join a community
+              making Metro Cebu greener.
+            </p>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-tight lg:text-6xl xl:text-7xl">
-          Sustainable Living
-          <br />
-          <span className="bg-gradient-to-r from-emerald-200 to-white bg-clip-text text-transparent">
-            Made Simple
-          </span>
-        </h1>
+            <form
+              onSubmit={handleSearch}
+              className="mt-9 flex items-center gap-2 max-w-lg mx-auto lg:mx-0 bg-white/5 border border-white/20 rounded-full pl-5 pr-1.5 py-1.5 backdrop-blur-sm focus-within:border-primary-400/70 focus-within:bg-white/10 transition-colors"
+            >
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search recyclables, products, materials..."
+                aria-label="Search the marketplace"
+                className="flex-1 min-w-0 bg-transparent text-white placeholder-white/40 text-sm sm:text-base focus:outline-none py-2"
+              />
+              <button
+                type="submit"
+                aria-label="Search"
+                className="shrink-0 w-10 h-10 rounded-full bg-primary-500 text-gray-950 flex items-center justify-center hover:bg-primary-400 transition-colors"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            </form>
 
-        <p className="mt-6 text-lg sm:text-xl text-white/80 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-          Connect with waste management establishments, buy and sell recyclable materials,
-          and join a community dedicated to making Metro Cebu greener.
-        </p>
-
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-          <Link
-            to="/register"
-            className="group w-full sm:w-auto bg-white text-primary-700 px-8 py-4 rounded-xl font-bold hover:bg-emerald-50 transition-all duration-300 text-lg shadow-xl shadow-black/10 hover:shadow-2xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
-          >
-            Get Started Free
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-          <Link
-            to="/marketplace"
-            className="w-full sm:w-auto bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-4 rounded-xl font-bold hover:bg-white/20 transition-all duration-300 text-lg flex items-center justify-center gap-2"
-          >
-            Browse Marketplace
-          </Link>
-        </div>
-
-        </div>
-
-        {/* Hero photo (Unsplash, free to use: Nareeta Martin) */}
-        <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
-          <div className="absolute -inset-4 bg-white/10 rounded-[2rem] blur-2xl" />
-          <img
-            src="/images/hero-bins.jpg"
-            alt="Compost, general waste and recycling bins side by side"
-            className="relative w-full aspect-[4/3] object-cover rounded-3xl shadow-2xl ring-1 ring-white/30"
-          />
-          <div className="absolute -bottom-5 left-4 sm:left-6 flex items-center gap-3 bg-white rounded-2xl shadow-xl px-4 py-3">
-            <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center">
-              <Recycle className="w-5 h-5" />
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+              <Link
+                to="/register"
+                className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary-500 text-gray-950 font-semibold px-7 py-3 rounded-full hover:bg-primary-400 transition-colors shadow-lg shadow-primary-500/20"
+              >
+                Get started free
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Link
+                to="/establishments"
+                className="w-full sm:w-auto inline-flex items-center justify-center border border-white/25 text-white font-medium px-7 py-3 rounded-full hover:bg-white/10 transition-colors"
+              >
+                Find establishments
+              </Link>
             </div>
-            <div className="text-left">
-              <p className="text-sm font-semibold text-gray-900">Segregate at the source</p>
-              <p className="text-xs text-gray-500">Compost · Waste · Recycle</p>
+
+            <ul className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-sm text-white/55">
+              <li className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary-400" /> Map of local drop-off points</li>
+              <li className="flex items-center gap-2"><Recycle className="w-4 h-4 text-primary-400" /> Recyclables marketplace</li>
+              <li className="flex items-center gap-2"><Users className="w-4 h-4 text-primary-400" /> Community forum</li>
+            </ul>
+          </div>
+
+          {/* Art + photo */}
+          <div className="lg:col-span-5 relative h-[360px] sm:h-[460px] lg:h-[600px]">
+            <div className="absolute inset-[-18%] animate-[spin_160s_linear_infinite] opacity-90">
+              <ContourArt className="w-full h-full" />
             </div>
+            {/* Photo: black edges are faded out so it melts into the page */}
+            <img
+              src="/images/hero-leaves.jpg"
+              alt="Hands cradling a green plant"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{
+                WebkitMaskImage: 'radial-gradient(ellipse 62% 56% at 50% 50%, #000 40%, transparent 100%)',
+                maskImage: 'radial-gradient(ellipse 62% 56% at 50% 50%, #000 40%, transparent 100%)',
+              }}
+            />
           </div>
         </div>
-        </div>
-
-        {/* Stats row */}
-        <div className="mt-20 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          {[
-            { value: 35,  suffix: '+',  label: 'Establishments' },
-            { value: 280, suffix: '+',  label: 'Active Members'  },
-            { value: 4,   suffix: 'T+', label: 'Tons Recycled'   },
-            { value: 12,  suffix: '',   label: 'Barangays'        },
-          ].map((stat) => (
-            <div key={stat.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-              <div className="text-2xl sm:text-3xl font-extrabold text-white">
-                <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-              </div>
-              <div className="text-xs sm:text-sm text-white/70 mt-1">{stat.label}</div>
-            </div>
-          ))}
-        </div>
       </div>
-
-      {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-50 to-transparent" />
     </section>
   );
 }

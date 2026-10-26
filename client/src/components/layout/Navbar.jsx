@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Leaf, Menu, X, ShoppingBag, ChevronDown, User, LayoutDashboard, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -11,6 +11,9 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
   const { itemCount, openCart } = useCart();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
+  const { pathname } = useLocation();
+  // Landing page has a dark hero: float the navbar over it instead of a white bar.
+  const dark = pathname === '/' && !isAuthenticated;
 
   const dashboardLink = profile?.role === 'admin' ? '/admin' : '/dashboard';
 
@@ -25,12 +28,12 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
+    <header className={dark ? "absolute top-0 inset-x-0 z-40" : "sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100"}>
       <div className="flex items-center justify-between h-16 px-4 sm:px-6">
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuToggle}
-            className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            className={`lg:hidden p-2 rounded-lg ${dark ? "text-white hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"}`}
           >
             {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -38,15 +41,15 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
             <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center">
               <Leaf className="w-5 h-5 text-white" />
             </div>
-            <span className="text-lg font-bold text-gray-900 hidden sm:block">GreenPlace</span>
+            <span className={`text-lg font-bold hidden sm:block ${dark ? "text-white" : "text-gray-900"}`}>GreenPlace</span>
           </Link>
         </div>
 
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to="/establishments" className="text-sm text-gray-600 hover:text-primary-600 transition-colors">Establishments</Link>
-          <Link to="/marketplace" className="text-sm text-gray-600 hover:text-primary-600 transition-colors">Marketplace</Link>
+        <nav className="hidden md:flex items-center gap-8">
+          <Link to="/establishments" className={`text-sm transition-colors ${dark ? "text-white/70 hover:text-white" : "text-gray-600 hover:text-primary-600"}`}>Establishments</Link>
+          <Link to="/marketplace" className={`text-sm transition-colors ${dark ? "text-white/70 hover:text-white" : "text-gray-600 hover:text-primary-600"}`}>Marketplace</Link>
           {!isAuthenticated && (
-            <Link to="/forum" className="text-sm text-gray-600 hover:text-primary-600 transition-colors">Forum</Link>
+            <Link to="/forum" className={`text-sm transition-colors ${dark ? "text-white/70 hover:text-white" : "text-gray-600 hover:text-primary-600"}`}>Forum</Link>
           )}
         </nav>
 
@@ -108,8 +111,8 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
             </>
           ) : (
             <div className="flex items-center gap-3">
-              <Link to="/login" className="text-sm text-gray-600 hover:text-primary-600 transition-colors">Login</Link>
-              <Link to="/register" className="text-sm bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">Get Started</Link>
+              <Link to="/login" className={`text-sm transition-colors ${dark ? "text-white/80 hover:text-white" : "text-gray-600 hover:text-primary-600"}`}>Login</Link>
+              <Link to="/register" className={dark ? "text-sm font-semibold bg-primary-500 text-gray-950 px-5 py-2 rounded-full hover:bg-primary-400 transition-colors" : "text-sm bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"}>Get Started</Link>
             </div>
           )}
         </div>
