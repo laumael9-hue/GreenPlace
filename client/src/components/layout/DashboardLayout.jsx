@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useMessages } from '../../context/MessagesContext';
 import Avatar from '../ui/Avatar';
 import NotificationBell from './NotificationBell';
-import { Mail, Search, ChevronDown, User, LayoutDashboard, LogOut, ShoppingBag } from 'lucide-react';
+import { Mail, ChevronDown, User, LayoutDashboard, LogOut, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { roleLabel } from '../../lib/roleLabel';
 
@@ -59,17 +59,9 @@ export default function DashboardLayout() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <div className="relative hidden sm:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="pl-9 pr-4 py-2 w-64 border border-gray-200 rounded-full text-sm bg-gray-50 focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 focus:bg-white transition-all"
-                />
-              </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 ml-auto">
               {canMessage ? (
                 <Link
                   to="/dashboard/messages"
