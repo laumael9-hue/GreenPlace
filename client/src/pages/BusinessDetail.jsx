@@ -211,7 +211,7 @@ export default function BusinessDetail() {
               <div className="flex-1">
                 <h1 className="text-2xl font-bold text-gray-900">{business.name}</h1>
                 <p className="text-gray-500 mt-1">{business.category}</p>
-                <div className="flex items-center gap-4 mt-2">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
                   {business.rating_avg > 0 && (
                     <span className="flex items-center gap-1 text-sm">
                       <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
@@ -219,9 +219,9 @@ export default function BusinessDetail() {
                       <span className="text-gray-400">({business.rating_count} reviews)</span>
                     </span>
                   )}
-                  <div className="flex gap-1.5">
-                    {business.accepts_drop_offs && <Badge variant="success">Accepts Drop-offs</Badge>}
-                    {business.has_marketplace && <Badge variant="info">Has Marketplace</Badge>}
+                  <div className="flex flex-wrap gap-1.5">
+                    {business.accepts_drop_offs && <Badge variant="success" className="whitespace-nowrap">Accepts Drop-offs</Badge>}
+                    {business.has_marketplace && <Badge variant="info" className="whitespace-nowrap">Has Marketplace</Badge>}
                   </div>
                 </div>
                 {shopTotal > 0 && (

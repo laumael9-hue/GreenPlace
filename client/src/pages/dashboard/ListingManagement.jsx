@@ -411,7 +411,7 @@ function ListingFormModal({ open, onClose, categories, listing, onSubmit, submit
             step="0.01"
           />
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Select
             label="Unit"
             value={form.unit}
