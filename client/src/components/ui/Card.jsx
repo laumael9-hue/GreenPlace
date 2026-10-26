@@ -1,6 +1,6 @@
 export default function Card({ children, className = '', padding = true }) {
   return (
-    <div className={`bg-white rounded-xl border border-gray-100 shadow-sm ${padding ? 'p-6' : ''} ${className}`}>
+    <div className={`bg-white rounded-2xl border border-gray-200/70 shadow-sm ${padding ? 'p-6' : ''} ${className}`}>
       {children}
     </div>
   );
@@ -11,5 +11,5 @@ export function CardHeader({ children, className = '' }) {
 }
 
 export function CardTitle({ children, className = '' }) {
-  return <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>{children}</h3>;
+  return <h3 className={`text-base font-semibold text-gray-900 ${className}`}>{children}</h3>;
 }
