@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { ArrowLeft, Star, MapPin, Phone, Globe, Clock, Package, Store, Navigation, ExternalLink, Mail, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Phone, Globe, Clock, Package, Store, Navigation, ExternalLink, Mail, Loader2, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import ListingCard from '../components/marketplace/ListingCard';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -28,8 +30,14 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 export default function BusinessDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { addItem } = useCart();
   const [business, setBusiness] = useState(null);
+  const [shopListings, setShopListings] = useState([]);
+  const [shopTotal, setShopTotal] = useState(0);
+  const [shopPage, setShopPage] = useState(1);
+  const [shopLoading, setShopLoading] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [messaging, setMessaging] = useState(false);
@@ -58,6 +66,35 @@ export default function BusinessDetail() {
       setReviewsLoading(false);
     }
   }, []);
+
+  const SHOP_PAGE_SIZE = 8;
+
+  const fetchShop = useCallback(async (businessId, page = 1) => {
+    if (!businessId) return;
+    setShopLoading(true);
+    try {
+      const { data } = await api.get('/marketplace/listings', {
+        params: { business: businessId, page, limit: SHOP_PAGE_SIZE },
+      });
+      setShopListings((prev) => (page === 1 ? data.listings || [] : [...prev, ...(data.listings || [])]));
+      setShopTotal(data.pagination?.total || 0);
+      setShopPage(page);
+    } catch (err) {
+      console.error('Error fetching shop listings:', err);
+    } finally {
+      setShopLoading(false);
+    }
+  }, []);
+
+  const handleAddToCart = async (listingId) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setAddingToCart(listingId);
+    await addItem(listingId, 1);
+    setAddingToCart(null);
+  };
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -97,6 +134,10 @@ export default function BusinessDetail() {
   useEffect(() => {
     if (business?.id) fetchReviews(business.id, 1);
   }, [business?.id, fetchReviews]);
+
+  useEffect(() => {
+    if (business?.id) fetchShop(business.id, 1);
+  }, [business?.id, fetchShop]);
 
   const handleReviewClick = () => {
     if (!isAuthenticated) {
@@ -183,6 +224,15 @@ export default function BusinessDetail() {
                     {business.has_marketplace && <Badge variant="info">Has Marketplace</Badge>}
                   </div>
                 </div>
+                {shopTotal > 0 && (
+                  <a
+                    href="#shop"
+                    className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Visit shop ({shopTotal} item{shopTotal === 1 ? '' : 's'})
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -224,6 +274,43 @@ export default function BusinessDetail() {
                   ))}
                 </div>
               </Card>
+            )}
+
+            {/* Shop */}
+            {shopTotal > 0 && (
+              <div id="shop" className="scroll-mt-24">
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  <ShoppingBag className="w-5 h-5 inline mr-2 text-primary-600" />
+                  Shop
+                  <span className="ml-2 text-sm font-normal text-gray-400">({shopTotal})</span>
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {shopListings.map((listing) => (
+                    <ListingCard
+                      key={listing.id}
+                      listing={listing}
+                      onAddToCart={handleAddToCart}
+                      addingToCart={addingToCart}
+                      currentUser={user}
+                    />
+                  ))}
+                </div>
+                {shopListings.length < shopTotal && (
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchShop(business.id, shopPage + 1)}
+                      disabled={shopLoading}
+                    >
+                      {shopLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      Show more
+                    </Button>
+                  </div>
+                )}
+              </Card>
+              </div>
             )}
 
             {/* Reviews */}
