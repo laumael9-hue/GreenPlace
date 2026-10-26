@@ -60,6 +60,20 @@ const register = async (req, res) => {
   }
 };
 
+// Looks up an auth user by email (the admin API has no direct email filter).
+// Pages through users, which is fine at demo scale.
+const emailExists = async (email) => {
+  const target = email.trim().toLowerCase();
+  const perPage = 1000;
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    if (data.users.some((u) => u.email?.toLowerCase() === target)) return true;
+    if (data.users.length < perPage) return false;
+  }
+  return false;
+};
+
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -74,6 +88,20 @@ const login = async (req, res) => {
     });
 
     if (error) {
+      // Supabase gives the same error for an unknown email and a wrong password; tell them apart.
+      if (error.code === 'invalid_credentials' || error.message === 'Invalid login credentials') {
+        try {
+          if (!(await emailExists(email))) {
+            return res.status(401).json({
+              error: 'No account found with this email. Please register first.',
+              code: 'ACCOUNT_NOT_FOUND',
+            });
+          }
+          return res.status(401).json({ error: 'Incorrect password. Please try again.', code: 'WRONG_PASSWORD' });
+        } catch (lookupErr) {
+          console.error('Login email lookup error:', lookupErr);
+        }
+      }
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
