@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2, Zap, Flag, Mail, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingBag, Store, MapPin, Tag, Package, Minus, Plus, Loader2, Zap, Flag, Mail, Star, Archive, RotateCcw } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -24,9 +24,13 @@ const CONDITION_LABELS = {
 export default function ProductDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, role } = useAuth();
+  const isAdmin = role === 'admin';
   const { addItem } = useCart();
   const [listing, setListing] = useState(null);
+  const [modReason, setModReason] = useState('');
+  const [modLoading, setModLoading] = useState(false);
+  const [modError, setModError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -95,6 +99,36 @@ export default function ProductDetail() {
 
   const handleReviewSaved = () => {
     fetchReviews(listing?.id, reviewsPagination.page);
+  };
+
+  const handleModerate = async (status) => {
+    setModLoading(true);
+    setModError('');
+    try {
+      await api.patch(`/marketplace/admin/listings/${listing.id}/status`, {
+        status,
+        reason: modReason.trim() || undefined,
+      });
+      setListing((l) => ({ ...l, status }));
+      setModReason('');
+    } catch (err) {
+      setModError(err.response?.data?.error || 'Failed to update listing status.');
+    } finally {
+      setModLoading(false);
+    }
+  };
+
+  const handleFeatureToggle = async () => {
+    setModLoading(true);
+    setModError('');
+    try {
+      await api.patch(`/marketplace/admin/listings/${listing.id}/feature`, { featured: !listing.is_featured });
+      setListing((l) => ({ ...l, is_featured: !l.is_featured }));
+    } catch (err) {
+      setModError(err.response?.data?.error || 'Failed to update featured status.');
+    } finally {
+      setModLoading(false);
+    }
   };
 
   const handleAddToCart = async () => {
@@ -378,8 +412,53 @@ export default function ProductDetail() {
               )}
             </Card>
 
+            {/* Admin moderation (replaces the purchase card for admins) */}
+            {isAdmin && (
+              <Card>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <h3 className="font-semibold text-gray-900">Moderation</h3>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant={listing.status === 'active' ? 'success' : listing.status === 'archived' ? 'warning' : 'neutral'}>
+                      {listing.status}
+                    </Badge>
+                    {listing.is_featured && <Badge variant="warning">Featured</Badge>}
+                  </div>
+                </div>
+                {modError && <p className="mb-3 text-sm text-red-600">{modError}</p>}
+                {listing.status !== 'archived' && (
+                  <textarea
+                    rows={2}
+                    value={modReason}
+                    onChange={(e) => setModReason(e.target.value)}
+                    placeholder="Reason (optional), e.g., Reported for misleading content..."
+                    className="w-full mb-3 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                  />
+                )}
+                <div className="flex gap-3">
+                  {listing.status === 'archived' ? (
+                    <Button className="flex-1" onClick={() => handleModerate('active')} disabled={modLoading}>
+                      {modLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                      Restore listing
+                    </Button>
+                  ) : (
+                    <Button className="flex-1" onClick={() => handleModerate('archived')} disabled={modLoading}>
+                      {modLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                      Archive listing
+                    </Button>
+                  )}
+                  <Button className="flex-1" variant="outline" onClick={handleFeatureToggle} disabled={modLoading}>
+                    <Star className={`w-4 h-4 ${listing.is_featured ? 'fill-current' : ''}`} />
+                    {listing.is_featured ? 'Unfeature' : 'Feature'}
+                  </Button>
+                </div>
+                <Link to="/admin/listings" className="mt-3 inline-block text-sm text-primary-600 hover:underline">
+                  Back to moderation
+                </Link>
+              </Card>
+            )}
+
             {/* Quantity & Add to Cart */}
-            {listing.quantity_available > 0 && (
+            {!isAdmin && listing.quantity_available > 0 && (
               <Card>
                 <div className="flex items-center gap-4">
                   <div>

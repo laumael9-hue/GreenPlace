@@ -397,18 +397,26 @@ const getListingBySlug = async (req, res) => {
         listing_images(id, image_url, alt_text, is_primary, sort_order)
       `)
       .eq('slug', slug)
-      .eq('status', 'active')
       .single();
 
     if (error || !listing) {
       return res.status(404).json({ error: 'Listing not found' });
     }
 
-    // Increment view count
-    await supabaseAdmin
-      .from('listings')
-      .update({ view_count: (listing.view_count || 0) + 1 })
-      .eq('id', listing.id);
+    // Only live listings are public; sellers and admins may open their own or moderate others.
+    const viewer = req.user;
+    const canSeeUnpublished = viewer && (viewer.profile?.role === 'admin' || viewer.id === listing.seller_id);
+    if (listing.status !== 'active' && !canSeeUnpublished) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    // Increment view count (live listings only)
+    if (listing.status === 'active') {
+      await supabaseAdmin
+        .from('listings')
+        .update({ view_count: (listing.view_count || 0) + 1 })
+        .eq('id', listing.id);
+    }
 
     const sortedImages = (listing.listing_images || [])
       .sort((a, b) => a.sort_order - b.sort_order);
@@ -417,7 +425,7 @@ const getListingBySlug = async (req, res) => {
       listing: {
         ...listing,
         listing_images: sortedImages,
-        view_count: (listing.view_count || 0) + 1,
+        view_count: (listing.view_count || 0) + (listing.status === 'active' ? 1 : 0),
       },
     });
   } catch (err) {
