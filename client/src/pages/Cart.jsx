@@ -14,7 +14,8 @@ export default function Cart() {
   const [removingId, setRemovingId] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  // Everything available is selected by default; this tracks what the shopper unticked.
+  const [excludedIds, setExcludedIds] = useState(() => new Set());
 
   // Group items by store
   const storeGroups = useMemo(() => {
@@ -59,27 +60,28 @@ export default function Cart() {
       .map(item => item.id);
   }, [items]);
 
+  const selectedIds = useMemo(
+    () => new Set(activeItemIds.filter(id => !excludedIds.has(id))),
+    [activeItemIds, excludedIds]
+  );
+
   // Selection helpers
   const allSelected = activeItemIds.length > 0 && activeItemIds.every(id => selectedIds.has(id));
   const someSelected = activeItemIds.some(id => selectedIds.has(id));
 
   const toggleSelectAll = useCallback(() => {
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(activeItemIds));
-    }
+    setExcludedIds(allSelected ? new Set(activeItemIds) : new Set());
   }, [allSelected, activeItemIds]);
 
   const toggleStore = useCallback((storeItemIds) => {
-    setSelectedIds(prev => {
+    setExcludedIds(prev => {
       const next = new Set(prev);
-      const allStoreSelected = storeItemIds.every(id => next.has(id));
+      const allStoreSelected = storeItemIds.every(id => !next.has(id));
       storeItemIds.forEach(id => {
         if (allStoreSelected) {
-          next.delete(id);
-        } else {
           next.add(id);
+        } else {
+          next.delete(id);
         }
       });
       return next;
@@ -87,7 +89,7 @@ export default function Cart() {
   }, []);
 
   const toggleItem = useCallback((itemId) => {
-    setSelectedIds(prev => {
+    setExcludedIds(prev => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
@@ -133,7 +135,7 @@ export default function Cart() {
 
   const handleRemove = async (cartItemId) => {
     setRemovingId(cartItemId);
-    setSelectedIds(prev => {
+    setExcludedIds(prev => {
       const next = new Set(prev);
       next.delete(cartItemId);
       return next;
@@ -144,7 +146,7 @@ export default function Cart() {
 
   const handleClearAll = async () => {
     setClearing(true);
-    setSelectedIds(new Set());
+    setExcludedIds(new Set());
     await clearAll();
     setClearing(false);
     setShowClearConfirm(false);
@@ -167,18 +169,18 @@ export default function Cart() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-emerald-500 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Shopping Cart</h1>
-              <p className="mt-1 text-gray-500">
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">Shopping Cart</h1>
+              <p className="mt-1 text-white/85">
                 {itemCount} {itemCount === 1 ? 'item' : 'items'} from {storeGroups.length} {storeGroups.length === 1 ? 'store' : 'stores'}
               </p>
             </div>
             <Link
               to="/marketplace"
-              className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+              className="flex items-center gap-2 text-sm text-white/90 hover:text-white font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               Continue Shopping
@@ -249,7 +251,7 @@ export default function Cart() {
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
-              <Card className="sticky top-24">
+              <Card className="sticky top-28">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
 
                 <div className="space-y-3 text-sm">
@@ -304,7 +306,7 @@ export default function Cart() {
                   )}
                 </div>
 
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <div className="mt-4 p-3 bg-gray-50 rounded-xl">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-gray-500">
@@ -445,7 +447,7 @@ function CartItem({ item, isSelected, updatingId, removingId, onUpdateQuantity, 
 
         {/* Image */}
         <Link to={`/marketplace/${listing.slug}`} className="flex-shrink-0">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg overflow-hidden">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-xl overflow-hidden">
             {listing.primary_image ? (
               <img src={listing.primary_image} alt={listing.title} className="w-full h-full object-cover" />
             ) : (
@@ -494,7 +496,7 @@ function CartItem({ item, isSelected, updatingId, removingId, onUpdateQuantity, 
               <button
                 onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
                 disabled={isUpdating || item.quantity <= 1 || isUnavailable}
-                className="w-7 h-7 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Minus className="w-3 h-3" />
               </button>
@@ -504,7 +506,7 @@ function CartItem({ item, isSelected, updatingId, removingId, onUpdateQuantity, 
               <button
                 onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                 disabled={isUpdating || item.quantity >= listing.quantity_available || isUnavailable}
-                className="w-7 h-7 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-3 h-3" />
               </button>

@@ -34,7 +34,7 @@ export default function CartDrawer() {
           </div>
           <button
             onClick={closeCart}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -62,7 +62,7 @@ export default function CartDrawer() {
                 const listing = item.listing || {};
                 return (
                   <div key={item.id} className="flex gap-3">
-                    <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                    <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                       {listing.images?.[0] ? (
                         <img src={listing.images[0]} alt={listing.name} className="w-full h-full object-cover" />
                       ) : (
@@ -103,14 +103,14 @@ export default function CartDrawer() {
             </div>
             <button
               onClick={handleCheckout}
-              className="w-full bg-primary-600 text-white text-sm font-semibold py-3 rounded-xl hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-primary-600 text-white text-sm font-semibold py-3 rounded-full hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
             >
               Checkout <ArrowRight className="w-4 h-4" />
             </button>
             <Link
               to="/cart"
               onClick={closeCart}
-              className="block w-full text-center text-sm text-gray-600 hover:text-gray-900 py-2 rounded-xl border border-gray-200 hover:border-gray-300 transition-colors"
+              className="block w-full text-center text-sm text-gray-600 hover:text-gray-900 py-2.5 rounded-full border border-gray-200 hover:border-gray-300 transition-colors"
             >
               View full cart
             </Link>

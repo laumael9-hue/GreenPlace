@@ -182,14 +182,14 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link to="/cart" className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium mb-4">
+      <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-emerald-500 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Link to="/cart" className="flex items-center gap-2 text-sm text-white/90 hover:text-white font-medium mb-4">
             <ArrowLeft className="w-4 h-4" />
             Back to Cart
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Checkout</h1>
-          <p className="mt-1 text-gray-500">Review your order and confirm pickup details</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">Checkout</h1>
+          <p className="mt-1 text-white/85">Review your order and confirm pickup details</p>
 
           <div className="flex items-center mt-6 max-w-xs">
             {[{ step: 1, label: 'Cart' }, { step: 2, label: 'Checkout' }, { step: 3, label: 'Confirmation' }].map(({ step, label }, idx) => {
@@ -199,15 +199,15 @@ export default function Checkout() {
                 <div key={step} className="flex items-center flex-1 last:flex-none">
                   <div className="flex flex-col items-center gap-1">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
-                      ${done ? 'bg-primary-600 text-white' : active ? 'bg-primary-600 text-white ring-4 ring-primary-100' : 'bg-gray-100 text-gray-400'}`}>
+                      ${done ? 'bg-white text-primary-700' : active ? 'bg-white text-primary-700 ring-4 ring-white/30' : 'bg-white/20 text-white/70'}`}>
                       {done ? '✓' : step}
                     </div>
-                    <span className={`text-xs font-medium ${active ? 'text-primary-600' : done ? 'text-gray-600' : 'text-gray-400'}`}>
+                    <span className={`text-xs font-medium ${active ? 'text-white' : done ? 'text-white/85' : 'text-white/60'}`}>
                       {label}
                     </span>
                   </div>
                   {idx < 2 && (
-                    <div className={`flex-1 h-0.5 mx-2 mb-5 ${done ? 'bg-primary-600' : 'bg-gray-200'}`} />
+                    <div className={`flex-1 h-0.5 mx-2 mb-5 ${done ? 'bg-white/80' : 'bg-white/25'}`} />
                   )}
                 </div>
               );
@@ -253,22 +253,22 @@ export default function Checkout() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Pickup Date</label>
                     <input
                       type="date"
                       value={preferredPickupDate}
                       min={tomorrow.toISOString().split('T')[0]}
                       max={maxDate.toISOString().split('T')[0]}
                       onChange={(e) => setPreferredPickupDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 hover:border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Time</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Pickup Time</label>
                     <select
                       value={preferredPickupTime}
                       onChange={(e) => setPreferredPickupTime(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 hover:border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all"
                     >
                       <option value="morning">Morning (8:00 AM - 12:00 PM)</option>
                       <option value="afternoon">Afternoon (1:00 PM - 5:00 PM)</option>
@@ -305,9 +305,9 @@ export default function Checkout() {
                       </div>
                       <div className="flex items-center gap-3">
                         {group.storeLogo ? (
-                          <img src={group.storeLogo} alt="" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+                          <img src={group.storeLogo} alt="" className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
                         ) : (
-                          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
                             <Store className="w-5 h-5 text-gray-400" />
                           </div>
                         )}
@@ -380,7 +380,7 @@ export default function Checkout() {
                         const listing = item.listing || {};
                         return (
                           <div key={item.id} className="flex gap-3">
-                            <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                            <div className="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
                               {listing.primary_image ? (
                                 <img src={listing.primary_image} alt={listing.title} className="w-full h-full object-cover" />
                               ) : (
@@ -413,7 +413,7 @@ export default function Checkout() {
 
             {/* Order Summary Sidebar */}
             <div className="lg:col-span-1">
-              <Card className="sticky top-24">
+              <Card className="sticky top-28">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between text-gray-600">
@@ -443,7 +443,7 @@ export default function Checkout() {
                     )}
                   </Button>
                 </div>
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <div className="mt-4 p-3 bg-gray-50 rounded-xl">
                   <p className="text-xs text-gray-500 text-center">
                     Pick up your order at the store location shown above. Bring your order number.
                   </p>
