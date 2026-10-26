@@ -374,7 +374,7 @@ export default function UserManagement() {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.total}</p>
             <p className="text-sm text-gray-500">Total</p>
           </div>
         </Card>
@@ -383,7 +383,7 @@ export default function UserManagement() {
             <CheckCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.active}</p>
             <p className="text-sm text-gray-500">Active</p>
           </div>
         </Card>
@@ -392,7 +392,7 @@ export default function UserManagement() {
             <Ban className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.inactive}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.inactive}</p>
             <p className="text-sm text-gray-500">Suspended</p>
           </div>
         </Card>
@@ -401,7 +401,7 @@ export default function UserManagement() {
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.pendingDeletion}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.pendingDeletion}</p>
             <p className="text-sm text-gray-500">Pending Delete</p>
           </div>
         </Card>
@@ -410,7 +410,7 @@ export default function UserManagement() {
             <Trash2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.deleted}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.deleted}</p>
             <p className="text-sm text-gray-500">Deleted</p>
           </div>
         </Card>
@@ -756,7 +756,7 @@ export default function UserManagement() {
               value={deactivateReason}
               onChange={(e) => setDeactivateReason(e.target.value)}
               placeholder="e.g., Violation of terms..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -780,7 +780,7 @@ export default function UserManagement() {
           <select
             value={newRole}
             onChange={(e) => setNewRole(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="resident">Resident</option>
             <option value="business">Business</option>
@@ -883,7 +883,7 @@ export default function UserManagement() {
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="Type DELETE"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
 

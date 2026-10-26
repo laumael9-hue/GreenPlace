@@ -175,7 +175,7 @@ export default function Approvals() {
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.pending}</p>
             <p className="text-sm text-gray-500">Pending</p>
           </div>
         </Card>
@@ -184,7 +184,7 @@ export default function Approvals() {
             <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.total}</p>
             <p className="text-sm text-gray-500">Total</p>
           </div>
         </Card>
@@ -193,7 +193,7 @@ export default function Approvals() {
             <CheckCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.approved}</p>
             <p className="text-sm text-gray-500">Approved</p>
           </div>
         </Card>
@@ -202,7 +202,7 @@ export default function Approvals() {
             <XCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.rejected}</p>
             <p className="text-sm text-gray-500">Rejected</p>
           </div>
         </Card>
@@ -461,7 +461,7 @@ export default function Approvals() {
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Explain why this registration is being rejected..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
             />
           </div>
           <div className="flex justify-end gap-2">

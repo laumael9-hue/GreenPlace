@@ -86,7 +86,7 @@ export default function ReviewManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Reviews</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Reviews</h1>
         <p className="text-gray-500 mt-1">See what customers are saying and respond to their feedback</p>
       </div>
 
@@ -255,7 +255,7 @@ export default function ReviewManagement() {
                 id="reply-body"
                 rows={4}
                 maxLength={1000}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 placeholder="Thank the reviewer or address their feedback"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}

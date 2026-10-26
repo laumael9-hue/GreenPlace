@@ -243,7 +243,7 @@ export default function BusinessManagement() {
             <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.total}</p>
             <p className="text-sm text-gray-500">Total</p>
           </div>
         </Card>
@@ -252,7 +252,7 @@ export default function BusinessManagement() {
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.pending}</p>
             <p className="text-sm text-gray-500">Pending</p>
           </div>
         </Card>
@@ -261,7 +261,7 @@ export default function BusinessManagement() {
             <CheckCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.approved}</p>
             <p className="text-sm text-gray-500">Approved</p>
           </div>
         </Card>
@@ -270,7 +270,7 @@ export default function BusinessManagement() {
             <XCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.rejected}</p>
             <p className="text-sm text-gray-500">Rejected</p>
           </div>
         </Card>
@@ -279,7 +279,7 @@ export default function BusinessManagement() {
             <Ban className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.suspended}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.suspended}</p>
             <p className="text-sm text-gray-500">Suspended</p>
           </div>
         </Card>
@@ -302,7 +302,7 @@ export default function BusinessManagement() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">All Status</option>
               <option value="pending">Pending</option>
@@ -609,7 +609,7 @@ export default function BusinessManagement() {
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Explain why this business is being rejected..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
             />
           </div>
           <div className="flex justify-end gap-2">
@@ -643,7 +643,7 @@ export default function BusinessManagement() {
               value={suspendReason}
               onChange={(e) => setSuspendReason(e.target.value)}
               placeholder="e.g., Violation of terms..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
           <div className="flex justify-end gap-2">

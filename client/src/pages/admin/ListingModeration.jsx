@@ -165,7 +165,7 @@ export default function ListingModeration() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">All Status</option>
               <option value="draft">Draft</option>
@@ -372,7 +372,7 @@ export default function ListingModeration() {
               value={archiveReason}
               onChange={(e) => setArchiveReason(e.target.value)}
               placeholder="e.g., Reported for misleading content..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
             />
           </div>
           <div className="flex justify-end gap-2">

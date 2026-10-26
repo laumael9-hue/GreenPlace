@@ -87,7 +87,7 @@ export default function ListingManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Listings</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">My Listings</h1>
           <p className="text-gray-500">{total} total listings</p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
@@ -105,13 +105,13 @@ export default function ListingManagement() {
             placeholder="Search listings..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          className="border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
         >
           <option value="">All Status</option>
           <option value="draft">Draft</option>
@@ -167,7 +167,7 @@ export default function ListingManagement() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-xl disabled:opacity-50 hover:bg-gray-50"
               >
                 Previous
               </button>
@@ -175,7 +175,7 @@ export default function ListingManagement() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-xl disabled:opacity-50 hover:bg-gray-50"
               >
                 Next
               </button>
@@ -385,7 +385,7 @@ function ListingFormModal({ open, onClose, categories, listing, onSubmit, submit
             value={form.description}
             onChange={(e) => handleChange('description', e.target.value)}
             rows={3}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            className="block w-full px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
             placeholder="Describe your product..."
             required
           />

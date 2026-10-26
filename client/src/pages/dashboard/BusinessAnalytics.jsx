@@ -30,7 +30,7 @@ const truncate = (label, max = 18) =>
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm px-3 py-2 text-xs">
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm px-3 py-2 text-xs">
       <p className="font-medium text-gray-900 mb-1">{fmtDateLabel(label)}</p>
       {payload.map((entry) => (
         <p key={entry.dataKey} style={{ color: entry.color }} className="flex items-center gap-1.5">
@@ -72,7 +72,7 @@ export default function BusinessAnalytics() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Analytics</h1>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
           {[...Array(4)].map((_, i) => (
@@ -88,7 +88,7 @@ export default function BusinessAnalytics() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Analytics</h1>
           <p className="text-gray-500 mt-1">View your business performance metrics.</p>
         </div>
         <Card>
@@ -120,7 +120,7 @@ export default function BusinessAnalytics() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Analytics</h1>
           <p className="text-gray-500 mt-1">View your business performance metrics.</p>
         </div>
         <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 self-start">
@@ -301,11 +301,11 @@ export default function BusinessAnalytics() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-500">Drop-offs ({rangeShort})</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{summary.dropOffCount || 0}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900 mt-1">{summary.dropOffCount || 0}</p>
           </div>
           <div className="p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-500">Total Weight</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+            <p className="text-2xl font-semibold tracking-tight text-gray-900 mt-1">
               {Number(summary.dropOffWeightKg || 0).toLocaleString('en-PH', {
                 minimumFractionDigits: 1,
                 maximumFractionDigits: 1,
@@ -315,7 +315,7 @@ export default function BusinessAnalytics() {
           </div>
           <div className="p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-500">Avg Weight per Drop-off</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+            <p className="text-2xl font-semibold tracking-tight text-gray-900 mt-1">
               {summary.dropOffCount > 0
                 ? (Number(summary.dropOffWeightKg || 0) / summary.dropOffCount).toLocaleString(
                     'en-PH',

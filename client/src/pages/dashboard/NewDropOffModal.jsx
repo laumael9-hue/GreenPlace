@@ -242,7 +242,7 @@ export default function NewDropOffModal({ open, onClose, onCreated }) {
                     placeholder="e.g. Juan Perez"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
                 <div>
@@ -252,7 +252,7 @@ export default function NewDropOffModal({ open, onClose, onCreated }) {
                     placeholder="e.g. 09171234567"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
               </div>
@@ -264,7 +264,7 @@ export default function NewDropOffModal({ open, onClose, onCreated }) {
                   placeholder="Search by name or phone..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
                 {searching && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -272,7 +272,7 @@ export default function NewDropOffModal({ open, onClose, onCreated }) {
                   </div>
                 )}
                 {searchResults.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
                     {searchResults.map((resident) => (
                       <button
                         key={resident.id}
@@ -296,7 +296,7 @@ export default function NewDropOffModal({ open, onClose, onCreated }) {
                   </div>
                 )}
                 {searchQuery && !searching && searchResults.length === 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-center">
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-center">
                     <p className="text-sm text-gray-500">No residents found</p>
                     <button
                       type="button"
@@ -329,7 +329,7 @@ export default function NewDropOffModal({ open, onClose, onCreated }) {
                   <select
                     value={item.materialName}
                     onChange={(e) => handleItemChange(index, 'materialName', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
                     <option value="">Select material</option>
                     {materials.map(m => (
@@ -345,7 +345,7 @@ export default function NewDropOffModal({ open, onClose, onCreated }) {
                     placeholder="kg"
                     value={item.quantity}
                     onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                    className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-20 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                   <span className="text-xs text-gray-400 w-12 text-right">
                     {item.quantity ? `₱${getEstimatedValue(index).toFixed(2)}` : ''}
@@ -372,7 +372,7 @@ export default function NewDropOffModal({ open, onClose, onCreated }) {
               placeholder="Any additional notes..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
             />
           </div>
 

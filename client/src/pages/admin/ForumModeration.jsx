@@ -331,7 +331,7 @@ export default function ForumModeration() {
             value={threadSearch}
             onChange={(e) => setThreadSearch(e.target.value)}
             placeholder="Search threads..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500"
           />
 
           {loading ? (
@@ -484,7 +484,7 @@ export default function ForumModeration() {
                 setResolveStatus(e.target.value);
                 if (e.target.value !== 'resolved') setResolveAction('none');
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500"
             >
               <option value="reviewed">Mark as Reviewed</option>
               <option value="resolved">Resolve</option>
@@ -497,7 +497,7 @@ export default function ForumModeration() {
               value={resolveStatus === 'resolved' ? resolveAction : 'none'}
               onChange={(e) => setResolveAction(e.target.value)}
               disabled={resolveStatus !== 'resolved'}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
             >
               {(contentActionOptions[selectedReport?.target_type] || contentActionOptions.post).map((opt) => (
                 <option key={opt.value} value={opt.value} className={opt.danger ? 'text-red-600' : ''}>
@@ -527,7 +527,7 @@ export default function ForumModeration() {
               value={resolveNote}
               onChange={(e) => setResolveNote(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500"
               placeholder="Add a note about this resolution..."
             />
           </div>

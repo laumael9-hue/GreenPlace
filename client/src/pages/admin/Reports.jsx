@@ -210,7 +210,7 @@ export default function Reports() {
             <Flag className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.total}</p>
             <p className="text-sm text-gray-500">Total Reports</p>
           </div>
         </Card>
@@ -219,7 +219,7 @@ export default function Reports() {
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.byStatus?.pending || 0}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.byStatus?.pending || 0}</p>
             <p className="text-sm text-gray-500">Pending</p>
           </div>
         </Card>
@@ -228,7 +228,7 @@ export default function Reports() {
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.byStatus?.resolved || 0}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.byStatus?.resolved || 0}</p>
             <p className="text-sm text-gray-500">Resolved</p>
           </div>
         </Card>
@@ -237,7 +237,7 @@ export default function Reports() {
             <Package className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{stats.byTarget?.listing || 0}</p>
+            <p className="text-2xl font-semibold tracking-tight text-gray-900">{stats.byTarget?.listing || 0}</p>
             <p className="text-sm text-gray-500">Listing Reports</p>
           </div>
         </Card>
@@ -263,7 +263,7 @@ export default function Reports() {
         <select
           value={targetFilter}
           onChange={(e) => setTargetFilter(e.target.value)}
-          className="sm:ml-auto px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="sm:ml-auto px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">All Content Types</option>
           <option value="listing">Listings</option>
@@ -392,7 +392,7 @@ export default function Reports() {
                 setResolveStatus(e.target.value);
                 if (e.target.value !== 'resolved') setResolveAction('none');
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500"
             >
               <option value="reviewed">Mark as Reviewed</option>
               <option value="resolved">Resolve</option>
@@ -405,7 +405,7 @@ export default function Reports() {
               value={resolveStatus === 'resolved' ? resolveAction : 'none'}
               onChange={(e) => setResolveAction(e.target.value)}
               disabled={resolveStatus !== 'resolved'}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
             >
               {(contentActionOptions[selectedReport?.target_type] || contentActionOptions.post).map((opt) => (
                 <option key={opt.value} value={opt.value} className={opt.danger ? 'text-red-600' : ''}>
@@ -435,7 +435,7 @@ export default function Reports() {
               value={resolveNote}
               onChange={(e) => setResolveNote(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500"
               placeholder="Add a note about this resolution..."
             />
           </div>

@@ -410,7 +410,7 @@ export default function BusinessRegistration() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Register Your Business</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Register Your Business</h1>
         <p className="text-gray-500 mt-1">Complete the steps below to register your waste management establishment.</p>
       </div>
 
@@ -476,7 +476,7 @@ export default function BusinessRegistration() {
                 value={form.description}
                 onChange={handleChange}
                 placeholder="Describe your business, what you accept, and your mission..."
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors resize-none"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors resize-none"
               />
             </div>
             <Input
@@ -492,7 +492,7 @@ export default function BusinessRegistration() {
               <Input label="City" name="city" value={form.city} onChange={handleChange} error={errors.city} required />
               <Input label="Province" name="province" value={form.province} onChange={handleChange} />
             </div>
-            <div className="border border-gray-200 rounded-lg p-4">
+            <div className="border border-gray-200 rounded-xl p-4">
               <LocationPicker
                 latitude={form.latitude}
                 longitude={form.longitude}
@@ -506,7 +506,7 @@ export default function BusinessRegistration() {
             </div>
             <Input label="Website" name="website" value={form.website} onChange={handleChange} placeholder="https://..." />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
                 <input type="checkbox" name="acceptsDropOffs" checked={form.acceptsDropOffs} onChange={handleChange}
                   className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
                 <div>
@@ -514,7 +514,7 @@ export default function BusinessRegistration() {
                   <p className="text-xs text-gray-500">Residents can schedule recycling drop-offs</p>
                 </div>
               </label>
-              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
                 <input type="checkbox" name="hasMarketplace" checked={form.hasMarketplace} onChange={handleChange}
                   className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
                 <div>
@@ -649,7 +649,7 @@ export default function BusinessRegistration() {
                 <Button variant="outline" size="sm" onClick={addMaterial}>+ Add</Button>
               </div>
               {materials.map((m, i) => (
-                <div key={i} className="p-4 border border-gray-200 rounded-lg space-y-3 mb-3">
+                <div key={i} className="p-4 border border-gray-200 rounded-xl space-y-3 mb-3">
                   <div className="flex items-center justify-between">
                     <Input
                       label="Material Name"

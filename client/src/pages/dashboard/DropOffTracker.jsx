@@ -135,7 +135,7 @@ export default function DropOffTracker() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Drop-off Tracker</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Drop-off Tracker</h1>
           <p className="text-gray-500 mt-1">Record residents selling materials to your facility.</p>
         </div>
         <Button onClick={() => setShowNewModal(true)}>
@@ -178,7 +178,7 @@ export default function DropOffTracker() {
                 placeholder="Search by resident, material, or date..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
             <Button type="submit" size="sm">Search</Button>
@@ -376,7 +376,7 @@ export default function DropOffTracker() {
             {/* Materials */}
             <div>
               <p className="text-xs text-gray-500 mb-2">Materials</p>
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr>
