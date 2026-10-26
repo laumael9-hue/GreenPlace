@@ -133,7 +133,7 @@ export default function ListingModeration() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Marketplace Moderation</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Marketplace Moderation</h1>
           <p className="text-gray-500 mt-1">Review, archive, and restore marketplace listings.</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleExport} disabled={loading}>
@@ -159,7 +159,7 @@ export default function ListingModeration() {
                 placeholder="Search by title or description..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <select
@@ -201,7 +201,7 @@ export default function ListingModeration() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <tr className="border-b border-gray-100 bg-gray-50/70 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <th className="px-4 py-3">Listing</th>
                   <th className="px-4 py-3">Seller</th>
                   <th className="px-4 py-3">Price</th>

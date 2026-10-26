@@ -187,7 +187,7 @@ export default function Reports() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Reports</h1>
           <p className="text-gray-500 mt-1">Cross-content moderation: listings, threads, and posts.</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleExport} disabled={loading}>
@@ -206,7 +206,7 @@ export default function Reports() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
             <Flag className="w-6 h-6" />
           </div>
           <div>
@@ -215,7 +215,7 @@ export default function Reports() {
           </div>
         </Card>
         <Card className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
+          <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div>
@@ -224,7 +224,7 @@ export default function Reports() {
           </div>
         </Card>
         <Card className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
             <FileText className="w-6 h-6" />
           </div>
           <div>
@@ -233,7 +233,7 @@ export default function Reports() {
           </div>
         </Card>
         <Card className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600">
+          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-gray-600">
             <Package className="w-6 h-6" />
           </div>
           <div>

@@ -161,7 +161,7 @@ export default function ForumModeration() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Forum Moderation</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Forum Moderation</h1>
           <p className="text-gray-600 mt-1">Manage reports and moderate forum content.</p>
         </div>
         <Button onClick={() => navigate('/forum', { state: { newAnnouncement: true } })}>

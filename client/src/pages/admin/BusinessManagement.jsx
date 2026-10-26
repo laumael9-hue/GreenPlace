@@ -211,7 +211,7 @@ export default function BusinessManagement() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Business Management</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Business Management</h1>
           <p className="text-gray-500 mt-1">Review, approve, and manage business registrations.</p>
         </div>
         <div className="flex gap-2">
@@ -239,7 +239,7 @@ export default function BusinessManagement() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
         <Card className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
             <Building2 className="w-6 h-6" />
           </div>
           <div>
@@ -248,7 +248,7 @@ export default function BusinessManagement() {
           </div>
         </Card>
         <Card className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
+          <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
             <Clock className="w-6 h-6" />
           </div>
           <div>
@@ -257,7 +257,7 @@ export default function BusinessManagement() {
           </div>
         </Card>
         <Card className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
             <CheckCircle className="w-6 h-6" />
           </div>
           <div>
@@ -266,7 +266,7 @@ export default function BusinessManagement() {
           </div>
         </Card>
         <Card className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center text-red-600">
+          <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
             <XCircle className="w-6 h-6" />
           </div>
           <div>
@@ -275,7 +275,7 @@ export default function BusinessManagement() {
           </div>
         </Card>
         <Card className="flex items-center gap-4 p-4">
-          <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
+          <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
             <Ban className="w-6 h-6" />
           </div>
           <div>
@@ -296,7 +296,7 @@ export default function BusinessManagement() {
                 placeholder="Search by name, category, or city..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <select
@@ -326,7 +326,7 @@ export default function BusinessManagement() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <tr className="border-b border-gray-100 bg-gray-50/70 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <th className="px-4 py-3">Business</th>
                   <th className="px-4 py-3">Owner</th>
                   <th className="px-4 py-3">Category</th>

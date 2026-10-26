@@ -273,20 +273,20 @@ export default function FindEstablishments() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-emerald-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Find Establishments</h1>
-              <p className="mt-1 text-gray-500">
+              <h1 className="text-2xl sm:text-4xl font-semibold tracking-tight text-white">Find Establishments</h1>
+              <p className="mt-1 text-primary-100">
                 Discover waste management facilities, recycling centers, and junk shops near you
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 bg-white/15 backdrop-blur-sm rounded-full border border-white/25 self-start">
               <button
                 onClick={() => setViewMode('map')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  viewMode === 'map' ? 'bg-primary-100 text-primary-700' : 'text-gray-500 hover:bg-gray-100'
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  viewMode === 'map' ? 'bg-white text-primary-700 shadow-sm' : 'text-white hover:bg-white/15'
                 }`}
               >
                 <MapPin className="w-4 h-4 inline mr-1" />
@@ -294,8 +294,8 @@ export default function FindEstablishments() {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'text-gray-500 hover:bg-gray-100'
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  viewMode === 'list' ? 'bg-white text-primary-700 shadow-sm' : 'text-white hover:bg-white/15'
                 }`}
               >
                 <Store className="w-4 h-4 inline mr-1" />
@@ -320,7 +320,7 @@ export default function FindEstablishments() {
               onChange={(e) => handleAddressSearch(e.target.value)}
               onFocus={() => setShowAddressSuggestions(true)}
               placeholder="Search location (e.g., 'Mandaue City, Cebu' or 'Colon Street, Cebu City')..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none shadow-sm"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-full text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none shadow-sm"
             />
             {showAddressSuggestions && addressSuggestions.length > 0 && (
               <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">

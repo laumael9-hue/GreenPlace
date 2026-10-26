@@ -314,6 +314,22 @@ export default function ResidentDashboard() {
         )}
       </div>
 
+      {/* Quick actions */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 -mt-2">
+        {quickActions.map(action => (
+          <Link
+            key={action.to}
+            to={action.to}
+            className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200/70 shadow-sm hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all group"
+          >
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${action.color}`}>
+              {action.icon}
+            </div>
+            <span className="text-sm font-medium text-gray-700 group-hover:text-primary-600 transition-colors">{action.label}</span>
+          </Link>
+        ))}
+      </div>
+
       {/* Recommended stores */}
       <section>
         <SectionHeader
@@ -429,25 +445,6 @@ export default function ResidentDashboard() {
         )}
       </section>
 
-      {/* Quick actions */}
-      <section>
-        <SectionHeader title="Quick Actions" />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {quickActions.map(action => (
-            <Link
-              key={action.to}
-              to={action.to}
-              className="flex flex-col items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all text-center group"
-            >
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${action.color}`}>
-                {action.icon}
-              </div>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-primary-600 transition-colors">{action.label}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       {/* My activity — compact strips */}
       <section>
         <SectionHeader title="My Activity" />
@@ -488,7 +485,7 @@ export default function ResidentDashboard() {
             {loading ? (
               <div className="space-y-3">
                 {[...Array(2)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-50 rounded-lg animate-pulse" />
+                  <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />
                 ))}
               </div>
             ) : orders.length === 0 ? (
@@ -499,7 +496,7 @@ export default function ResidentDashboard() {
                   <Link
                     key={order.id}
                     to={`/orders/${order.id}`}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
@@ -532,7 +529,7 @@ export default function ResidentDashboard() {
             {loading ? (
               <div className="space-y-3">
                 {[...Array(2)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-50 rounded-lg animate-pulse" />
+                  <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />
                 ))}
               </div>
             ) : dropOffs.length === 0 ? (
@@ -540,7 +537,7 @@ export default function ResidentDashboard() {
             ) : (
               <div className="space-y-3">
                 {dropOffs.map(d => (
-                  <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
                         {d.business?.name || 'Establishment'}
@@ -561,7 +558,7 @@ export default function ResidentDashboard() {
       <BecomeBusinessCard />
 
       {addingToCart && (
-        <div className="fixed bottom-6 right-6 bg-primary-600 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 z-50">
+        <div className="fixed bottom-6 right-6 bg-primary-600 text-white text-sm font-medium px-5 py-3 rounded-full shadow-lg flex items-center gap-2 z-50">
           <Loader2 className="w-4 h-4 animate-spin" /> Adding to cart...
         </div>
       )}

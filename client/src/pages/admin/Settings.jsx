@@ -183,7 +183,7 @@ export default function SettingsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">System Settings</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">System Settings</h1>
           <p className="text-gray-500 mt-1">Configure application-wide behavior.</p>
         </div>
         <div className="flex justify-center py-16">
@@ -197,7 +197,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">System Settings</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">System Settings</h1>
           <p className="text-gray-500 mt-1">Configure application-wide behavior.</p>
         </div>
         <div className="flex items-center gap-2">

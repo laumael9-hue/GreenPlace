@@ -76,10 +76,10 @@ export default function BusinessDashboard() {
         </div>
         <Card>
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-emerald-100 ring-8 ring-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-8 h-8 text-primary-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Register Your Business</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-gray-900">Register Your Business</h2>
             <p className="text-gray-500 mt-2 max-w-md mx-auto">
               Start by registering your waste management establishment. It only takes a few minutes.
             </p>
@@ -105,10 +105,10 @@ export default function BusinessDashboard() {
 
         <Card>
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-amber-100 ring-8 ring-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-amber-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Upload Verification Documents</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-gray-900">Upload Verification Documents</h2>
             <p className="text-gray-500 mt-2 max-w-md mx-auto">
               Please upload at least one verification document (business permit, DTI/SEC registration, etc.)
               to access dashboard features. This is required for moderator approval.
