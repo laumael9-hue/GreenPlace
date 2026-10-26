@@ -3,6 +3,7 @@ import { CheckCircle, Package, ArrowRight, Home } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { paymentMethodLabels } from '../lib/utilities';
+import { formatStatus } from '../lib/formatStatus';
 
 export default function OrderConfirmation() {
   const location = useLocation();
@@ -41,7 +42,7 @@ export default function OrderConfirmation() {
           <div className="border-t border-gray-100 pt-6 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">Status</span>
-              <span className="text-sm font-medium text-amber-600 capitalize">{order.status}</span>
+              <span className="text-sm font-medium text-amber-600">{formatStatus(order.status)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">Payment</span>

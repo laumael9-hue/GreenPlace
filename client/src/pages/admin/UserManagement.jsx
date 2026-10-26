@@ -10,6 +10,7 @@ import Avatar from '../../components/ui/Avatar';
 import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
 import { roleLabel } from '../../lib/roleLabel';
+import { formatStatus } from '../../lib/formatStatus';
 import {
   Search, Users, ChevronLeft, ChevronRight, Shield,
   Ban, CheckCircle, Trash2, Eye, AlertTriangle, Clock, Building2, Download
@@ -505,7 +506,7 @@ export default function UserManagement() {
                               <div>
                                 <p className="text-sm font-medium text-gray-900">{linkedBusiness.name}</p>
                                 <Badge variant={linkedBusiness.status === 'approved' ? 'success' : linkedBusiness.status === 'suspended' ? 'danger' : 'warning'}>
-                                  {linkedBusiness.status}
+                                  {formatStatus(linkedBusiness.status)}
                                 </Badge>
                               </div>
                             </div>

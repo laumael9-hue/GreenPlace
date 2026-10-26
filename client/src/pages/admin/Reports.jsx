@@ -11,6 +11,7 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import EmptyState from '../../components/ui/EmptyState';
+import { formatStatus } from '../../lib/formatStatus';
 
 const reportStatusConfig = {
   pending: { variant: 'warning', label: 'Pending' },
@@ -316,7 +317,7 @@ export default function Reports() {
                         <p className="text-sm text-gray-700 line-clamp-2">
                           {report.target.title || report.target.thread?.title}
                           {report.target.status && (
-                            <span className="ml-1.5 text-xs text-gray-400">({report.target.status})</span>
+                            <span className="ml-1.5 text-xs text-gray-400">({formatStatus(report.target.status)})</span>
                           )}
                         </p>
                         <p className="text-sm text-gray-600 line-clamp-2">{report.target.body}</p>

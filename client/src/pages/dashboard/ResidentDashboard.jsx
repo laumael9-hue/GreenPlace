@@ -13,6 +13,7 @@ import StoreCard from '../../components/marketplace/StoreCard';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { formatStatus, formatDropOffStatus } from '../../lib/formatStatus';
 
 const quickActions = [
   { to: '/establishments', icon: <MapPin className="w-5 h-5" />, label: 'Find Establishments', color: 'bg-blue-100 text-blue-600' },
@@ -22,12 +23,12 @@ const quickActions = [
 ];
 
 const orderStatusVariant = {
-  completed: 'success', confirmed: 'info', processing: 'info',
-  pending: 'warning', cancelled: 'danger',
+  completed: 'success', confirmed: 'info', processing: 'info', ready_for_pickup: 'purple',
+  pending: 'warning', cancelled: 'danger', refunded: 'danger',
 };
 const dropOffStatusVariant = {
-  completed: 'success', received: 'info', scheduled: 'warning',
-  pending: 'warning', cancelled: 'danger',
+  processed: 'success', completed: 'success', received: 'info', in_transit: 'info',
+  scheduled: 'warning', pending: 'warning', cancelled: 'danger',
 };
 
 const formatDate = (d) =>
@@ -506,7 +507,7 @@ export default function ResidentDashboard() {
                       <p className="text-xs text-gray-500">{formatDate(order.created_at)}</p>
                     </div>
                     <div className="text-right shrink-0 ml-3">
-                      <Badge variant={orderStatusVariant[order.status] || 'neutral'}>{order.status}</Badge>
+                      <Badge variant={orderStatusVariant[order.status] || 'neutral'}>{formatStatus(order.status)}</Badge>
                       <p className="text-sm font-semibold text-gray-900 mt-1">
                         ₱{parseFloat(order.total || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                       </p>
@@ -546,7 +547,7 @@ export default function ResidentDashboard() {
                         {d.reference_number} · {formatDate(d.created_at)}
                       </p>
                     </div>
-                    <Badge variant={dropOffStatusVariant[d.status] || 'neutral'}>{d.status}</Badge>
+                    <Badge variant={dropOffStatusVariant[d.status] || 'neutral'}>{formatDropOffStatus(d.status)}</Badge>
                   </div>
                 ))}
               </div>

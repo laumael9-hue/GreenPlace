@@ -7,6 +7,7 @@ import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Select from '../../components/ui/Select';
 import LocationPicker from '../../components/ui/LocationPicker';
+import { formatStatus } from '../../lib/formatStatus';
 import {
   Building2, FileText, Package,
   Check, ChevronRight, ChevronLeft, Upload, Trash2,
@@ -390,7 +391,7 @@ export default function BusinessRegistration() {
               You already have a registered business: <strong>{existingBusiness.name}</strong>
             </p>
             <p className="text-sm text-gray-400 mt-1">
-              Status: <span className="capitalize font-medium">{existingBusiness.status}</span>
+              Status: <span className="font-medium">{formatStatus(existingBusiness.status)}</span>
             </p>
             <div className="mt-6 flex justify-center gap-3">
               <Button onClick={() => navigate('/dashboard/profile')}>

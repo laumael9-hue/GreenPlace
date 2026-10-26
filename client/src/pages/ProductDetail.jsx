@@ -12,6 +12,7 @@ import StarRating from '../components/ui/StarRating';
 import ReviewSummary from '../components/reviews/ReviewSummary';
 import ReviewCard from '../components/reviews/ReviewCard';
 import ReviewModal from '../components/reviews/ReviewModal';
+import { formatStatus } from '../lib/formatStatus';
 
 const CONDITION_LABELS = {
   new: 'New',
@@ -419,7 +420,7 @@ export default function ProductDetail() {
                   <h3 className="font-semibold text-gray-900">Moderation</h3>
                   <div className="flex items-center gap-1.5">
                     <Badge variant={listing.status === 'active' ? 'success' : listing.status === 'archived' ? 'warning' : 'neutral'}>
-                      {listing.status}
+                      {formatStatus(listing.status)}
                     </Badge>
                     {listing.is_featured && <Badge variant="warning">Featured</Badge>}
                   </div>

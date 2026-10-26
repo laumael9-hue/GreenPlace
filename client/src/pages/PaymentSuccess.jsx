@@ -5,6 +5,7 @@ import api from '../lib/api';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { paymentMethodLabels } from '../lib/utilities';
+import { formatStatus } from '../lib/formatStatus';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -101,8 +102,8 @@ export default function PaymentSuccess() {
             <div className="border-t border-gray-100 pt-6 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Status</span>
-                <span className={`text-sm font-medium capitalize ${isPaid ? 'text-green-600' : 'text-amber-600'}`}>
-                  {order.status}
+                <span className={`text-sm font-medium ${isPaid ? 'text-green-600' : 'text-amber-600'}`}>
+                  {formatStatus(order.status)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
