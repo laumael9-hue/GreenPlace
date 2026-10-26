@@ -33,17 +33,17 @@ export default function BusinessDocumentsReview({ documents = [], onUpdated }) {
   };
 
   return (
-    <div className="p-3 bg-gray-50 rounded-lg">
-      <p className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-1.5">
-        <FileText className="w-4 h-4" />
+    <div>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <FileText className="w-3.5 h-3.5" />
         Documents ({documents.length})
       </p>
       {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
-      <div className="space-y-3 text-sm">
+      <div className="space-y-2 text-sm">
         {documents.map((doc) => {
           const status = doc.verification_status || 'pending';
           return (
-            <div key={doc.id}>
+            <div key={doc.id} className="p-3 bg-white border border-gray-200 rounded-lg">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-gray-700 truncate">{doc.file_name}</p>
@@ -56,20 +56,25 @@ export default function BusinessDocumentsReview({ documents = [], onUpdated }) {
               </div>
 
               {status === 'pending' && rejectingId !== doc.id && (
-                <div className="flex justify-end gap-2 mt-1.5">
-                  <Button
-                    variant="danger"
-                    size="sm"
+                <div className="flex justify-end gap-1 mt-2 pt-2 border-t border-gray-100">
+                  <button
+                    type="button"
                     onClick={() => { setRejectingId(doc.id); setNotes(''); }}
                     disabled={busyId === doc.id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
                   >
-                    <XCircle className="w-4 h-4" />
+                    <XCircle className="w-3.5 h-3.5" />
                     Reject
-                  </Button>
-                  <Button size="sm" onClick={() => verify(doc, 'approved')} disabled={busyId === doc.id}>
-                    {busyId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => verify(doc, 'approved')}
+                    disabled={busyId === doc.id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-green-700 border border-green-200 hover:bg-green-50 rounded-md transition-colors disabled:opacity-50"
+                  >
+                    {busyId === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
                     Verify
-                  </Button>
+                  </button>
                 </div>
               )}
 

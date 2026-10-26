@@ -22,6 +22,15 @@ const signDocumentUrls = async (documents) => {
   }));
 };
 
+// profiles has no email column; owner emails live in the auth system.
+const fetchOwnerEmails = async (userIds) => {
+  const entries = await Promise.all(userIds.map(async (id) => {
+    const { data } = await supabaseAdmin.auth.admin.getUserById(id);
+    return [id, data?.user?.email || null];
+  }));
+  return Object.fromEntries(entries);
+};
+
 // ============================================================
 // UTILITY: Haversine Distance Calculation
 // ============================================================
@@ -1082,10 +1091,11 @@ const getAllBusinesses = async (req, res) => {
     if (ownerIds.length > 0) {
       const { data: profiles } = await supabaseAdmin
         .from('profiles')
-        .select('id, first_name, last_name, email, avatar_url')
+        .select('id, first_name, last_name, avatar_url')
         .in('id', ownerIds);
       if (profiles) {
-        ownerProfiles = Object.fromEntries(profiles.map(p => [p.id, p]));
+        const emails = await fetchOwnerEmails(profiles.map(p => p.id));
+        ownerProfiles = Object.fromEntries(profiles.map(p => [p.id, { ...p, email: emails[p.id] }]));
       }
     }
 
@@ -1129,10 +1139,13 @@ const getBusinessById = async (req, res) => {
     if (business.owner_id) {
       const { data: p } = await supabaseAdmin
         .from('profiles')
-        .select('id, first_name, last_name, email, avatar_url, phone')
+        .select('id, first_name, last_name, avatar_url, phone')
         .eq('id', business.owner_id)
         .single();
-      profile = p || null;
+      if (p) {
+        const emails = await fetchOwnerEmails([p.id]);
+        profile = { ...p, email: emails[p.id] };
+      }
     }
 
     const { data: hours } = await supabaseAdmin
@@ -1532,10 +1545,11 @@ const getAllDocuments = async (req, res) => {
       const { data: ownerRows } = ownerIds.length > 0
         ? await supabaseAdmin
             .from('profiles')
-            .select('id, first_name, last_name, email')
+            .select('id, first_name, last_name')
             .in('id', ownerIds)
         : { data: [] };
-      const ownerMap = Object.fromEntries((ownerRows || []).map(p => [p.id, p]));
+      const ownerEmails = await fetchOwnerEmails((ownerRows || []).map(p => p.id));
+      const ownerMap = Object.fromEntries((ownerRows || []).map(p => [p.id, { ...p, email: ownerEmails[p.id] }]));
       businessMap = Object.fromEntries(
         (bizRows || []).map(b => [b.id, { ...b, owner: ownerMap[b.owner_id] || null }])
       );

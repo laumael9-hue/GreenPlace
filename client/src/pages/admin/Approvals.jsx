@@ -384,11 +384,20 @@ export default function Approvals() {
               )}
             </div>
 
-            <div className="text-sm text-gray-500">
-              <p>Owner: <span className="font-medium text-gray-900">{getOwnerName(selectedBusiness)}</span></p>
-              <p>Registered: <span className="font-medium text-gray-900">
-                {selectedBusiness.created_at ? new Date(selectedBusiness.created_at).toLocaleDateString() : '—'}
-              </span></p>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Owner</p>
+                <p className="font-medium text-gray-900">{getOwnerName(selectedBusiness)}</p>
+                {selectedBusiness.profiles?.email && (
+                  <p className="text-xs text-gray-500 truncate">{selectedBusiness.profiles.email}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Registered</p>
+                <p className="font-medium text-gray-900">
+                  {selectedBusiness.created_at ? new Date(selectedBusiness.created_at).toLocaleDateString() : '—'}
+                </p>
+              </div>
             </div>
 
             <BusinessDocumentsReview
@@ -400,15 +409,15 @@ export default function Approvals() {
 
             {selectedBusiness.status === 'pending' && (
               <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-                <Button
-                  variant="danger"
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => { setRejectReason(''); setShowRejectModal(true); }}
                   disabled={actionLoading}
+                  className="inline-flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                 >
                   <XCircle className="w-4 h-4" />
-                  Reject
-                </Button>
+                  Reject registration
+                </button>
                 <Button
                   variant="primary"
                   size="sm"
@@ -416,7 +425,7 @@ export default function Approvals() {
                   disabled={actionLoading}
                 >
                   <CheckCircle className="w-4 h-4" />
-                  {actionLoading ? 'Approving...' : 'Approve'}
+                  {actionLoading ? 'Approving...' : 'Approve registration'}
                 </Button>
               </div>
             )}
