@@ -14,18 +14,18 @@ export default {
       colors: {
         // Neutral (zinc) grays instead of the default bluish gray.
         gray: colors.zinc,
-        // Emerald-based brand green. 600 is dark enough for white text (AA contrast).
+        // Bright brand green (original palette).
         primary: {
-          50: '#ecfdf5',
-          100: '#d1fae5',
-          200: '#a7f3d0',
-          300: '#6ee7b7',
-          400: '#34d399',
-          500: '#059669',
-          600: '#047857',
-          700: '#065f46',
-          800: '#064e3b',
-          900: '#022c22',
+          50: '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#22c55e',
+          600: '#16a34a',
+          700: '#15803d',
+          800: '#166534',
+          900: '#14532d',
         },
       },
       boxShadow: {
