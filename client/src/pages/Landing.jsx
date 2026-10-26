@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle, ArrowRight, Search, Home, Building2, CheckCircle2 } from 'lucide-react';
+import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle, ArrowRight, ArrowUpRight, Search, Home, Building2, CheckCircle2 } from 'lucide-react';
 import ContourArt from '../components/landing/ContourArt';
 
 // ============================================================
@@ -43,100 +43,73 @@ function HeroSection() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-400 text-white">
-      {/* Soft light and depth */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.22)_0%,transparent_55%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(4,120,87,0.35)_0%,transparent_55%)]" />
-        <div className="absolute -top-32 -left-24 w-[480px] h-[480px] bg-white/10 rounded-full blur-3xl" />
-      </div>
+    <section className="relative min-h-screen flex items-end overflow-hidden text-white">
+      {/* Full-bleed photo: aerial causeway through mangroves (Unsplash, Jerry Manlangit) */}
+      <img
+        src="/images/hero-aerial.jpg"
+        alt="Aerial view of a road crossing mangroves and coastal waters in the Philippines"
+        className="absolute inset-0 w-full h-full object-cover brightness-110 saturate-125"
+      />
+      {/* Legibility + brand tint */}
+      <div className="absolute inset-0 bg-gradient-to-r from-gray-950/55 via-gray-950/20 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-gray-950/50 via-transparent to-gray-950/10" />
+      <div className="absolute inset-0 bg-primary-600/10 mix-blend-multiply" />
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-28">
-        <div className="grid lg:grid-cols-12 gap-14 lg:gap-8 items-center">
-          {/* Copy */}
-          <div className="lg:col-span-7 text-center lg:text-left">
-            <p className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold tracking-wide text-white/90 uppercase mb-6">
-              <span className="w-8 h-px bg-white/70" />
-              Metro Cebu's sustainability platform
-            </p>
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 pb-14 sm:pb-20">
+        <p className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium tracking-wide text-white/90 uppercase mb-5">
+          <span className="w-8 h-px bg-white/70" />
+          Metro Cebu's sustainability platform
+        </p>
 
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight leading-[0.98]">
-              Sustainable
-              <br />
-              living,{' '}
-              <span className="text-gray-950">made simple.</span>
-            </h1>
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight leading-[1.02] max-w-4xl">
+          Sustainable living,
+          <br />
+          made simple.
+        </h1>
 
-            <p className="mt-6 text-base sm:text-lg text-white/85 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Find waste management establishments, trade recyclable materials, and join a community
-              making Metro Cebu greener.
-            </p>
+        <form
+          onSubmit={handleSearch}
+          className="mt-9 flex items-center gap-2 max-w-lg bg-white/15 backdrop-blur-md border border-white/30 rounded-full pl-5 pr-1.5 py-1.5 focus-within:bg-white/25 transition-colors"
+        >
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search recyclables, products, materials..."
+            aria-label="Search the marketplace"
+            className="flex-1 min-w-0 bg-transparent text-white placeholder-white/65 text-sm sm:text-base focus:outline-none py-2"
+          />
+          <button
+            type="submit"
+            aria-label="Search"
+            className="shrink-0 w-10 h-10 rounded-full bg-white text-primary-700 flex items-center justify-center hover:bg-primary-50 transition-colors"
+          >
+            <Search className="w-5 h-5" />
+          </button>
+        </form>
 
-            <form
-              onSubmit={handleSearch}
-              className="mt-9 flex items-center gap-2 max-w-lg mx-auto lg:mx-0 bg-white rounded-full pl-5 pr-1.5 py-1.5 shadow-xl shadow-primary-900/15"
+        <div className="mt-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <p className="text-base sm:text-lg text-white/85 max-w-xl leading-relaxed">
+            Find waste management establishments, trade recyclable materials, and join a community
+            making Metro Cebu greener, one small action at a time.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Link
+              to="/register"
+              className="group inline-flex items-center justify-between gap-4 bg-white text-gray-900 font-semibold uppercase tracking-wide text-sm pl-6 pr-2 py-2 rounded-full hover:bg-primary-50 transition-colors"
             >
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search recyclables, products, materials..."
-                aria-label="Search the marketplace"
-                className="flex-1 min-w-0 bg-transparent text-gray-900 placeholder-gray-400 text-sm sm:text-base focus:outline-none py-2"
-              />
-              <button
-                type="submit"
-                aria-label="Search"
-                className="shrink-0 w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-            </form>
-
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
-              <Link
-                to="/register"
-                className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-950 text-white font-semibold px-7 py-3 rounded-full hover:bg-gray-800 transition-colors shadow-lg shadow-primary-900/20"
-              >
-                Get started free
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-              <Link
-                to="/establishments"
-                className="w-full sm:w-auto inline-flex items-center justify-center border-2 border-white/70 text-white font-semibold px-7 py-3 rounded-full hover:bg-white hover:text-primary-700 transition-colors"
-              >
-                Find establishments
-              </Link>
-            </div>
-
-            <ul className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-sm text-white/85">
-              <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Map of local drop-off points</li>
-              <li className="flex items-center gap-2"><Recycle className="w-4 h-4" /> Recyclables marketplace</li>
-              <li className="flex items-center gap-2"><Users className="w-4 h-4" /> Community forum</li>
-            </ul>
-          </div>
-
-          {/* Line art + photo */}
-          <div className="lg:col-span-5 relative flex justify-center">
-            <div className="absolute inset-[-25%] pointer-events-none animate-[spin_180s_linear_infinite]">
-              <ContourArt className="w-full h-full" />
-            </div>
-            <div className="relative w-full max-w-sm sm:max-w-md lg:max-w-none">
-              <img
-                src="/images/hero-cleanup.jpg"
-                alt="Volunteers sorting trash into a bag on a beach"
-                className="relative w-full aspect-[4/5] object-cover rounded-[2rem] shadow-2xl shadow-primary-900/30 ring-4 ring-white/80"
-              />
-              <div className="absolute -bottom-5 -left-3 sm:-left-6 flex items-center gap-3 bg-white text-gray-900 rounded-2xl shadow-xl px-4 py-3">
-                <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center">
-                  <Recycle className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold">Segregate at the source</p>
-                  <p className="text-xs text-gray-500">Compost · Waste · Recycle</p>
-                </div>
-              </div>
-            </div>
+              Get started
+              <span className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center group-hover:bg-primary-700 transition-colors">
+                <ArrowUpRight className="w-5 h-5" />
+              </span>
+            </Link>
+            <Link
+              to="/establishments"
+              className="inline-flex items-center justify-center border border-white/60 text-white font-medium text-sm uppercase tracking-wide px-6 py-3.5 rounded-full hover:bg-white/15 transition-colors"
+            >
+              Find establishments
+            </Link>
           </div>
         </div>
       </div>
