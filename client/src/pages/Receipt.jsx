@@ -194,7 +194,7 @@ export default function Receipt() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-4">
           <AlertTriangle className="w-12 h-12 text-red-300 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Error</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-gray-900 mb-2">Error</h2>
           <p className="text-gray-500 mb-6">{error}</p>
           <Button onClick={() => navigate('/orders')}>Back to Orders</Button>
         </div>
@@ -223,7 +223,7 @@ export default function Receipt() {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-8">
           <div className="flex items-center justify-between pb-4 border-b border-gray-200 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 1c1 2 2 4.5 2 8 0 5.5-4.78 11-10 11Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
               </div>
               <div>
@@ -235,7 +235,7 @@ export default function Receipt() {
           </div>
 
           {isPayMongo && (
-            <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-2 mb-4">
+            <div className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-2 mb-4">
               <p className="text-sm font-bold text-amber-800">TEST MODE</p>
               <p className="text-xs text-amber-700">This is a test transaction — no real payment was processed.</p>
             </div>
