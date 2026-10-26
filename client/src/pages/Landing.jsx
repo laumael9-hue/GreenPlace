@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle, ArrowRight, ChevronRight, Sparkles, Search } from 'lucide-react';
+import { Leaf, MapPin, ShoppingBag, Users, Shield, ShieldCheck, Recycle, ArrowRight, Search, Home, Building2, CheckCircle2 } from 'lucide-react';
 import ContourArt from '../components/landing/ContourArt';
 
 // ============================================================
@@ -26,33 +26,6 @@ function useInView(options = {}) {
   }, []);
 
   return [ref, isVisible];
-}
-
-// ============================================================
-// ANIMATED COUNTER
-// ============================================================
-
-function AnimatedCounter({ end, suffix = '', duration = 2000 }) {
-  const [count, setCount] = useState(0);
-  const [ref, isVisible] = useInView();
-
-  useEffect(() => {
-    if (!isVisible) return;
-    let start = 0;
-    const increment = end / (duration / 16);
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) {
-        setCount(end);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(start));
-      }
-    }, 16);
-    return () => clearInterval(timer);
-  }, [isVisible, end, duration]);
-
-  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
 // ============================================================
@@ -168,39 +141,24 @@ function HeroSection() {
 }
 
 // ============================================================
-// STATS BAR
+// SHARED SECTION HEADER
 // ============================================================
 
-function StatsBar() {
-  const [ref, isVisible] = useInView();
-
-  const stats = [
-    { icon: MapPin,  value: 35,  suffix: '+',  label: 'Eco Establishments', color: 'text-blue-500'    },
-    { icon: Users,   value: 280, suffix: '+',  label: 'Community Members',  color: 'text-purple-500'  },
-    { icon: Recycle, value: 4,   suffix: 'T+', label: 'Materials Recycled', color: 'text-emerald-500' },
-    { icon: Shield,  value: 12,  suffix: '',   label: 'Barangays Covered',  color: 'text-amber-500'   },
-  ];
-
+function SectionHeader({ eyebrow, title, highlight, subtitle, isVisible }) {
   return (
-    <section ref={ref} className="relative -mt-12 z-20 pb-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-6 sm:p-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-50 ${stat.color} mb-3`}>
-                  <stat.icon className="w-6 h-6" />
-                </div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-                  <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-                </div>
-                <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
+    <div className={`text-center mb-16 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+      <p className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium tracking-wide text-primary-300 uppercase mb-4">
+        <span className="w-8 h-px bg-primary-400" />
+        {eyebrow}
+        <span className="w-8 h-px bg-primary-400" />
+      </p>
+      <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05]">
+        {title}
+        <br />
+        <span className="bg-gradient-to-r from-primary-400 via-emerald-300 to-lime-300 bg-clip-text text-transparent">{highlight}</span>
+      </h2>
+      {subtitle && <p className="mt-5 text-lg text-white/60 max-w-2xl mx-auto">{subtitle}</p>}
+    </div>
   );
 }
 
@@ -215,77 +173,60 @@ function FeaturesSection() {
     {
       icon: MapPin,
       title: 'Find Establishments',
-      description: 'Locate nearby waste management facilities, recycling centers, and junk shops with interactive maps and smart filters.',
-      gradient: 'from-blue-500 to-blue-600',
-      bg: 'bg-blue-50',
+      description: 'Locate nearby waste management facilities, recycling centers, and junk shops on an interactive map with smart filters.',
     },
     {
       icon: Recycle,
       title: 'Material Exchange',
-      description: 'Buy and sell recyclable materials through our marketplace. Turn waste into value for your community.',
-      gradient: 'from-emerald-500 to-emerald-600',
-      bg: 'bg-emerald-50',
+      description: 'Buy and sell recyclable materials through the marketplace. Turn waste into value for your community.',
     },
     {
       icon: ShoppingBag,
       title: 'Eco Marketplace',
-      description: 'Discover upcycled products and sustainable goods from verified local businesses and artisans.',
-      gradient: 'from-purple-500 to-purple-600',
-      bg: 'bg-purple-50',
+      description: 'Discover upcycled products and sustainable goods from verified local businesses.',
     },
     {
       icon: Users,
       title: 'Community Forum',
-      description: 'Engage with fellow residents, share sustainability tips, and learn about eco-friendly practices.',
-      gradient: 'from-amber-500 to-orange-500',
-      bg: 'bg-amber-50',
+      description: 'Share sustainability tips with fellow residents and learn eco-friendly practices together.',
     },
     {
       icon: Shield,
-      title: 'Secure Transactions',
-      description: 'Safe payment options including Cash on Pickup. Your transactions are protected and verified.',
-      gradient: 'from-rose-500 to-rose-600',
-      bg: 'bg-rose-50',
+      title: 'Verified & Secure',
+      description: 'Businesses are reviewed by moderators, and you can pay with cash on pickup or online in test mode.',
     },
     {
       icon: Leaf,
-      title: 'Impact Tracking',
-      description: 'Track your recycling contributions, view your environmental impact, and earn recognition.',
-      gradient: 'from-teal-500 to-cyan-500',
-      bg: 'bg-teal-50',
+      title: 'Drop-off Tracking',
+      description: 'Schedule drop-offs, follow their status, and keep a record of the materials you have recycled.',
     },
   ];
 
   return (
-    <section id="features" ref={ref} className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`text-center mb-16 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <span className="inline-block text-sm font-bold text-primary-600 uppercase tracking-wider mb-3">Features</span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">
-            Everything You Need for
-            <br />
-            <span className="text-primary-600">Sustainable Living</span>
-          </h2>
-          <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
-            A comprehensive platform for waste management, recycling, and building a greener Metro Cebu.
-          </p>
-        </div>
+    <section id="features" ref={ref} className="relative py-28 bg-[#040806] text-white overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/40 to-transparent" />
+      <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-primary-500/10 blur-3xl rounded-full pointer-events-none" />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          eyebrow="Features"
+          title="Everything you need for"
+          highlight="sustainable living"
+          subtitle="One platform for waste management, recycling, and building a greener Metro Cebu."
+          isVisible={isVisible}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className={`group relative p-6 rounded-2xl border border-gray-100 hover:border-transparent hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-500 hover:-translate-y-1 bg-white ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: `${index * 100}ms` }}
+              className={`group p-7 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-primary-400/40 transition-all duration-500 hover:-translate-y-1 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              style={{ transitionDelay: `${index * 90}ms` }}
             >
-              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.gradient} text-white mb-5 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                <feature.icon className="w-7 h-7" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-500/10 text-primary-300 ring-1 ring-primary-400/20 mb-5 group-hover:bg-primary-500/20 transition-colors">
+                <feature.icon className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">{feature.title}</h3>
-              <p className="text-gray-500 leading-relaxed">{feature.description}</p>
-              <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                Learn more <ChevronRight className="w-4 h-4" />
-              </div>
+              <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+              <p className="text-white/55 leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>
@@ -305,61 +246,44 @@ function HowItWorksSection() {
     {
       number: '01',
       title: 'Discover',
-      description: 'Search for nearby waste management establishments that accept your materials. Filter by type, distance, and ratings.',
+      description: 'Search for nearby establishments that accept your materials. Filter by type, location, and ratings.',
       icon: MapPin,
-      color: 'from-blue-500 to-blue-600',
     },
     {
       number: '02',
       title: 'Transact',
-      description: 'Schedule drop-offs, buy recyclable materials, or sell your items through our secure marketplace.',
+      description: 'Schedule drop-offs, buy recyclable materials, or sell your items through the marketplace.',
       icon: ShoppingBag,
-      color: 'from-emerald-500 to-emerald-600',
     },
     {
       number: '03',
       title: 'Impact',
-      description: 'Track your contributions, earn recognition, and join a community making Metro Cebu greener every day.',
+      description: 'Follow your drop-offs, share what you learn, and join a community greening Metro Cebu.',
       icon: Leaf,
-      color: 'from-purple-500 to-purple-600',
     },
   ];
 
   return (
-    <section id="how-it-works" ref={ref} className="py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`text-center mb-16 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <span className="inline-block text-sm font-bold text-primary-600 uppercase tracking-wider mb-3">How It Works</span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">
-            Three Simple Steps to
-            <br />
-            <span className="text-primary-600">Start Recycling</span>
-          </h2>
-        </div>
+    <section id="how-it-works" ref={ref} className="relative py-28 bg-[#060c08] text-white overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHeader eyebrow="How it works" title="Three simple steps to" highlight="start recycling" isVisible={isVisible} />
 
-        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {/* Connector line (desktop only) */}
-          <div className="hidden md:block absolute top-20 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-blue-200 via-emerald-200 to-purple-200" />
-
+        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {steps.map((step, index) => (
             <div
               key={step.title}
-              className={`relative text-center transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: `${index * 200}ms` }}
+              className={`relative p-8 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.01] transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              style={{ transitionDelay: `${index * 160}ms` }}
             >
-              <div className="relative inline-flex mb-6">
-                {/* Pulse ring */}
-                <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${step.color} opacity-20 animate-[pulse_3s_ease-in-out_infinite_${index}s`} style={{ transform: 'scale(1.4)' }} />
-                <div className={`relative w-20 h-20 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center text-white shadow-xl`}>
-                  <step.icon className="w-9 h-9" />
-                </div>
+              <span className="absolute top-6 right-7 text-6xl font-extrabold tracking-tight text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.14)]">
+                {step.number}
+              </span>
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-400 to-emerald-500 flex items-center justify-center text-gray-950 shadow-lg shadow-primary-500/20 mb-6">
+                <step.icon className="w-7 h-7" />
               </div>
-
-              <div className="inline-block bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-wider">
-                Step {step.number}
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">{step.title}</h3>
-              <p className="text-gray-500 leading-relaxed max-w-xs mx-auto">{step.description}</p>
+              <h3 className="text-2xl font-semibold mb-3">{step.title}</h3>
+              <p className="text-white/55 leading-relaxed">{step.description}</p>
             </div>
           ))}
         </div>
@@ -369,66 +293,55 @@ function HowItWorksSection() {
 }
 
 // ============================================================
-// TESTIMONIALS
+// BUILT FOR EVERYONE
 // ============================================================
 
-function TestimonialsSection() {
+function AudienceSection() {
   const [ref, isVisible] = useInView();
 
-  const testimonials = [
+  const audiences = [
     {
-      name: 'Ana Reyes',
-      role: 'Resident, Cebu City',
-      quote: 'I found a drop-off center just five minutes from home. GreenPlace made it so easy to start recycling as part of my daily routine.',
-      avatar: 'AR',
-      color: 'bg-blue-500',
+      icon: Home,
+      title: 'Residents',
+      points: ['Find drop-off points near you', 'Shop recyclables and eco products', 'Schedule and track your drop-offs', 'Join the community forum'],
     },
     {
-      name: 'GreenHub Recycling',
-      role: 'Recycling Business, Talisay City',
-      quote: 'Listing our accepted materials on GreenPlace connected us with customers in barangays we\'ve never reached before.',
-      avatar: 'GH',
-      color: 'bg-emerald-500',
+      icon: Building2,
+      title: 'Businesses',
+      points: ['Create your establishment profile', 'List products in your own shop', 'Manage orders and incoming drop-offs', 'See reviews and analytics'],
     },
     {
-      name: 'Carlo Mendoza',
-      role: 'Resident, Mandaue City',
-      quote: 'The drop-off tracker is a game changer. I can check availability before leaving home — no more wasted trips.',
-      avatar: 'CM',
-      color: 'bg-purple-500',
+      icon: ShieldCheck,
+      title: 'Moderators',
+      points: ['Review business registrations', 'Verify submitted documents', 'Moderate listings and the forum', 'Keep the platform trustworthy'],
     },
   ];
 
   return (
-    <section ref={ref} className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`text-center mb-16 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <span className="inline-block text-sm font-bold text-primary-600 uppercase tracking-wider mb-3">Testimonials</span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">
-            Loved by the
-            <br />
-            <span className="text-primary-600">Community</span>
-          </h2>
-        </div>
+    <section ref={ref} className="relative py-28 bg-[#040806] text-white overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHeader eyebrow="Built for everyone" title="One platform," highlight="three ways to help" isVisible={isVisible} />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {testimonials.map((t, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+          {audiences.map((a, index) => (
             <div
-              key={t.name}
-              className={`relative p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:shadow-lg transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: `${index * 150}ms` }}
+              key={a.title}
+              className={`p-7 rounded-2xl border border-white/10 bg-white/[0.03] transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              style={{ transitionDelay: `${index * 140}ms` }}
             >
-              <div className="text-4xl text-primary-200 font-serif mb-4">&ldquo;</div>
-              <p className="text-gray-600 leading-relaxed mb-6">{t.quote}</p>
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 ${t.color} rounded-full flex items-center justify-center text-white text-sm font-bold`}>
-                  {t.avatar}
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-gray-900">{t.name}</div>
-                  <div className="text-xs text-gray-500">{t.role}</div>
-                </div>
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-500/10 text-primary-300 ring-1 ring-primary-400/20 mb-5">
+                <a.icon className="w-6 h-6" />
               </div>
+              <h3 className="text-xl font-semibold mb-4">{a.title}</h3>
+              <ul className="space-y-3">
+                {a.points.map((p) => (
+                  <li key={p} className="flex items-start gap-3 text-white/60">
+                    <CheckCircle2 className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           ))}
         </div>
@@ -445,50 +358,34 @@ function CTASection() {
   const [ref, isVisible] = useInView();
 
   return (
-    <section ref={ref} className="relative py-24 overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-500">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,0.1)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(16,185,129,0.2)_0%,transparent_50%)]" />
-      </div>
-
-      {/* Floating elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-[10%] w-64 h-64 bg-white/5 rounded-full blur-3xl animate-[float_8s_ease-in-out_infinite]" />
-        <div className="absolute bottom-10 right-[10%] w-80 h-80 bg-emerald-300/10 rounded-full blur-3xl animate-[float_10s_ease-in-out_infinite_2s]" />
-        <Leaf className="absolute top-[20%] left-[5%] w-8 h-8 text-white/10 animate-[floatSpin_12s_linear_infinite]" />
-        <Leaf className="absolute bottom-[25%] right-[8%] w-6 h-6 text-white/10 animate-[floatSpin_10s_linear_infinite_3s]" />
-      </div>
-
-      <div className={`relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
-          <Sparkles className="w-4 h-4 text-emerald-200" />
-          <span className="text-sm font-medium text-white/90">Join the Movement</span>
-        </div>
-
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
-          Ready to Make a
-          <br />
-          <span className="bg-gradient-to-r from-emerald-200 to-white bg-clip-text text-transparent">Real Impact?</span>
-        </h2>
-        <p className="mt-6 text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">
-          Join hundreds of residents and businesses in Metro Cebu working together for a sustainable future. Every item recycled makes a difference.
-        </p>
-
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            to="/register"
-            className="group w-full sm:w-auto bg-white text-primary-700 px-8 py-4 rounded-xl font-bold hover:bg-emerald-50 transition-all duration-300 text-lg shadow-xl shadow-black/10 hover:shadow-2xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
-          >
-            Get Started Free
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-          <Link
-            to="/establishments"
-            className="w-full sm:w-auto bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-4 rounded-xl font-bold hover:bg-white/20 transition-all duration-300 text-lg flex items-center justify-center gap-2"
-          >
-            Find Establishments
-          </Link>
+    <section ref={ref} className="relative py-24 bg-[#040806] text-white overflow-hidden">
+      <div className={`relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-400 px-6 py-16 sm:px-16 sm:py-20 text-center shadow-2xl shadow-primary-500/20">
+          <ContourArt className="absolute -right-24 -top-24 w-[520px] h-[520px] opacity-30 pointer-events-none mix-blend-overlay" />
+          <ContourArt className="absolute -left-32 -bottom-40 w-[460px] h-[460px] opacity-20 pointer-events-none mix-blend-overlay" />
+          <div className="relative">
+            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight text-gray-950">
+              Ready to make a real impact?
+            </h2>
+            <p className="mt-5 text-lg text-gray-950/70 max-w-2xl mx-auto leading-relaxed">
+              Join residents and businesses across Metro Cebu working together for a cleaner, greener future.
+            </p>
+            <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                to="/register"
+                className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-950 text-white font-semibold px-8 py-3.5 rounded-full hover:bg-gray-800 transition-colors"
+              >
+                Get started free
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Link
+                to="/establishments"
+                className="w-full sm:w-auto inline-flex items-center justify-center border border-gray-950/30 text-gray-950 font-medium px-8 py-3.5 rounded-full hover:bg-gray-950/10 transition-colors"
+              >
+                Find establishments
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -501,12 +398,11 @@ function CTASection() {
 
 export default function Landing() {
   return (
-    <main>
+    <main className="bg-[#040806]">
       <HeroSection />
-      <StatsBar />
       <FeaturesSection />
       <HowItWorksSection />
-      <TestimonialsSection />
+      <AudienceSection />
       <CTASection />
     </main>
   );
