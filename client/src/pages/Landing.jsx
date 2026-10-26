@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, MapPin, ShoppingBag, Users, Shield, ShieldCheck, Recycle, ArrowRight, Search, Home, Building2, CheckCircle2 } from 'lucide-react';
+import { Leaf, MapPin, ShoppingBag, Users, Shield, Recycle, ArrowRight, Search, Home, Building2, CheckCircle2 } from 'lucide-react';
 import ContourArt from '../components/landing/ContourArt';
 
 // ============================================================
@@ -294,56 +294,85 @@ function HowItWorksSection() {
 }
 
 // ============================================================
-// BUILT FOR EVERYONE
+// WHO IT'S FOR
 // ============================================================
 
 function AudienceSection() {
   const [ref, isVisible] = useInView();
 
-  const audiences = [
-    {
-      icon: Home,
-      title: 'Residents',
-      points: ['Find drop-off points near you', 'Shop recyclables and eco products', 'Schedule and track your drop-offs', 'Join the community forum'],
-    },
-    {
-      icon: Building2,
-      title: 'Businesses',
-      points: ['Create your establishment profile', 'List products in your own shop', 'Manage orders and incoming drop-offs', 'See reviews and analytics'],
-    },
-    {
-      icon: ShieldCheck,
-      title: 'Moderators',
-      points: ['Review business registrations', 'Verify submitted documents', 'Moderate listings and the forum', 'Keep the platform trustworthy'],
-    },
+  const residentPoints = [
+    'Find drop-off points near you',
+    'Shop recyclables and eco products',
+    'Schedule and track your drop-offs',
+    'Join the community forum',
+  ];
+  const businessPoints = [
+    'Create your establishment profile',
+    'List products in your own shop',
+    'Manage orders and incoming drop-offs',
+    'See reviews and analytics',
   ];
 
   return (
     <section ref={ref} className="py-28 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeader eyebrow="Built for everyone" title="One platform," highlight="three ways to help" isVisible={isVisible} />
+        <SectionHeader eyebrow="Who it's for" title="Made for residents" highlight="and local businesses" isVisible={isVisible} />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {audiences.map((a, index) => (
-            <div
-              key={a.title}
-              className={`p-7 rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              style={{ transitionDelay: `${index * 140}ms` }}
-            >
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-50 text-primary-600 ring-1 ring-primary-100 mb-5">
-                <a.icon className="w-6 h-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+          {/* Residents */}
+          <div
+            className={`relative overflow-hidden flex flex-col p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-400 text-white shadow-xl shadow-primary-900/15 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          >
+            <ContourArt className="absolute -right-20 -top-20 w-[360px] h-[360px] opacity-30 pointer-events-none" />
+            <div className="relative flex flex-col flex-1">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 ring-1 ring-white/30 mb-6">
+                <Home className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">{a.title}</h3>
-              <ul className="space-y-3">
-                {a.points.map((p) => (
-                  <li key={p} className="flex items-start gap-3 text-gray-600">
-                    <CheckCircle2 className="w-5 h-5 text-primary-600 shrink-0 mt-0.5" />
+              <h3 className="text-3xl font-extrabold tracking-tight">For residents</h3>
+              <p className="mt-2 text-white/85">Recycle smarter and shop greener, all in one place.</p>
+              <ul className="mt-6 space-y-3 flex-1">
+                {residentPoints.map((p) => (
+                  <li key={p} className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                     <span>{p}</span>
                   </li>
                 ))}
               </ul>
+              <Link
+                to="/register"
+                className="group mt-9 inline-flex items-center justify-center gap-2 self-start bg-white text-primary-700 font-semibold px-7 py-3 rounded-full hover:bg-primary-50 transition-colors"
+              >
+                Create a free account
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             </div>
-          ))}
+          </div>
+
+          {/* Businesses */}
+          <div
+            className={`flex flex-col p-8 sm:p-10 rounded-3xl bg-white border border-gray-200 shadow-sm transition-all duration-700 delay-150 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          >
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-50 text-primary-600 ring-1 ring-primary-100 mb-6">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-3xl font-extrabold tracking-tight text-gray-900">For businesses</h3>
+            <p className="mt-2 text-gray-500">Reach customers who care about sustainability.</p>
+            <ul className="mt-6 space-y-3 flex-1">
+              {businessPoints.map((p) => (
+                <li key={p} className="flex items-start gap-3 text-gray-600">
+                  <CheckCircle2 className="w-5 h-5 text-primary-600 shrink-0 mt-0.5" />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/register"
+              className="group mt-9 inline-flex items-center justify-center gap-2 self-start bg-primary-600 text-white font-semibold px-7 py-3 rounded-full hover:bg-primary-700 transition-colors"
+            >
+              Join as a business
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
         </div>
       </div>
     </section>
