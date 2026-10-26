@@ -5,14 +5,16 @@ import NavItem from './NavItem';
 import { useAuth } from '../../context/AuthContext';
 import { useMessages } from '../../context/MessagesContext';
 import { useNotifications } from '../../context/NotificationsContext';
-import { getNavGroups } from './navConfig';
+import { getNavGroups, publicNavGroups } from './navConfig';
 
 export default function MobileMenu({ open, onClose }) {
   const { isAuthenticated, profile } = useAuth();
   const { unreadCount } = useMessages();
   const { unreadCount: notifCount } = useNotifications();
   const location = useLocation();
-  const groups = getNavGroups(profile?.role, unreadCount, notifCount);
+  const groups = isAuthenticated
+    ? getNavGroups(profile?.role, unreadCount, notifCount)
+    : publicNavGroups;
   const prevPath = useRef(location.pathname);
 
   useEffect(() => {

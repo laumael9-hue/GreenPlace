@@ -2,8 +2,22 @@ import {
   LayoutDashboard, MapPin, ShoppingBag, ClipboardList,
   Package, MessageCircle, User, Building2, List,
   Clock, Star, BarChart3, Users, FileText, Settings, Bookmark, Mail, Bell,
-  CheckCircle, FolderCheck, Home
+  CheckCircle, FolderCheck, Home, LogIn, UserPlus
 } from 'lucide-react';
+
+// Shown to visitors who are not logged in (mobile menu only; desktop uses the Navbar).
+export const publicNavGroups = [
+  {
+    label: 'Menu',
+    items: [
+      { to: '/establishments', icon: <MapPin className="w-5 h-5" />, label: 'Find Establishments' },
+      { to: '/marketplace', icon: <ShoppingBag className="w-5 h-5" />, label: 'Marketplace' },
+      { to: '/forum', icon: <MessageCircle className="w-5 h-5" />, label: 'Forum' },
+      { to: '/login', icon: <LogIn className="w-5 h-5" />, label: 'Login' },
+      { to: '/register', icon: <UserPlus className="w-5 h-5" />, label: 'Get Started' },
+    ],
+  },
+];
 
 const residentNav = [
   { to: '/dashboard', icon: <Home className="w-5 h-5" />, label: 'Home' },
