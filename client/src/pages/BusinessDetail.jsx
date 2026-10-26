@@ -195,20 +195,22 @@ export default function BusinessDetail() {
         </Link>
 
         {/* Header */}
-        <div className="bg-white rounded-2xl border border-gray-200/70 overflow-hidden mb-6">
-          {business.cover_image_url && (
-            <img src={business.cover_image_url} alt="" className="w-full h-48 object-cover" />
+        <div className="bg-white rounded-3xl border border-gray-200/70 shadow-sm overflow-hidden mb-6">
+          {business.cover_image_url ? (
+            <img src={business.cover_image_url} alt="" className="w-full h-40 sm:h-56 object-cover" />
+          ) : (
+            <div className="w-full h-32 sm:h-40 bg-gradient-to-br from-primary-600 via-primary-600 to-emerald-500" />
           )}
-          <div className="p-6">
+          <div className="p-6 pt-0">
             <div className="flex items-start gap-4">
               {business.logo_url ? (
-                <img src={business.logo_url} alt="" className="w-16 h-16 rounded-xl object-cover" />
+                <img src={business.logo_url} alt="" className="w-20 h-20 -mt-10 rounded-2xl object-cover bg-white ring-4 ring-white shadow-md" />
               ) : (
-                <div className="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center">
-                  <Store className="w-8 h-8 text-primary-600" />
+                <div className="w-20 h-20 -mt-10 bg-primary-100 rounded-2xl ring-4 ring-white shadow-md flex items-center justify-center shrink-0">
+                  <Store className="w-9 h-9 text-primary-600" />
                 </div>
               )}
-              <div className="flex-1">
+              <div className="flex-1 pt-3">
                 <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{business.name}</h1>
                 <p className="text-gray-500 mt-1">{business.category}</p>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
@@ -258,7 +260,7 @@ export default function BusinessDetail() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {business.materials.map((mat) => (
-                    <div key={mat.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={mat.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                       <div>
                         <span className="font-medium text-gray-900">{mat.material_name}</span>
                         {mat.description && (
@@ -398,7 +400,7 @@ export default function BusinessDetail() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
             {/* Contact */}
             <Card className="p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Contact</h2>
