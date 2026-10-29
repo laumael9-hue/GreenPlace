@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
@@ -7,10 +7,12 @@ import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Select from '../../components/ui/Select';
 import LocationPicker from '../../components/ui/LocationPicker';
+import DocumentUploadField from '../../components/business/DocumentUploadField';
 import { formatStatus } from '../../lib/formatStatus';
+import { REQUIRED_DOCUMENTS, validateDocumentFile, uploadRequiredDocument } from '../../lib/businessDocuments';
 import {
   Building2, FileText, Package,
-  Check, ChevronRight, ChevronLeft, Upload, Trash2,
+  Check, ChevronRight, ChevronLeft, Trash2,
   Loader2, AlertTriangle, ShieldCheck, Clock
 } from 'lucide-react';
 
@@ -58,7 +60,6 @@ const DEFAULT_MATERIALS = [
 export default function BusinessRegistration() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const fileInputRef = useRef(null);
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -85,8 +86,10 @@ export default function BusinessRegistration() {
 
   // Step 2: Documents
   const [businessId, setBusinessId] = useState(null);
-  const [documents, setDocuments] = useState([]);
-  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docFiles, setDocFiles] = useState({});
+  const [lockedDocs, setLockedDocs] = useState({}); // types already on file that can't be replaced
+  const [docsTouched, setDocsTouched] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
   // Step 3: Hours & materials
   const [hours, setHours] = useState(DEFAULT_HOURS);
@@ -160,6 +163,17 @@ export default function BusinessRegistration() {
     try {
       const { data } = await api.post('/businesses', form);
       setBusinessId(data.business.id);
+      // On reapply some documents may already be on file and locked; don't ask for those again
+      try {
+        const { data: docData } = await api.get('/business/documents');
+        const locked = {};
+        (docData.documents || []).forEach((d) => {
+          if (d.status !== 'missing' && !d.canReplace) locked[d.type] = d.status;
+        });
+        setLockedDocs(locked);
+      } catch {
+        setLockedDocs({});
+      }
       setStep(2);
     } catch (err) {
       setErrors({ submit: err.response?.data?.error || 'Failed to create business' });
@@ -171,44 +185,58 @@ export default function BusinessRegistration() {
   // ============================================================
   // STEP 2: Upload documents
   // ============================================================
-  const handleDocumentUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      setErrors({ document: 'File must be less than 10MB' });
-      return;
-    }
-
-    setUploadingDoc(true);
-    setErrors({ document: '' });
-
-    try {
-      const formData = new FormData();
-      formData.append('document', file);
-      formData.append('documentType', 'registration');
-
-      const { data } = await api.post(`/businesses/${businessId}/documents`, formData);
-
-      setDocuments(prev => [...prev, data.document]);
-    } catch (err) {
-      setErrors({ document: err.response?.data?.error || 'Failed to upload document' });
-    } finally {
-      setUploadingDoc(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+  const pickDocument = (type, file) => {
+    setDocFiles(prev => ({ ...prev, [type]: file }));
   };
 
-  const removeDocument = async (docId) => {
-    try {
-      await api.delete(`/businesses/${businessId}/documents/${docId}`);
-      setDocuments(prev => prev.filter(d => d.id !== docId));
-    } catch {
-      // Silently fail, document may already be deleted
-    }
+  const docError = (type) => {
+    if (lockedDocs[type]) return '';
+    const file = docFiles[type];
+    if (file) return validateDocumentFile(file);
+    return docsTouched ? 'This document is required.' : '';
   };
 
-  const canProceedFromDocs = documents.length > 0;
+  const hasDocument = (type) =>
+    !!lockedDocs[type] || (docFiles[type] && !validateDocumentFile(docFiles[type]));
+
+  const canProceedFromDocs = REQUIRED_DOCUMENTS.every(({ type }) => hasDocument(type));
+
+  const handleSubmitDocuments = async () => {
+    setDocsTouched(true);
+    if (!canProceedFromDocs) return;
+
+    setLoading(true);
+    setErrors({});
+    const failed = [];
+    for (const { type, label } of REQUIRED_DOCUMENTS) {
+      if (lockedDocs[type]) continue;
+      setUploadProgress(`Uploading ${label}...`);
+      try {
+        await uploadRequiredDocument(api, type, docFiles[type]);
+      } catch (err) {
+        failed.push(`${label}: ${err.response?.data?.error || 'upload failed'}`);
+      }
+    }
+
+    if (failed.length === 0) {
+      setUploadProgress('Submitting for review...');
+      try {
+        await api.post('/business/submit-for-review');
+        setLockedDocs(prev => {
+          const next = { ...prev };
+          REQUIRED_DOCUMENTS.forEach(({ type }) => { next[type] = next[type] || 'pending'; });
+          return next;
+        });
+        setStep(3);
+      } catch (err) {
+        failed.push(err.response?.data?.error || 'Could not submit for review');
+      }
+    }
+
+    if (failed.length > 0) setErrors({ submit: failed.join('. ') });
+    setUploadProgress('');
+    setLoading(false);
+  };
 
   // ============================================================
   // STEP 3: Save hours & materials
@@ -281,7 +309,6 @@ export default function BusinessRegistration() {
           is_accepted: m.is_accepted !== false,
         })));
       }
-      setDocuments(existingBusiness.documents || []);
     }
     setExistingBusiness(null);
     setStep(1);
@@ -540,63 +567,40 @@ export default function BusinessRegistration() {
                 <div>
                   <p className="text-sm font-medium text-amber-800">Documents Required</p>
                   <p className="text-sm text-amber-700 mt-1">
-                    Upload at least one verification document to proceed.
-                    Accepted: business permits, DTI/SEC registration, or other official documents.
+                    All 3 documents are required before an admin can review your business:
+                    DTI/SEC Registration, Mayor's/Business Permit and BIR Certificate of Registration.
+                    PDF, JPG or PNG, max 5 MB each.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
-                className="hidden"
-                onChange={handleDocumentUpload}
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingDoc}
-              >
-                {uploadingDoc ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+            <div className="space-y-4">
+              {REQUIRED_DOCUMENTS.map(({ type, label }) => (
+                lockedDocs[type] ? (
+                  <div key={type} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                    <FileText className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{label}</p>
+                      <p className="text-xs text-gray-500">Already submitted ({lockedDocs[type]})</p>
+                    </div>
+                  </div>
                 ) : (
-                  <Upload className="w-4 h-4" />
-                )}
-                {uploadingDoc ? 'Uploading...' : 'Upload Document'}
-              </Button>
-              {errors.document && <p className="text-xs text-red-600 mt-1">{errors.document}</p>}
-              <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP, or PDF. Max 10MB.</p>
+                  <DocumentUploadField
+                    key={type}
+                    id={`doc-${type}`}
+                    label={label}
+                    file={docFiles[type] || null}
+                    error={docError(type)}
+                    onChange={(file) => pickDocument(type, file)}
+                    onRemove={() => pickDocument(type, null)}
+                  />
+                )
+              ))}
             </div>
 
-            {documents.length > 0 && (
-              <div className="space-y-2">
-                {documents.map(doc => (
-                  <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{doc.file_name}</p>
-                        <p className="text-xs text-gray-500">{(doc.file_size / 1024).toFixed(1)} KB</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => removeDocument(doc.id)}
-                      className="p-1 text-red-400 hover:text-red-600 rounded"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!canProceedFromDocs && (
-              <p className="text-sm text-gray-500 text-center py-2">
-                Upload at least one document to continue.
-              </p>
+            {uploadProgress && (
+              <p className="text-sm text-gray-500 text-center">{uploadProgress}</p>
             )}
           </div>
         )}
@@ -721,9 +725,9 @@ export default function BusinessRegistration() {
           )}
 
           {step === 2 && (
-            <Button onClick={() => setStep(3)} disabled={!canProceedFromDocs}>
-              {canProceedFromDocs ? 'Continue' : 'Upload at least 1 document'}
-              <ChevronRight className="w-4 h-4" />
+            <Button onClick={handleSubmitDocuments} disabled={loading}>
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+              {loading ? 'Submitting...' : 'Submit documents & continue'}
             </Button>
           )}
 
