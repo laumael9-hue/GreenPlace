@@ -1134,7 +1134,7 @@ const getAllBusinesses = async (req, res) => {
     if (ownerIds.length > 0) {
       const { data: profiles } = await supabaseAdmin
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
+        .select('id, first_name, last_name, avatar_url, is_active')
         .in('id', ownerIds);
       if (profiles) {
         const emails = await fetchOwnerEmails(profiles.map(p => p.id));
@@ -1182,7 +1182,7 @@ const getBusinessById = async (req, res) => {
     if (business.owner_id) {
       const { data: p } = await supabaseAdmin
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url, phone')
+        .select('id, first_name, last_name, avatar_url, phone, is_active')
         .eq('id', business.owner_id)
         .single();
       if (p) {
