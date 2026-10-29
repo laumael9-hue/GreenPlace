@@ -1,8 +1,9 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
+const { createDraftBusiness } = require('./businessController');
 
 const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, role = 'resident', phone } = req.body;
+    const { email, password, firstName, lastName, role = 'resident', phone, businessName } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({ error: 'Email, password, first name, and last name are required' });
@@ -43,6 +44,19 @@ const register = async (req, res) => {
         .from('profiles')
         .update({ phone })
         .eq('id', authData.user.id);
+    }
+
+    // Business sign-up: the account stays a resident (role changes only via admin approval)
+    // and gets a pending business row that the 3 documents are attached to.
+    if (typeof businessName === 'string' && businessName.trim()) {
+      try {
+        await createDraftBusiness(authData.user.id, businessName);
+      } catch (businessErr) {
+        console.error('Register business error:', businessErr);
+        // Don't leave a half-registered account behind
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return res.status(500).json({ error: 'Could not create your business. Please try again.' });
+      }
     }
 
     res.status(201).json({
@@ -301,7 +315,17 @@ const getProfile = async (req, res) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    res.json({ profile });
+    // The client gates business owners on verification_status
+    const { data: business } = await supabaseAdmin
+      .from('businesses')
+      .select('id, name, verification_status, rejection_reason')
+      .eq('owner_id', req.user.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    res.json({ profile, business: business || null });
   } catch (err) {
     console.error('Get profile error:', err);
     res.status(500).json({ error: 'Failed to get profile' });

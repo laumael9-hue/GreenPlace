@@ -6,15 +6,18 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
     try {
       const { data } = await api.get('/auth/me');
       setProfile(data.profile);
+      setBusiness(data.business || null);
       return data.profile;
     } catch {
       setProfile(null);
+      setBusiness(null);
       return null;
     }
   }, []);
@@ -42,9 +45,9 @@ export function AuthProvider({ children }) {
     checkSession();
   }, [checkSession]);
 
-  const register = async ({ email, password, firstName, lastName, role, phone }) => {
+  const register = async ({ email, password, firstName, lastName, role, phone, businessName }) => {
     const { data } = await api.post('/auth/register', {
-      email, password, firstName, lastName, role, phone,
+      email, password, firstName, lastName, role, phone, businessName,
     });
 
     if (data.session) {
@@ -89,6 +92,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('refresh_token');
       setUser(null);
       setProfile(null);
+      setBusiness(null);
     }
   };
 
@@ -111,6 +115,7 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     profile,
+    business,
     loading,
     register,
     login,
@@ -122,6 +127,9 @@ export function AuthProvider({ children }) {
     fetchProfile,
     isAuthenticated: !!user,
     role: profile?.role || null,
+    verificationStatus: business?.verification_status || null,
+    // Owners whose business is not Verified see only the Pending Approval screen (admins are exempt)
+    needsBusinessVerification: !!business && business.verification_status !== 'Verified' && profile?.role !== 'admin',
     isSuspended: profile ? !profile.is_active : false,
     suspensionReason: profile?.suspension_reason || null,
   };

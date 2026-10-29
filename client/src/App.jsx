@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import VerificationGate from './components/VerificationGate';
+import VerifiedBusinessRoute from './components/VerifiedBusinessRoute';
 import MainLayout from './components/layout/MainLayout';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Login from './pages/Login';
@@ -11,6 +13,7 @@ import CartDrawer from './components/cart/CartDrawer';
 const Register = lazy(() => import('./pages/Register'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const Suspended = lazy(() => import('./pages/Suspended'));
+const PendingApproval = lazy(() => import('./pages/PendingApproval'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -56,9 +59,11 @@ function App() {
     <>
       <CartDrawer />
       <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-gray-500">Loading…</div>}>
+      <VerificationGate>
       <Routes>
       {/* Auth pages — no layout */}
       <Route path="/login" element={<Login />} />
+      <Route path="/pending-approval" element={<PendingApproval />} />
       <Route path="/register" element={<Register />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/suspended" element={<Suspended />} />
@@ -81,14 +86,18 @@ function App() {
       <Route element={<ProtectedRoute roles={['resident', 'business']}><DashboardLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<RoleDashboard />} />
         <Route path="/dashboard/register-business" element={<BusinessRegistration />} />
-        <Route path="/dashboard/profile" element={<BusinessProfileManagement />} />
-        <Route path="/dashboard/listings" element={<ListingManagement />} />
-        <Route path="/dashboard/orders" element={<BusinessOrders />} />
-        <Route path="/dashboard/drop-offs" element={<DropOffTracker />} />
-        <Route path="/dashboard/reviews" element={<ReviewManagement />} />
         <Route path="/dashboard/messages" element={<Messages />} />
         <Route path="/dashboard/messages/:conversationId" element={<Messages />} />
-        <Route path="/dashboard/analytics" element={<BusinessAnalytics />} />
+
+        {/* Business tools — only for a Verified business */}
+        <Route element={<VerifiedBusinessRoute />}>
+          <Route path="/dashboard/profile" element={<BusinessProfileManagement />} />
+          <Route path="/dashboard/listings" element={<ListingManagement />} />
+          <Route path="/dashboard/orders" element={<BusinessOrders />} />
+          <Route path="/dashboard/drop-offs" element={<DropOffTracker />} />
+          <Route path="/dashboard/reviews" element={<ReviewManagement />} />
+          <Route path="/dashboard/analytics" element={<BusinessAnalytics />} />
+        </Route>
       </Route>
 
       {/* Resident pages — sidebar layout (business accounts keep resident powers) */}
@@ -130,6 +139,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+      </VerificationGate>
       </Suspense>
     </>
   );

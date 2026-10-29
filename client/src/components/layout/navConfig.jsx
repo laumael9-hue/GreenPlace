@@ -66,7 +66,7 @@ const businessNav = [
 
 const adminNav = [
   { to: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard' },
-  { to: '/admin/approvals', icon: <CheckCircle className="w-5 h-5" />, label: 'Approvals' },
+  { to: '/admin/approvals', icon: <CheckCircle className="w-5 h-5" />, label: 'Business Approvals' },
   { to: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Users' },
   { to: '/admin/businesses', icon: <Building2 className="w-5 h-5" />, label: 'Businesses' },
   { to: '/admin/listings', icon: <List className="w-5 h-5" />, label: 'Listings' },

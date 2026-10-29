@@ -34,8 +34,9 @@ const {
   getRecommendations,
 } = require('../controllers/businessController');
 
+// Matches the business-documents bucket (PDF/JPG/PNG, 5 MB)
 const ALLOWED_DOC_TYPES = [
-  'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+  'image/jpeg', 'image/jpg', 'image/png',
   'application/pdf',
 ];
 
@@ -43,12 +44,12 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp
 
 const uploadDoc = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (ALLOWED_DOC_TYPES.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(`File type "${file.mimetype}" is not allowed. Accepted: JPG, PNG, WebP, PDF.`));
+      cb(new Error(`File type "${file.mimetype}" is not allowed. Accepted: JPG, PNG, PDF.`));
     }
   },
 });

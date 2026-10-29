@@ -42,6 +42,7 @@ app.get('/api/health', (req, res) => {
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const businessRoutes = require('./routes/business');
+const businessVerificationRoutes = require('./routes/businessVerification');
 const marketplaceRoutes = require('./routes/marketplace');
 const orderRoutes = require('./routes/orders');
 const paymentRoutes = require('./routes/payments');
@@ -63,6 +64,7 @@ const authLimiter = rateLimit({
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/businesses', businessRoutes);
+app.use('/api/business', businessVerificationRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);

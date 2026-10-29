@@ -1,5 +1,11 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { createNotification } = require('../services/notifications');
+const {
+  REQUIRED_TYPES,
+  getRequiredDocumentRows,
+  buildSlots,
+  summarizeSlots,
+} = require('../services/businessVerification');
 const crypto = require('crypto');
 
 const BUCKET_DOCS = 'business-documents';
@@ -120,6 +126,32 @@ const generateSlug = (name) => {
   return `${base}-${suffix}`;
 };
 
+// Business created at sign-up: only the name is known, the owner fills in the
+// rest from the business profile page once approved. Location defaults to the
+// Cebu City center and the row stays a draft until the 3 documents are submitted.
+const createDraftBusiness = async (ownerId, name) => {
+  const { data, error } = await supabaseAdmin
+    .from('businesses')
+    .insert({
+      owner_id: ownerId,
+      name: name.trim(),
+      slug: generateSlug(name),
+      category: 'Waste Collection',
+      address: 'To be updated',
+      city: 'Cebu City',
+      province: 'Cebu',
+      latitude: 10.3157,
+      longitude: 123.8854,
+      status: 'pending',
+      verification_status: 'Pending',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
 // ============================================================
 // BUSINESS OWNER OPERATIONS
 // ============================================================
@@ -178,6 +210,8 @@ const createBusiness = async (req, res) => {
       accepts_drop_offs: !!acceptsDropOffs,
       has_marketplace: !!hasMarketplace,
       status: 'pending',
+      verification_status: 'Pending',
+      submitted_for_review_at: null,
     };
 
     let business;
@@ -772,6 +806,11 @@ const uploadDocument = async (req, res) => {
       return res.status(400).json({ error: 'Document type is required' });
     }
 
+    // The 3 required documents have their own validated, one-per-type endpoint
+    if (REQUIRED_TYPES.includes(documentType)) {
+      return res.status(400).json({ error: 'Required documents must be uploaded through POST /api/business/documents' });
+    }
+
     const { data: existing } = await supabaseAdmin
       .from('businesses')
       .select('id, owner_id, deleted_at')
@@ -898,6 +937,10 @@ const deleteDocument = async (req, res) => {
 
     if (!doc) {
       return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (REQUIRED_TYPES.includes(doc.document_type)) {
+      return res.status(400).json({ error: 'Required documents cannot be deleted, only replaced' });
     }
 
     const urlParts = doc.file_url.split('/');
@@ -1199,10 +1242,24 @@ const approveBusiness = async (req, res) => {
       return res.status(400).json({ error: 'Business is already approved' });
     }
 
+    // All 3 required documents must exist and be approved first
+    const summary = summarizeSlots(buildSlots(await getRequiredDocumentRows(id), {
+      verification_status: 'Pending',
+      submitted_for_review_at: new Date().toISOString(),
+    }));
+    if (summary.notApproved.length > 0) {
+      return res.status(400).json({
+        error: 'All 3 required documents must be submitted and approved before the business can be approved',
+        missing: summary.missing,
+        notApproved: summary.notApproved,
+      });
+    }
+
     const { data: updated, error } = await supabaseAdmin
       .from('businesses')
       .update({
         status: 'approved',
+        verification_status: 'Verified',
         is_verified: true,
         approved_at: new Date().toISOString(),
         approved_by: req.user.id,
@@ -1304,6 +1361,7 @@ const rejectBusiness = async (req, res) => {
       .from('businesses')
       .update({
         status: 'rejected',
+        verification_status: 'Rejected',
         is_verified: false,
         rejection_reason: reason.trim(),
         approved_at: null,
@@ -1578,14 +1636,13 @@ const getAllDocuments = async (req, res) => {
 const verifyDocument = async (req, res) => {
   try {
     const { docId } = req.params;
-    const { status, notes } = req.body || {};
+    const body = req.body || {};
+    const status = typeof body.status === 'string' ? body.status.toLowerCase() : '';
+    // "reason" is accepted as an alias for "notes"; a rejection reason is optional
+    const notes = (body.notes ?? body.reason ?? '').toString().trim();
 
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'Status must be "approved" or "rejected"' });
-    }
-
-    if (status === 'rejected' && !notes) {
-      return res.status(400).json({ error: 'Rejection notes are required' });
     }
 
     const { data: existing } = await supabaseAdmin
@@ -1636,7 +1693,7 @@ const verifyDocument = async (req, res) => {
         title: status === 'approved' ? 'Document verified' : 'Document rejected',
         body: status === 'approved'
           ? `Your "${existing.document_type}" document for ${business.name} has been verified.`
-          : `Your "${existing.document_type}" document for ${business.name} was rejected: ${notes}`,
+          : `Your "${existing.document_type}" document for ${business.name} was rejected${notes ? `: ${notes}` : '.'}`,
         data: { business_id: existing.business_id, document_id: docId },
       });
     }
@@ -2006,4 +2063,6 @@ module.exports = {
   getPublicBusinessBySlug,
   getNearbyBusinesses,
   getRecommendations,
+  fetchOwnerEmails,
+  createDraftBusiness,
 };

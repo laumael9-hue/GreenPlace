@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, AlertCircle, Building2, Check, ShoppingBag, MapPin, Users, User } from 'lucide-react';
+import api from '../lib/api';
+import { REQUIRED_DOCUMENTS, validateDocumentFile, uploadRequiredDocument } from '../lib/businessDocuments';
 import { useAuth } from '../context/AuthContext';
 import SocialLogin from '../components/ui/SocialLogin';
-import { Eye, EyeOff, AlertCircle, Building2, Check, ShoppingBag, MapPin, Users } from 'lucide-react';
 import Logo from '../components/ui/Logo';
+import DocumentUploadField from '../components/business/DocumentUploadField';
 
 const PASSWORD_MIN_LENGTH = 6;
 
@@ -33,16 +36,38 @@ export default function Register() {
     password: '',
     confirmPassword: '',
   });
+  const [accountType, setAccountType] = useState('resident');
+  const [businessName, setBusinessName] = useState('');
+  const [docFiles, setDocFiles] = useState({});
+  const [docsTouched, setDocsTouched] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  const isBusiness = accountType === 'business';
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  const setDocFile = (type, file) => {
+    setDocsTouched(true);
+    setDocFiles((prev) => ({ ...prev, [type]: file }));
+  };
+
+  const docError = (type) => {
+    const file = docFiles[type];
+    if (file) return validateDocumentFile(file);
+    return docsTouched ? 'This document is required.' : '';
+  };
+
+  const chosenCount = REQUIRED_DOCUMENTS.filter(({ type }) => docFiles[type] && !validateDocumentFile(docFiles[type])).length;
+  const businessReady = !isBusiness
+    || (businessName.trim().length > 0 && chosenCount === REQUIRED_DOCUMENTS.length);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,21 +85,69 @@ export default function Register() {
       return setError('Enter a valid Philippine mobile number (09XXXXXXXXX)');
     }
 
+    if (isBusiness && !businessName.trim()) {
+      return setError('Business name is required');
+    }
+
+    if (!businessReady) {
+      setDocsTouched(true);
+      return setError('Upload all 3 required documents to register a business');
+    }
+
     setLoading(true);
     try {
-      await register({
+      const data = await register({
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
         role: 'resident',
         phone: formData.phone ? formData.phone.replace(/\s-/g, '') : undefined,
+        businessName: isBusiness ? businessName.trim() : undefined,
       });
-      navigate('/');
+
+      if (!isBusiness) {
+        navigate('/');
+        return;
+      }
+
+      if (!data.session) {
+        navigate('/login');
+        return;
+      }
+
+      // The account and its pending business now exist; attach the documents, then submit.
+      // Anything that fails can be finished from the Pending Approval screen.
+      const failed = [];
+      for (const { type, label } of REQUIRED_DOCUMENTS) {
+        setProgress(`Uploading ${label}...`);
+        try {
+          await uploadRequiredDocument(api, type, docFiles[type]);
+        } catch {
+          failed.push(label);
+        }
+      }
+
+      if (failed.length === 0) {
+        setProgress('Submitting for review...');
+        try {
+          await api.post('/business/submit-for-review');
+        } catch {
+          failed.push('submission for review');
+        }
+      }
+
+      navigate('/pending-approval', {
+        replace: true,
+        state: failed.length
+          ? { notice: `Your account was created, but this step did not finish: ${failed.join(', ')}. Please complete it below.` }
+          : undefined,
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed');
     } finally {
       setLoading(false);
+      setProgress('');
     }
   };
 
@@ -155,13 +228,37 @@ export default function Register() {
               </div>
             )}
 
-            <div className="flex items-start gap-3 p-3 bg-primary-50 border border-primary-100 rounded-lg text-sm text-primary-700">
-              <Building2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <p>
-                <span className="font-medium">Running a business?</span> Everyone starts as a resident.
-                You can apply for a business account anytime from your dashboard, and our team reviews
-                every application.
-              </p>
+            <div>
+              <span className="block text-sm font-medium text-gray-700">I am registering as</span>
+              <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Account type">
+                {[
+                  { value: 'resident', label: 'Resident', icon: User },
+                  { value: 'business', label: 'Business', icon: Building2 },
+                ].map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={accountType === value}
+                    onClick={() => setAccountType(value)}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                      accountType === value
+                        ? 'border-primary-500 bg-primary-50 text-primary-700'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {isBusiness && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Waste management establishments are reviewed by our team. Upload your business
+                  registration documents below. You can sign in right away, but your business tools
+                  unlock only after approval.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -283,17 +380,60 @@ export default function Register() {
               )}
             </div>
 
+            {isBusiness && (
+              <div className="space-y-4 pt-1">
+                <div>
+                  <label htmlFor="businessName" className="block text-sm font-medium text-gray-700">
+                    Business name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="businessName"
+                    name="businessName"
+                    type="text"
+                    required
+                    maxLength={255}
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors"
+                    placeholder="e.g. Cebu Green Recyclers"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-sm font-medium text-gray-900">Required documents</p>
+                  {REQUIRED_DOCUMENTS.map(({ type, label }) => (
+                    <DocumentUploadField
+                      key={type}
+                      id={`doc-${type}`}
+                      label={label}
+                      file={docFiles[type] || null}
+                      error={docError(type)}
+                      onChange={(file) => setDocFile(type, file)}
+                      onRemove={() => setDocFile(type, null)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
+              {isBusiness && !businessReady && (
+                <p className="mb-2 text-center text-xs text-gray-500">
+                  {businessName.trim() ? `${chosenCount} of ${REQUIRED_DOCUMENTS.length} documents chosen` : 'Enter your business name'}
+                  {' '}— all 3 documents are required to continue.
+                </p>
+              )}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !businessReady}
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full text-base font-semibold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? 'Creating account...' : 'Create account'}
+                {loading ? (progress || 'Creating account...') : 'Create account'}
               </button>
             </div>
           </form>
-          <SocialLogin verb="Sign up" />
+          {/* Social sign-up can't collect the business documents */}
+          {!isBusiness && <SocialLogin verb="Sign up" />}
         </div>
       </div>
     </div>
