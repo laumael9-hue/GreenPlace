@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { isPendingSkipped } from '../lib/pendingApproval';
 
 // Pages a business that is not yet Verified may still reach.
 const ALLOWED_PATHS = [
@@ -12,9 +13,8 @@ const ALLOWED_PATHS = [
   '/reset-password',
 ];
 
-// Wraps the whole route tree: an owner whose business is not Verified is kept on
-// the Pending Approval screen and can't reach the dashboard, listings, orders or
-// any other page by URL.
+// Wraps the whole route tree: an owner whose business is not Verified is sent to
+// the Pending Approval screen on entry, unless they chose to continue as a resident.
 export default function VerificationGate({ children }) {
   const { loading, needsBusinessVerification } = useAuth();
   const { pathname } = useLocation();
@@ -27,7 +27,7 @@ export default function VerificationGate({ children }) {
     );
   }
 
-  if (needsBusinessVerification && !ALLOWED_PATHS.includes(pathname)) {
+  if (needsBusinessVerification && !isPendingSkipped() && !ALLOWED_PATHS.includes(pathname)) {
     return <Navigate to="/pending-approval" replace />;
   }
 

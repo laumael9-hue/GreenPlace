@@ -7,6 +7,7 @@ import api from '../lib/api';
 import { validateDocumentFile, uploadRequiredDocument, DOCUMENT_ACCEPT, formatFileSize } from '../lib/businessDocuments';
 import { useAuth } from '../context/AuthContext';
 import Logo from '../components/ui/Logo';
+import { skipPendingApproval } from '../lib/pendingApproval';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 
@@ -92,6 +93,12 @@ export default function PendingApproval() {
     }
   };
 
+  // Let the owner use GreenPlace as a resident while the application is unfinished or under review
+  const handleContinueAsResident = () => {
+    skipPendingApproval();
+    navigate('/dashboard');
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -132,14 +139,23 @@ export default function PendingApproval() {
       <header className="bg-white border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Logo size="lg" />
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign out
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleContinueAsResident}
+              className="text-sm font-medium text-primary-600 hover:text-primary-700"
+            >
+              Go to dashboard
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../lib/api';
+import { clearPendingSkip } from '../lib/pendingApproval';
 
 const AuthContext = createContext(null);
 
@@ -90,6 +91,7 @@ export function AuthProvider({ children }) {
     } finally {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
+      clearPendingSkip();
       setUser(null);
       setProfile(null);
       setBusiness(null);
