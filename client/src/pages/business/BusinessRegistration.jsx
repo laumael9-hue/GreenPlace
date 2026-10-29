@@ -146,6 +146,30 @@ export default function BusinessRegistration() {
     setMaterials(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Documents already on file that can't be replaced (e.g. on reapply or resume) aren't asked for again
+  const loadLockedDocs = async () => {
+    try {
+      const { data: docData } = await api.get('/business/documents');
+      const locked = {};
+      (docData.documents || []).forEach((d) => {
+        if (d.status !== 'missing' && !d.canReplace) locked[d.type] = d.status;
+      });
+      setLockedDocs(locked);
+    } catch {
+      setLockedDocs({});
+    }
+  };
+
+  // Resume an application that was created but never submitted for review
+  const handleContinueApplication = async () => {
+    setLoading(true);
+    setBusinessId(existingBusiness.id);
+    await loadLockedDocs();
+    setExistingBusiness(null);
+    setStep(2);
+    setLoading(false);
+  };
+
   // ============================================================
   // STEP 1: Create business record
   // ============================================================
@@ -163,17 +187,7 @@ export default function BusinessRegistration() {
     try {
       const { data } = await api.post('/businesses', form);
       setBusinessId(data.business.id);
-      // On reapply some documents may already be on file and locked; don't ask for those again
-      try {
-        const { data: docData } = await api.get('/business/documents');
-        const locked = {};
-        (docData.documents || []).forEach((d) => {
-          if (d.status !== 'missing' && !d.canReplace) locked[d.type] = d.status;
-        });
-        setLockedDocs(locked);
-      } catch {
-        setLockedDocs({});
-      }
+      await loadLockedDocs();
       setStep(2);
     } catch (err) {
       setErrors({ submit: err.response?.data?.error || 'Failed to create business' });
@@ -366,6 +380,34 @@ export default function BusinessRegistration() {
             )}
             <div className="mt-6 flex justify-center gap-3">
               <Button onClick={handleStartReapply}>Reapply</Button>
+              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                Back to Dashboard
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (existingBusiness && existingBusiness.status === 'pending' && !existingBusiness.submitted_for_review_at) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Card>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Application Not Submitted</h2>
+            <p className="text-gray-500 mt-2">
+              Your application for <strong>{existingBusiness.name}</strong> is missing its verification documents.
+              Upload all 3 to send it for review.
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button onClick={handleContinueApplication} disabled={loading}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+                Continue Application
+              </Button>
               <Button variant="ghost" onClick={() => navigate('/dashboard')}>
                 Back to Dashboard
               </Button>
@@ -706,9 +748,9 @@ export default function BusinessRegistration() {
         {/* Navigation */}
         {/* ============================================================ */}
         <div className="flex justify-between mt-6 pt-4 border-t border-gray-100">
-          {step === 1 ? (
+          {step <= 2 ? (
             <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-              Cancel
+              {step === 1 ? 'Cancel' : 'Back to Dashboard'}
             </Button>
           ) : (
             <Button variant="ghost" onClick={() => setStep(prev => prev - 1)}>
