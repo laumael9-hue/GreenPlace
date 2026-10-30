@@ -11,7 +11,7 @@ import BusinessDocumentsReview from '../../components/admin/BusinessDocumentsRev
 import {
   Search, Building2, ChevronLeft, ChevronRight,
   CheckCircle, Ban, XCircle, Eye, Clock, MapPin,
-  Phone, Globe, Mail, AlertTriangle, RotateCcw, Users, Download
+  Phone, Globe, Mail, AlertTriangle, RotateCcw, Users, Download, Flag
 } from 'lucide-react';
 
 const statusConfig = {
@@ -372,7 +372,23 @@ export default function BusinessManagement() {
                         {statusConfig[biz.status]?.label || biz.status}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <Link
+                        to={`/admin/reports?target=business&targetId=${biz.id}`}
+                        className={`inline-flex items-center gap-1 p-1.5 rounded-lg transition-colors ${
+                          biz.pending_report_count > 0
+                            ? 'text-orange-600 bg-orange-50 hover:bg-orange-100'
+                            : 'text-gray-400 hover:text-primary-600 hover:bg-primary-50'
+                        }`}
+                        title={biz.pending_report_count > 0
+                          ? `${biz.pending_report_count} pending report${biz.pending_report_count === 1 ? '' : 's'}`
+                          : 'View reports'}
+                      >
+                        <Flag className="w-4 h-4" />
+                        {biz.pending_report_count > 0 && (
+                          <span className="text-xs font-semibold">{biz.pending_report_count}</span>
+                        )}
+                      </Link>
                       <button
                         onClick={() => openBusinessDetail(biz.id)}
                         className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"

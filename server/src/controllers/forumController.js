@@ -1178,7 +1178,7 @@ const moderatePost = async (req, res) => {
 
 const getReports = async (req, res) => {
   try {
-    const { page = 1, limit = 20, status = '', target = '' } = req.query;
+    const { page = 1, limit = 20, status = '', target = '', targetId = '' } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     let query = supabaseAdmin
@@ -1196,6 +1196,10 @@ const getReports = async (req, res) => {
 
     if (target) {
       query = query.eq('target_type', target);
+    }
+
+    if (targetId) {
+      query = query.eq('target_id', targetId);
     }
 
     const { data: reports, count, error } = await query
@@ -1370,7 +1374,7 @@ const executeContentAction = async (targetType, targetId, action) => {
   if (targetType === 'business' && action === 'suspend') {
     const { data: business } = await supabaseAdmin
       .from('businesses')
-      .select('id, status')
+      .select('id, status, name, owner_id')
       .eq('id', targetId)
       .single();
 
@@ -1380,6 +1384,16 @@ const executeContentAction = async (targetType, targetId, action) => {
         .update({ status: 'suspended', is_verified: false })
         .eq('id', targetId);
       if (error) throw new Error('Failed to suspend business');
+
+      if (business.owner_id) {
+        await createNotification({
+          userId: business.owner_id,
+          type: 'business',
+          title: 'Business suspended',
+          body: `"${business.name}" has been suspended following a review of user reports.`,
+          data: { link: '/dashboard/profile' },
+        });
+      }
     }
   }
 };

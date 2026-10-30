@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Flag, Loader2, ChevronLeft, ChevronRight, Download, AlertTriangle,
   MessageCircle, Package, FileText, Store,
@@ -48,6 +48,8 @@ const contentActionOptions = {
 };
 
 export default function Reports() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const targetIdFilter = searchParams.get('targetId') || '';
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -56,7 +58,7 @@ export default function Reports() {
     byTarget: {},
   });
   const [statusFilter, setStatusFilter] = useState('');
-  const [targetFilter, setTargetFilter] = useState('');
+  const [targetFilter, setTargetFilter] = useState(searchParams.get('target') || '');
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -76,6 +78,7 @@ export default function Reports() {
         limit: '20',
         ...(statusFilter && { status: statusFilter }),
         ...(targetFilter && { target: targetFilter }),
+        ...(targetIdFilter && { targetId: targetIdFilter }),
       });
       const { data } = await api.get(`/forum/admin/reports?${params}`);
       setReports(data.reports || []);
@@ -87,7 +90,7 @@ export default function Reports() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, targetFilter]);
+  }, [statusFilter, targetFilter, targetIdFilter]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -143,6 +146,7 @@ export default function Reports() {
         page: '1', limit: '500',
         ...(statusFilter && { status: statusFilter }),
         ...(targetFilter && { target: targetFilter }),
+        ...(targetIdFilter && { targetId: targetIdFilter }),
       });
       const { data } = await api.get(`/forum/admin/reports?${params}`);
       const rows = (data.reports || []).map((r) => [
@@ -208,6 +212,18 @@ export default function Reports() {
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           {error}
+        </div>
+      )}
+
+      {targetIdFilter && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center justify-between gap-2">
+          <span>Showing reports for a single {targetFilter || 'item'}.</span>
+          <button
+            onClick={() => setSearchParams({})}
+            className="font-medium hover:underline"
+          >
+            Show all reports
+          </button>
         </div>
       )}
 

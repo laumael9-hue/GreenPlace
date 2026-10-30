@@ -1142,9 +1142,23 @@ const getAllBusinesses = async (req, res) => {
       }
     }
 
+    const reportCounts = {};
+    if (businesses.length > 0) {
+      const { data: pendingReports } = await supabaseAdmin
+        .from('reports')
+        .select('target_id')
+        .eq('target_type', 'business')
+        .eq('status', 'pending')
+        .in('target_id', businesses.map(b => b.id));
+      (pendingReports || []).forEach(r => {
+        reportCounts[r.target_id] = (reportCounts[r.target_id] || 0) + 1;
+      });
+    }
+
     const enriched = businesses.map(b => ({
       ...b,
       profiles: ownerProfiles[b.owner_id] || null,
+      pending_report_count: reportCounts[b.id] || 0,
     }));
 
     res.json({
