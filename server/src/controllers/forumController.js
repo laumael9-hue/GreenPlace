@@ -983,7 +983,7 @@ const reportContent = async (req, res) => {
     const userId = req.user.id;
     const { targetType, targetId, reason, description } = req.body;
 
-    const validTypes = ['thread', 'post', 'listing'];
+    const validTypes = ['thread', 'post', 'listing', 'business'];
     if (!targetType || !validTypes.includes(targetType)) {
       return res.status(400).json({ error: 'Invalid target type' });
     }
@@ -1009,6 +1009,17 @@ const reportContent = async (req, res) => {
         .eq('id', targetId)
         .single();
       exists = !!data;
+    } else if (targetType === 'business') {
+      const { data } = await supabaseAdmin
+        .from('businesses')
+        .select('id, owner_id')
+        .eq('id', targetId)
+        .is('deleted_at', null)
+        .single();
+      if (data && data.owner_id === userId) {
+        return res.status(400).json({ error: 'You cannot report your own business' });
+      }
+      exists = !!data;
     } else {
       const { data } = await supabaseAdmin
         .from('forum_posts')
@@ -1020,6 +1031,20 @@ const reportContent = async (req, res) => {
 
     if (!exists) {
       return res.status(404).json({ error: 'Content not found' });
+    }
+
+    if (targetType === 'business') {
+      const { data: duplicate } = await supabaseAdmin
+        .from('reports')
+        .select('id')
+        .eq('reporter_id', userId)
+        .eq('target_type', 'business')
+        .eq('target_id', targetId)
+        .eq('status', 'pending')
+        .limit(1);
+      if (duplicate && duplicate.length > 0) {
+        return res.status(409).json({ error: 'You have already reported this business' });
+      }
     }
 
     const { data: report, error } = await supabaseAdmin
@@ -1217,6 +1242,16 @@ const getReports = async (req, res) => {
           .eq('id', report.target_id)
           .single();
         target = data ? { ...data, body: data.description } : null;
+      } else if (report.target_type === 'business') {
+        const { data } = await supabaseAdmin
+          .from('businesses')
+          .select(`
+            id, name, description, status, slug, created_at,
+            owner:profiles!businesses_owner_id_fkey(id, first_name, last_name)
+          `)
+          .eq('id', report.target_id)
+          .single();
+        target = data ? { ...data, title: data.name, body: data.description } : null;
       }
       return { ...report, target };
     }));
@@ -1254,6 +1289,7 @@ const CONTENT_ACTIONS = {
   post: ['none', 'remove'],
   thread: ['none', 'lock', 'remove'],
   listing: ['none', 'archive'],
+  business: ['none', 'suspend'],
 };
 
 const executeContentAction = async (targetType, targetId, action) => {
@@ -1330,6 +1366,22 @@ const executeContentAction = async (targetType, targetId, action) => {
       if (error) throw new Error('Failed to archive listing');
     }
   }
+
+  if (targetType === 'business' && action === 'suspend') {
+    const { data: business } = await supabaseAdmin
+      .from('businesses')
+      .select('id, status')
+      .eq('id', targetId)
+      .single();
+
+    if (business && business.status !== 'suspended') {
+      const { error } = await supabaseAdmin
+        .from('businesses')
+        .update({ status: 'suspended', is_verified: false })
+        .eq('id', targetId);
+      if (error) throw new Error('Failed to suspend business');
+    }
+  }
 };
 
 const resolveReport = async (req, res) => {
@@ -1374,6 +1426,7 @@ const resolveReport = async (req, res) => {
         'thread:lock': 'lock_thread',
         'thread:remove': 'remove_thread',
         'listing:archive': 'archive_listing',
+        'business:suspend': 'suspend_business',
       };
       await logModerationAudit(
         req.user.id,
@@ -1401,7 +1454,7 @@ const resolveReport = async (req, res) => {
     }
 
     let autoResolved = 0;
-    if (contentAction === 'remove' || contentAction === 'archive') {
+    if (contentAction === 'remove' || contentAction === 'archive' || contentAction === 'suspend') {
       const { data: siblings } = await supabaseAdmin
         .from('reports')
         .update({

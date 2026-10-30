@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Flag, Loader2, ChevronLeft, ChevronRight, Download, AlertTriangle,
-  MessageCircle, Package, FileText,
+  MessageCircle, Package, FileText, Store,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { exportToCsv, csvFilename } from '../../lib/exportCsv';
@@ -24,6 +24,7 @@ const targetConfig = {
   post: { label: 'Post', icon: <MessageCircle className="w-4 h-4" /> },
   thread: { label: 'Thread', icon: <MessageCircle className="w-4 h-4" /> },
   listing: { label: 'Listing', icon: <Package className="w-4 h-4" /> },
+  business: { label: 'Business', icon: <Store className="w-4 h-4" /> },
 };
 
 const contentActionOptions = {
@@ -39,6 +40,10 @@ const contentActionOptions = {
   listing: [
     { value: 'none', label: 'No content action' },
     { value: 'archive', label: 'Archive listing (hidden, restorable)' },
+  ],
+  business: [
+    { value: 'none', label: 'No content action' },
+    { value: 'suspend', label: 'Suspend business (restorable)' },
   ],
 };
 
@@ -166,6 +171,9 @@ export default function Reports() {
     if (report.target_type === 'listing' && report.target.slug) {
       return `/marketplace/${report.target.slug}`;
     }
+    if (report.target_type === 'business' && report.target.slug) {
+      return `/establishments/${report.target.slug}`;
+    }
     if (report.target_type === 'thread' && report.target.slug) {
       return `/forum/thread/${report.target.slug}`;
     }
@@ -269,6 +277,7 @@ export default function Reports() {
           <option value="listing">Listings</option>
           <option value="thread">Threads</option>
           <option value="post">Posts</option>
+          <option value="business">Businesses</option>
         </select>
       </div>
 
@@ -325,7 +334,9 @@ export default function Reports() {
                           by{' '}
                           {report.target.seller
                             ? `${report.target.seller.first_name} ${report.target.seller.last_name}`
-                            : report.target.author
+                            : report.target.owner
+                              ? `${report.target.owner.first_name} ${report.target.owner.last_name}`
+                              : report.target.author
                               ? `${report.target.author.first_name} ${report.target.author.last_name}`
                               : 'Unknown'}
                         </p>
@@ -421,6 +432,11 @@ export default function Reports() {
             {resolveStatus === 'resolved' && resolveAction === 'archive' && (
               <p className="mt-1.5 text-xs text-orange-600">
                 The listing will be hidden from the marketplace (restorable). Other pending reports on it will be auto-resolved.
+              </p>
+            )}
+            {resolveStatus === 'resolved' && resolveAction === 'suspend' && (
+              <p className="mt-1.5 text-xs text-orange-600">
+                The business will be suspended and unverified (restorable). Other pending reports on it will be auto-resolved.
               </p>
             )}
             {resolveStatus === 'resolved' && resolveAction === 'lock' && (
