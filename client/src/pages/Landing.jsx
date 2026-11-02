@@ -37,9 +37,9 @@ function HeroSection() {
     <section className="relative min-h-screen flex items-end overflow-hidden text-white">
       {/* Full-bleed photo: Cebu waterfront and skyline (Unsplash, Jericho Padayhag) */}
       <img
-        src="/images/hero-cebu.jpg"
-        alt="Cebu waterfront with the bridge and city skyline"
-        className="absolute inset-0 w-full h-full object-cover object-bottom scale-125 origin-bottom saturate-110"
+        src="/images/hero-cebu-green.jpg"
+        alt="Green coconut palms and hills overlooking the sea in Cebu"
+        className="absolute inset-0 w-full h-full object-cover object-[center_65%] saturate-110"
       />
       {/* Legibility + brand tint */}
       <div className="absolute inset-0 bg-gray-950/40" />

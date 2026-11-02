@@ -47,7 +47,7 @@ export default function Login() {
       {/* Left brand panel — desktop only */}
       <div className="hidden md:flex md:w-1/2 lg:w-[55%] relative flex-col justify-between bg-primary-800 overflow-hidden p-10 lg:p-14">
         {/* Cebu City skyline photo (Unsplash, Pao Dayag) with brand tint */}
-        <img src="/images/hero-cebu.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <img src="/images/hero-cebu-green.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-gray-950/95 via-primary-900/80 to-primary-800/65" />
 
         {/* Logo */}
