@@ -122,6 +122,7 @@ export default function Messages() {
   const [reportDescription, setReportDescription] = useState('');
   const [reportError, setReportError] = useState('');
   const [reporting, setReporting] = useState(false);
+  const [reportAlsoBlock, setReportAlsoBlock] = useState(true);
 
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
@@ -452,6 +453,7 @@ export default function Messages() {
     setReportReason(REPORT_REASONS[0]);
     setReportDescription('');
     setReportError('');
+    setReportAlsoBlock(!settings.blocked);
     setReportTarget({ kind: 'user', id: activeConversation.id, body: otherName });
   };
 
@@ -464,12 +466,17 @@ export default function Messages() {
       const url = reportTarget.kind === 'user'
         ? `/messages/conversations/${reportTarget.id}/report-user`
         : `/messages/messages/${reportTarget.id}/report`;
-      await api.post(url, {
+      const alsoBlock = reportTarget.kind === 'user' && reportAlsoBlock && !settings.blocked;
+      const { data } = await api.post(url, {
         reason: reportReason,
         description: reportDescription.trim() || undefined,
+        ...(alsoBlock && { block: true }),
       });
+      if (data.settings) patchConversation(reportTarget.id, { settings: data.settings });
       setReportTarget(null);
-      flash('Report submitted. Our moderators will review it.');
+      flash(data.settings?.blocked && alsoBlock
+        ? `Report submitted and ${otherName} blocked.`
+        : 'Report submitted. Our moderators will review it.');
     } catch (err) {
       setReportError(err.response?.data?.error || 'Failed to submit report');
     } finally {
@@ -1012,6 +1019,17 @@ export default function Messages() {
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
+          {reportTarget?.kind === 'user' && !settings.blocked && (
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={reportAlsoBlock}
+                onChange={(e) => setReportAlsoBlock(e.target.checked)}
+                className="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span>Also block {otherName} so they can&apos;t message me</span>
+            </label>
+          )}
           {reportError && <p className="text-sm text-red-600">{reportError}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setReportTarget(null)}>

@@ -755,7 +755,7 @@ const reportUser = async (req, res) => {
     const description = typeof req.body?.description === 'string' ? req.body.description.trim() : '';
     if (!reason) return res.status(400).json({ error: 'Reason is required' });
 
-    const { other, error } = await loadConversation(req.params.id, userId);
+    const { conversation, other, error } = await loadConversation(req.params.id, userId);
     if (error) return res.status(error.status).json({ error: error.message });
     if (!other) return res.status(404).json({ error: 'User not found' });
 
@@ -784,7 +784,22 @@ const reportUser = async (req, res) => {
       return res.status(400).json({ error: 'Failed to submit report' });
     }
 
-    res.status(201).json({ message: 'Report submitted' });
+    let settings = null;
+    if (req.body?.block === true) {
+      const { error: blockError } = await supabaseAdmin
+        .from('conversation_settings')
+        .upsert(
+          { conversation_id: conversation.id, user_id: userId, blocked: true, updated_at: new Date().toISOString() },
+          { onConflict: 'conversation_id,user_id' }
+        );
+      if (blockError) {
+        console.error('Report user block error:', blockError);
+      } else {
+        settings = (await fetchSettings([conversation.id], userId))[conversation.id] || DEFAULT_SETTINGS;
+      }
+    }
+
+    res.status(201).json({ message: 'Report submitted', settings });
   } catch (err) {
     console.error('Report user error:', err);
     res.status(500).json({ error: 'Failed to submit report' });
