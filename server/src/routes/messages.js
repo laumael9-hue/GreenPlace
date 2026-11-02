@@ -14,6 +14,7 @@ const {
   editMessage,
   deleteMessage,
   reportMessage,
+  reportUser,
 } = require('../controllers/messageController');
 
 // Conversations
@@ -28,6 +29,7 @@ router.post('/conversations/:id/read', authenticate, markConversationRead);
 
 router.patch('/conversations/:id/settings', authenticate, updateConversationSettings);
 router.post('/conversations/:id/unread', authenticate, markConversationUnread);
+router.post('/conversations/:id/report-user', authenticate, reportUser);
 
 // Single message actions
 router.patch('/messages/:messageId', authenticate, editMessage);

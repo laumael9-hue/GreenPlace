@@ -1256,6 +1256,20 @@ const getReports = async (req, res) => {
           .eq('id', report.target_id)
           .single();
         target = data ? { ...data, title: data.name, body: data.description } : null;
+      } else if (report.target_type === 'user') {
+        const { data } = await supabaseAdmin
+          .from('profiles')
+          .select('id, first_name, last_name, role, is_active, created_at')
+          .eq('id', report.target_id)
+          .single();
+        target = data
+          ? {
+              ...data,
+              title: `${data.first_name} ${data.last_name}`,
+              body: `Role: ${data.role}`,
+              status: data.is_active ? 'active' : 'suspended',
+            }
+          : null;
       } else if (report.target_type === 'message') {
         const { data } = await supabaseAdmin
           .from('messages')
@@ -1304,9 +1318,10 @@ const CONTENT_ACTIONS = {
   thread: ['none', 'lock', 'remove'],
   listing: ['none', 'archive'],
   business: ['none', 'suspend'],
+  user: ['none', 'suspend'],
 };
 
-const executeContentAction = async (targetType, targetId, action) => {
+const executeContentAction = async (targetType, targetId, action, adminId) => {
   if (action === 'remove' && targetType === 'post') {
     const { data: post } = await supabaseAdmin
       .from('forum_posts')
@@ -1381,6 +1396,42 @@ const executeContentAction = async (targetType, targetId, action) => {
     }
   }
 
+  if (targetType === 'user' && action === 'suspend') {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('id, role, is_active, deleted_at')
+      .eq('id', targetId)
+      .single();
+
+    if (!profile || profile.deleted_at) throw new Error('User no longer exists');
+    if (profile.role === 'admin') throw new Error('Admin accounts cannot be suspended from a report');
+
+    if (profile.is_active) {
+      const { error } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          is_active: false,
+          suspension_reason: 'Suspended following a review of user reports',
+          suspended_at: new Date().toISOString(),
+          suspended_by: adminId,
+        })
+        .eq('id', targetId);
+      if (error) throw new Error('Failed to suspend user');
+
+      try {
+        await supabaseAdmin.auth.admin.signOut(targetId, 'global');
+      } catch (err) {
+        console.error('Session revocation error:', err);
+      }
+      await createNotification({
+        userId: targetId,
+        type: 'system',
+        title: 'Your account has been suspended',
+        body: 'Your account was suspended following a review of user reports. Contact support for more information.',
+      });
+    }
+  }
+
   if (targetType === 'business' && action === 'suspend') {
     const { data: business } = await supabaseAdmin
       .from('businesses')
@@ -1439,7 +1490,7 @@ const resolveReport = async (req, res) => {
 
     if (contentAction !== 'none') {
       try {
-        await executeContentAction(report.target_type, report.target_id, contentAction);
+        await executeContentAction(report.target_type, report.target_id, contentAction, req.user.id);
       } catch (actionErr) {
         console.error('Content action error:', actionErr);
         return res.status(400).json({ error: actionErr.message || 'Failed to apply content action' });
@@ -1451,6 +1502,7 @@ const resolveReport = async (req, res) => {
         'thread:remove': 'remove_thread',
         'listing:archive': 'archive_listing',
         'business:suspend': 'suspend_business',
+        'user:suspend': 'deactivate_user',
       };
       await logModerationAudit(
         req.user.id,

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Flag, Loader2, ChevronLeft, ChevronRight, Download, AlertTriangle,
-  MessageCircle, Package, FileText, Store,
+  MessageCircle, Package, FileText, Store, User,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { exportToCsv, csvFilename } from '../../lib/exportCsv';
@@ -26,6 +26,7 @@ const targetConfig = {
   listing: { label: 'Listing', icon: <Package className="w-4 h-4" /> },
   business: { label: 'Business', icon: <Store className="w-4 h-4" /> },
   message: { label: 'Message', icon: <MessageCircle className="w-4 h-4" /> },
+  user: { label: 'User', icon: <User className="w-4 h-4" /> },
 };
 
 const contentActionOptions = {
@@ -48,6 +49,10 @@ const contentActionOptions = {
   ],
   message: [
     { value: 'none', label: 'No content action' },
+  ],
+  user: [
+    { value: 'none', label: 'No action' },
+    { value: 'suspend', label: 'Suspend user account (restorable)' },
   ],
 };
 
@@ -298,6 +303,8 @@ export default function Reports() {
           <option value="thread">Threads</option>
           <option value="post">Posts</option>
           <option value="business">Businesses</option>
+          <option value="message">Messages</option>
+          <option value="user">Users</option>
         </select>
       </div>
 
@@ -350,7 +357,7 @@ export default function Reports() {
                           )}
                         </p>
                         <p className="text-sm text-gray-600 line-clamp-2">{report.target.body}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className={`text-xs text-gray-500 ${report.target_type === 'user' ? 'hidden' : ''}`}>
                           by{' '}
                           {report.target.seller
                             ? `${report.target.seller.first_name} ${report.target.seller.last_name}`
@@ -456,7 +463,9 @@ export default function Reports() {
             )}
             {resolveStatus === 'resolved' && resolveAction === 'suspend' && (
               <p className="mt-1.5 text-xs text-orange-600">
-                The business will be suspended and unverified (restorable). Other pending reports on it will be auto-resolved.
+                {selectedReport?.target_type === 'user'
+                  ? 'The account will be suspended and signed out (restorable from User Management). Other pending reports on it will be auto-resolved.'
+                  : 'The business will be suspended and unverified (restorable). Other pending reports on it will be auto-resolved.'}
               </p>
             )}
             {resolveStatus === 'resolved' && resolveAction === 'lock' && (

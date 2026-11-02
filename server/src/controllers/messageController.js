@@ -743,7 +743,56 @@ const reportMessage = async (req, res) => {
   }
 };
 
+// ============================================================
+// REPORT USER: Report the other participant of a conversation
+// Body: { reason, description? }
+// ============================================================
+
+const reportUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+    const description = typeof req.body?.description === 'string' ? req.body.description.trim() : '';
+    if (!reason) return res.status(400).json({ error: 'Reason is required' });
+
+    const { other, error } = await loadConversation(req.params.id, userId);
+    if (error) return res.status(error.status).json({ error: error.message });
+    if (!other) return res.status(404).json({ error: 'User not found' });
+
+    const { data: duplicate } = await supabaseAdmin
+      .from('reports')
+      .select('id')
+      .eq('reporter_id', userId)
+      .eq('target_type', 'user')
+      .eq('target_id', other.id)
+      .eq('status', 'pending')
+      .limit(1);
+    if (duplicate && duplicate.length > 0) {
+      return res.status(409).json({ error: 'You have already reported this user' });
+    }
+
+    const { error: insertError } = await supabaseAdmin.from('reports').insert({
+      reporter_id: userId,
+      target_type: 'user',
+      target_id: other.id,
+      reason: reason.slice(0, 100),
+      description: description || null,
+    });
+
+    if (insertError) {
+      console.error('Report user error:', insertError);
+      return res.status(400).json({ error: 'Failed to submit report' });
+    }
+
+    res.status(201).json({ message: 'Report submitted' });
+  } catch (err) {
+    console.error('Report user error:', err);
+    res.status(500).json({ error: 'Failed to submit report' });
+  }
+};
+
 module.exports = {
+  reportUser,
   getConversations,
   getConversation,
   createConversation,

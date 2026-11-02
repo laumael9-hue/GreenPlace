@@ -447,13 +447,24 @@ export default function Messages() {
     setReportTarget(message);
   };
 
+  const openReportUser = () => {
+    setConvMenuOpen(false);
+    setReportReason(REPORT_REASONS[0]);
+    setReportDescription('');
+    setReportError('');
+    setReportTarget({ kind: 'user', id: activeConversation.id, body: otherName });
+  };
+
   const submitReport = async (e) => {
     e.preventDefault();
     if (!reportTarget) return;
     setReporting(true);
     setReportError('');
     try {
-      await api.post(`/messages/messages/${reportTarget.id}/report`, {
+      const url = reportTarget.kind === 'user'
+        ? `/messages/conversations/${reportTarget.id}/report-user`
+        : `/messages/messages/${reportTarget.id}/report`;
+      await api.post(url, {
         reason: reportReason,
         description: reportDescription.trim() || undefined,
       });
@@ -726,6 +737,9 @@ export default function Messages() {
                   >
                     {settings.blocked ? 'Unblock' : 'Block user'}
                   </MenuItem>
+                  <MenuItem icon={Flag} danger onClick={openReportUser}>
+                    Report user
+                  </MenuItem>
                 </Menu>
               </div>
             </div>
@@ -970,7 +984,7 @@ export default function Messages() {
         )}
       </div>
 
-      <Modal open={!!reportTarget} onClose={() => setReportTarget(null)} title="Report message">
+      <Modal open={!!reportTarget} onClose={() => setReportTarget(null)} title={reportTarget?.kind === 'user' ? 'Report user' : 'Report message'}>
         <form onSubmit={submitReport} className="space-y-4">
           {reportTarget && (
             <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 break-words">
