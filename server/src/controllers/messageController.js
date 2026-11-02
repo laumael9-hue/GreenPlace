@@ -25,6 +25,29 @@ const canonicalPair = (a, b) => (a < b ? [a, b] : [b, a]);
 
 const DEFAULT_SETTINGS = { muted: false, archived: false, blocked: false, blocked_by_other: false };
 
+// Attach the other participant's business (if any) so the UI can show its name
+const attachBusinesses = async (shaped) => {
+  const ownerIds = [...new Set(shaped.map((c) => c.other?.id).filter(Boolean))];
+  if (!ownerIds.length) return shaped;
+
+  const { data } = await supabaseAdmin
+    .from('businesses')
+    .select('id, owner_id, name, logo_url')
+    .in('owner_id', ownerIds)
+    .eq('status', 'approved')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true });
+
+  const byOwner = {};
+  (data || []).forEach((b) => {
+    if (!byOwner[b.owner_id]) byOwner[b.owner_id] = { id: b.id, name: b.name, logo_url: b.logo_url };
+  });
+
+  return shaped.map((c) =>
+    c.other ? { ...c, other: { ...c.other, business: byOwner[c.other.id] || null } } : c
+  );
+};
+
 const shapeMessage = (m) => (m.deleted_at ? { ...m, body: '' } : m);
 
 const shapeConversation = (conv, userId) => {
@@ -141,10 +164,14 @@ const getConversations = async (req, res) => {
     const unread = await fetchUnreadCounts(ids, userId);
     const settings = await fetchSettings(ids, userId);
 
-    res.json({
-      conversations: rows.map((c) =>
+    const shaped = await attachBusinesses(
+      rows.map((c) =>
         shapeConversation({ ...c, unread_count: unread[c.id] || 0, settings: settings[c.id] }, userId)
-      ),
+      )
+    );
+
+    res.json({
+      conversations: shaped,
       pagination: {
         page,
         limit,
@@ -171,12 +198,16 @@ const getConversation = async (req, res) => {
     const unread = await fetchUnreadCounts([conversation.id], userId);
     const settings = await fetchSettings([conversation.id], userId);
 
-    res.json({
-      conversation: shapeConversation({
+    const [shaped] = await attachBusinesses([
+      shapeConversation({
         ...conversation,
         unread_count: unread[conversation.id] || 0,
         settings: settings[conversation.id],
       }, userId),
+    ]);
+
+    res.json({
+      conversation: shaped,
       other,
     });
   } catch (err) {
@@ -235,12 +266,15 @@ const createConversation = async (req, res) => {
     if (existing) {
       const unread = await fetchUnreadCounts([existing.id], userId);
       const settings = await fetchSettings([existing.id], userId);
-      return res.json({
-        conversation: shapeConversation({
+      const [shapedExisting] = await attachBusinesses([
+        shapeConversation({
           ...existing,
           unread_count: unread[existing.id] || 0,
           settings: settings[existing.id],
         }, userId),
+      ]);
+      return res.json({
+        conversation: shapedExisting,
       });
     }
 

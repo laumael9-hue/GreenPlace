@@ -30,6 +30,10 @@ const DEFAULT_SETTINGS = { muted: false, archived: false, blocked: false, blocke
 
 const fullName = (p) => (p ? `${p.first_name || ''} ${p.last_name || ''}`.trim() : 'Unknown user');
 
+// Business owners are shown under their business name
+const displayName = (conv) => conv?.other?.business?.name || fullName(conv?.other);
+const displayAvatar = (conv) => conv?.other?.business?.logo_url || conv?.other?.avatar_url;
+
 const sortConversations = (list) =>
   [...list].sort((a, b) => {
     const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : Number.MAX_SAFE_INTEGER;
@@ -53,15 +57,15 @@ const formatListTime = (value) => {
 const formatMessageTime = (value) =>
   new Date(value).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
 
-function Menu({ open, onClose, align = 'right', children }) {
+function Menu({ open, onClose, align = 'right', up = false, children }) {
   if (!open) return null;
   return (
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
       <div
-        className={`absolute z-40 mt-1 w-48 py-1 bg-white border border-gray-200 rounded-xl shadow-lg ${
+        className={`absolute z-40 w-48 py-1 bg-white border border-gray-200 rounded-xl shadow-lg ${
           align === 'right' ? 'right-0' : 'left-0'
-        }`}
+        } ${up ? 'bottom-full mb-1' : 'top-full mt-1'}`}
       >
         {children}
       </div>
@@ -492,10 +496,14 @@ export default function Messages() {
     if (tab === 'archived' ? !archived : archived) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    return fullName(c.other).toLowerCase().includes(q);
+    return (
+      displayName(c).toLowerCase().includes(q) || fullName(c.other).toLowerCase().includes(q)
+    );
   });
 
-  const otherName = fullName(activeConversation?.other);
+  const otherName = displayName(activeConversation);
+  const ownerName = fullName(activeConversation?.other);
+  const isBusiness = !!activeConversation?.other?.business;
 
   const showThread = !!conversationId;
 
@@ -577,7 +585,7 @@ export default function Messages() {
                       active ? 'bg-primary-50' : 'hover:bg-gray-50'
                     }`}
                   >
-                    <Avatar name={fullName(conv.other)} src={conv.other?.avatar_url} size="md" />
+                    <Avatar name={displayName(conv)} src={displayAvatar(conv)} size="md" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p
@@ -585,7 +593,7 @@ export default function Messages() {
                             unread > 0 ? 'font-semibold text-gray-900' : 'font-medium text-gray-900'
                           }`}
                         >
-                          {fullName(conv.other)}
+                          {displayName(conv)}
                         </p>
                         <span className="flex items-center gap-1 text-[11px] text-gray-400 shrink-0">
                           {conv.settings?.muted && <BellOff className="w-3 h-3" aria-label="Muted" />}
@@ -653,13 +661,17 @@ export default function Messages() {
               </button>
               <Avatar
                 name={otherName}
-                src={activeConversation?.other?.avatar_url}
+                src={displayAvatar(activeConversation)}
                 size="sm"
               />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-900 truncate">{otherName}</p>
-                {activeConversation?.other?.city && (
-                  <p className="text-xs text-gray-500">{activeConversation.other.city}</p>
+                {(isBusiness || activeConversation?.other?.city) && (
+                  <p className="text-xs text-gray-500 truncate">
+                    {[isBusiness ? `Business · ${ownerName}` : null, activeConversation?.other?.city]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
                 )}
               </div>
               {settings.muted && <BellOff className="w-4 h-4 text-gray-400" aria-label="Muted" />}
@@ -747,7 +759,7 @@ export default function Messages() {
                       </Button>
                     </div>
                   )}
-                  {messages.map((message) => {
+                  {messages.map((message, index) => {
                     const mine = message.sender_id === user?.id;
                     const deleted = !!message.deleted_at;
                     const editing = editingId === message.id;
@@ -821,7 +833,7 @@ export default function Messages() {
                           <div className="relative shrink-0">
                             <button
                               onClick={() => setMenuMessageId(menuMessageId === message.id ? null : message.id)}
-                              className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-full opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                              className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-full opacity-60 hover:opacity-100 focus:opacity-100 transition-opacity"
                               aria-label="Message options"
                             >
                               <MoreHorizontal className="w-4 h-4" />
@@ -830,6 +842,7 @@ export default function Messages() {
                               open={menuMessageId === message.id}
                               onClose={() => setMenuMessageId(null)}
                               align={mine ? 'right' : 'left'}
+                              up={index >= messages.length - 3}
                             >
                               <MenuItem icon={Copy} onClick={() => handleCopy(message)}>Copy</MenuItem>
                               {mine ? (
