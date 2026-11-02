@@ -766,7 +766,7 @@ export default function Messages() {
                     return (
                       <div
                         key={message.id}
-                        className={`group flex items-start gap-1 ${mine ? 'justify-end flex-row-reverse' : 'justify-start'}`}
+                        className={`group flex items-start gap-1 ${mine ? 'justify-start flex-row-reverse' : 'justify-start'}`}
                       >
                         <div className={`max-w-[75%] sm:max-w-[60%] ${mine ? 'text-right' : ''}`}>
                           {editing ? (
@@ -833,7 +833,7 @@ export default function Messages() {
                           <div className="relative shrink-0">
                             <button
                               onClick={() => setMenuMessageId(menuMessageId === message.id ? null : message.id)}
-                              className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-full opacity-60 hover:opacity-100 focus:opacity-100 transition-opacity"
+                              className="p-1.5 text-gray-500 bg-white border border-gray-200 shadow-sm hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
                               aria-label="Message options"
                             >
                               <MoreHorizontal className="w-4 h-4" />
