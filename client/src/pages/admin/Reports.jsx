@@ -25,6 +25,7 @@ const targetConfig = {
   thread: { label: 'Thread', icon: <MessageCircle className="w-4 h-4" /> },
   listing: { label: 'Listing', icon: <Package className="w-4 h-4" /> },
   business: { label: 'Business', icon: <Store className="w-4 h-4" /> },
+  message: { label: 'Message', icon: <MessageCircle className="w-4 h-4" /> },
 };
 
 const contentActionOptions = {
@@ -44,6 +45,9 @@ const contentActionOptions = {
   business: [
     { value: 'none', label: 'No content action' },
     { value: 'suspend', label: 'Suspend business (restorable)' },
+  ],
+  message: [
+    { value: 'none', label: 'No content action' },
   ],
 };
 

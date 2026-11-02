@@ -1256,6 +1256,16 @@ const getReports = async (req, res) => {
           .eq('id', report.target_id)
           .single();
         target = data ? { ...data, title: data.name, body: data.description } : null;
+      } else if (report.target_type === 'message') {
+        const { data } = await supabaseAdmin
+          .from('messages')
+          .select(`
+            id, body, created_at,
+            author:profiles!messages_sender_id_fkey(id, first_name, last_name)
+          `)
+          .eq('id', report.target_id)
+          .single();
+        target = data ? { ...data, title: 'Private message' } : null;
       }
       return { ...report, target };
     }));

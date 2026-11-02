@@ -9,6 +9,11 @@ const {
   sendMessage,
   markConversationRead,
   getUnreadCount,
+  updateConversationSettings,
+  markConversationUnread,
+  editMessage,
+  deleteMessage,
+  reportMessage,
 } = require('../controllers/messageController');
 
 // Conversations
@@ -20,6 +25,14 @@ router.get('/conversations/:id', authenticate, getConversation);
 router.get('/conversations/:id/messages', authenticate, getMessages);
 router.post('/conversations/:id/messages', authenticate, sendMessage);
 router.post('/conversations/:id/read', authenticate, markConversationRead);
+
+router.patch('/conversations/:id/settings', authenticate, updateConversationSettings);
+router.post('/conversations/:id/unread', authenticate, markConversationUnread);
+
+// Single message actions
+router.patch('/messages/:messageId', authenticate, editMessage);
+router.delete('/messages/:messageId', authenticate, deleteMessage);
+router.post('/messages/:messageId/report', authenticate, reportMessage);
 
 // Unread state
 router.get('/unread-count', authenticate, getUnreadCount);
