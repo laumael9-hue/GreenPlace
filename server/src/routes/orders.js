@@ -9,6 +9,7 @@ const {
   getOrderById,
   updateOrderStatus,
   cancelOrder,
+  reschedulePickup,
   getBusinessOrders,
 } = require('../controllers/orderController');
 
@@ -24,5 +25,6 @@ router.get('/business', authenticate, requireBusiness, getBusinessOrders);
 router.get('/:id', authenticate, getOrderById);
 router.patch('/:id/status', authenticate, requireBusiness, updateOrderStatus);
 router.post('/:id/cancel', authenticate, cancelOrder);
+router.patch('/:id/pickup', authenticate, requireResident, reschedulePickup);
 
 module.exports = router;

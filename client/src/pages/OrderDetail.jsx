@@ -38,6 +38,9 @@ export default function OrderDetail() {
   const [error, setError] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [newPickupDate, setNewPickupDate] = useState('');
+  const [newPickupTime, setNewPickupTime] = useState('morning');
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [editingRefund, setEditingRefund] = useState(false);
   const [refundReason, setRefundReason] = useState('');
@@ -137,6 +140,30 @@ export default function OrderDetail() {
       setCancelReason('');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to cancel order');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openReschedule = () => {
+    setNewPickupDate(order.preferred_pickup_date || '');
+    setNewPickupTime(order.preferred_pickup_time || 'morning');
+    setShowRescheduleModal(true);
+  };
+
+  const handleReschedule = async () => {
+    setActionLoading(true);
+    setError('');
+    try {
+      await api.patch(`/orders/${id}/pickup`, {
+        preferredPickupDate: newPickupDate,
+        preferredPickupTime: newPickupTime,
+      });
+      const { data } = await api.get(`/orders/${id}`);
+      setOrder(data.order);
+      setShowRescheduleModal(false);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to reschedule pickup');
     } finally {
       setActionLoading(false);
     }
@@ -251,6 +278,7 @@ export default function OrderDetail() {
   };
 
   const canCancel = order && ['pending', 'confirmed', 'processing', 'ready_for_pickup'].includes(order.status);
+  const canReschedule = isBuyer && order && ['pending', 'confirmed', 'processing'].includes(order.status);
   const canUpdateStatus = isSeller && order && getNextStatus(order.status);
   const canRequestRefund = isBuyer && order && order.buyer_id && order.status === 'completed' && order.payment_status === 'paid' && order.refund_status !== 'requested' && order.refund_status !== 'refunded';
   const canRefundBusiness = isSeller && order && order.status === 'completed' && order.refund_status !== 'refunded';
@@ -432,6 +460,12 @@ export default function OrderDetail() {
                     </p>
                   )}
                 </div>
+              )}
+              {canReschedule && (
+                <Button variant="secondary" size="sm" className="mt-3" onClick={openReschedule}>
+                  <Pencil className="w-4 h-4" />
+                  Reschedule Pickup
+                </Button>
               )}
               {order.notes && (
                 <p className="text-sm text-gray-500 mt-2">Notes: {order.notes}</p>
@@ -745,6 +779,48 @@ export default function OrderDetail() {
           <Button variant="danger" onClick={handleCancel} disabled={actionLoading}>
             {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Cancel Order
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Reschedule Pickup Modal */}
+      <Modal open={showRescheduleModal} onClose={() => setShowRescheduleModal(false)} title="Reschedule Pickup">
+        {(() => {
+          const toISO = (offset) => {
+            const d = new Date();
+            d.setDate(d.getDate() + offset);
+            return d.toISOString().split('T')[0];
+          };
+          const fieldClass = 'w-full px-3.5 py-2.5 border border-gray-200 hover:border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all';
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Pickup Date</label>
+                <input
+                  type="date"
+                  value={newPickupDate}
+                  min={toISO(1)}
+                  max={toISO(30)}
+                  onChange={(e) => setNewPickupDate(e.target.value)}
+                  className={fieldClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Pickup Time</label>
+                <select value={newPickupTime} onChange={(e) => setNewPickupTime(e.target.value)} className={fieldClass}>
+                  <option value="morning">Morning (8:00 AM - 12:00 PM)</option>
+                  <option value="afternoon">Afternoon (1:00 PM - 5:00 PM)</option>
+                  <option value="evening">Evening (6:00 PM - 9:00 PM)</option>
+                </select>
+              </div>
+            </div>
+          );
+        })()}
+        <div className="flex gap-3 justify-end mt-4">
+          <Button variant="secondary" onClick={() => setShowRescheduleModal(false)}>Close</Button>
+          <Button onClick={handleReschedule} disabled={actionLoading || !newPickupDate}>
+            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Save
           </Button>
         </div>
       </Modal>

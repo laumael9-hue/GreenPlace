@@ -941,6 +941,86 @@ const cancelOrder = async (req, res) => {
 };
 
 // ============================================================
+// RESCHEDULE PICKUP: Buyer changes preferred pickup date/time
+// ============================================================
+
+const reschedulePickup = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { preferredPickupDate, preferredPickupTime } = req.body;
+
+    if (!preferredPickupDate || !/^\d{4}-\d{2}-\d{2}$/.test(preferredPickupDate)) {
+      return res.status(400).json({ error: 'A valid pickup date is required' });
+    }
+
+    const validPickupTimes = ['morning', 'afternoon', 'evening'];
+    if (!validPickupTimes.includes(preferredPickupTime)) {
+      return res.status(400).json({ error: 'Invalid pickup time. Must be "morning", "afternoon" or "evening"' });
+    }
+
+    // Same window as checkout: tomorrow through 30 days out
+    const pickup = new Date(preferredPickupDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const minDate = new Date(today);
+    minDate.setDate(minDate.getDate() + 1);
+    const maxDate = new Date(today);
+    maxDate.setDate(maxDate.getDate() + 30);
+    if (isNaN(pickup) || pickup < minDate || pickup > maxDate) {
+      return res.status(400).json({ error: 'Pickup date must be between tomorrow and 30 days from now' });
+    }
+
+    const { data: order } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_number, buyer_id, business_id, status')
+      .eq('id', id)
+      .single();
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    if (order.buyer_id !== userId) {
+      return res.status(403).json({ error: 'Only the buyer can reschedule pickup' });
+    }
+    if (!['pending', 'confirmed', 'processing'].includes(order.status)) {
+      return res.status(400).json({ error: `Cannot reschedule pickup for an order with status "${order.status}"` });
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('orders')
+      .update({ preferred_pickup_date: preferredPickupDate, preferred_pickup_time: preferredPickupTime })
+      .eq('id', id)
+      .eq('status', order.status);
+
+    if (updateError) {
+      return res.status(400).json({ error: updateError.message });
+    }
+
+    const { data: business } = await supabaseAdmin
+      .from('businesses')
+      .select('owner_id')
+      .eq('id', order.business_id)
+      .single();
+
+    if (business?.owner_id) {
+      await createNotification({
+        userId: business.owner_id,
+        type: 'order',
+        title: 'Pickup rescheduled',
+        body: `Order ${order.order_number} pickup was moved to ${preferredPickupDate} (${preferredPickupTime}).`,
+        data: { link: `/orders/${order.id}`, image: await getOrderImage(order.id) },
+      });
+    }
+
+    res.json({ message: 'Pickup rescheduled successfully' });
+  } catch (err) {
+    console.error('Reschedule pickup error:', err);
+    res.status(500).json({ error: 'Failed to reschedule pickup' });
+  }
+};
+
+// ============================================================
 // GET BUSINESS ORDERS: Business views incoming orders
 // ============================================================
 
@@ -1064,5 +1144,6 @@ module.exports = {
   getOrderById,
   updateOrderStatus,
   cancelOrder,
+  reschedulePickup,
   getBusinessOrders,
 };
