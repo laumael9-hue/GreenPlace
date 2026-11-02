@@ -94,7 +94,7 @@ export default function Register() {
       <div className="hidden md:flex md:w-1/2 lg:w-[55%] relative flex-col justify-between bg-primary-800 overflow-hidden p-10 lg:p-14">
         {/* Cebu City skyline photo (Unsplash, Pao Dayag) with brand tint */}
         <img src="/images/hero-cebu.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-950/90 via-primary-900/60 to-primary-800/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-950/95 via-primary-900/80 to-primary-800/65" />
 
         {/* Logo */}
         <Link to="/" className="relative flex items-center gap-3">
