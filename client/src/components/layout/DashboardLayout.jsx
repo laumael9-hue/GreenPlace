@@ -61,7 +61,7 @@ export default function DashboardLayout() {
               </button>
             </div>
 
-            <div className="flex items-center gap-4 ml-auto">
+            <div className="flex items-center gap-1 sm:gap-4 ml-auto">
               {canMessage ? (
                 <Link
                   to="/dashboard/messages"
@@ -91,7 +91,7 @@ export default function DashboardLayout() {
               <NotificationBell />
 
               {/* Avatar + profile dropdown */}
-              <div ref={profileRef} className="relative flex items-center pl-4 border-l border-gray-200">
+              <div ref={profileRef} className="relative flex items-center pl-2 sm:pl-4 border-l border-gray-200">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center gap-2.5 hover:bg-gray-100 rounded-full pl-1.5 pr-3 py-1 transition-colors"

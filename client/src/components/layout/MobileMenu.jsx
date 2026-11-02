@@ -30,7 +30,7 @@ export default function MobileMenu({ open, onClose }) {
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="fixed inset-y-0 left-0 w-72 bg-white shadow-xl overflow-y-auto">
+      <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-xl overflow-y-auto">
         <div className="flex items-center justify-between px-6 h-16 border-b border-gray-100">
           <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
             <Logo />

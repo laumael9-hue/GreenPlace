@@ -390,7 +390,7 @@ function ListingFormModal({ open, onClose, categories, listing, onSubmit, submit
             required
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Price (PHP)"
             type="number"
@@ -445,7 +445,7 @@ function ListingFormModal({ open, onClose, categories, listing, onSubmit, submit
             ]}
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Select
             label="Category"
             value={form.categoryId}
@@ -463,7 +463,7 @@ function ListingFormModal({ open, onClose, categories, listing, onSubmit, submit
             placeholder="e.g., PET Plastic"
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Weight (kg)"
             type="number"
