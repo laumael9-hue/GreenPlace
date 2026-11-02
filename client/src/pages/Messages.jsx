@@ -57,15 +57,17 @@ const formatListTime = (value) => {
 const formatMessageTime = (value) =>
   new Date(value).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
 
-function Menu({ open, onClose, align = 'right', up = false, children }) {
+// pos ({ top, left }) renders the menu fixed to the viewport so scroll containers can't clip it
+function Menu({ open, onClose, align = 'right', pos = null, children }) {
   if (!open) return null;
   return (
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
       <div
-        className={`absolute z-40 w-48 py-1 bg-white border border-gray-200 rounded-xl shadow-lg ${
-          align === 'right' ? 'right-0' : 'left-0'
-        } ${up ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+        style={pos ? { top: pos.top, left: pos.left } : undefined}
+        className={`z-40 w-48 py-1 bg-white border border-gray-200 rounded-xl shadow-lg ${
+          pos ? 'fixed' : `absolute mt-1 ${align === 'right' ? 'right-0' : 'left-0'}`
+        }`}
       >
         {children}
       </div>
@@ -109,6 +111,7 @@ export default function Messages() {
 
   const [convMenuOpen, setConvMenuOpen] = useState(false);
   const [menuMessageId, setMenuMessageId] = useState(null);
+  const [menuPos, setMenuPos] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editDraft, setEditDraft] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -759,7 +762,7 @@ export default function Messages() {
                       </Button>
                     </div>
                   )}
-                  {messages.map((message, index) => {
+                  {messages.map((message) => {
                     const mine = message.sender_id === user?.id;
                     const deleted = !!message.deleted_at;
                     const editing = editingId === message.id;
@@ -832,7 +835,21 @@ export default function Messages() {
                         {!deleted && !editing && (
                           <div className="relative shrink-0">
                             <button
-                              onClick={() => setMenuMessageId(menuMessageId === message.id ? null : message.id)}
+                              onClick={(e) => {
+                                if (menuMessageId === message.id) {
+                                  setMenuMessageId(null);
+                                  return;
+                                }
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const menuHeight = mine ? 140 : 100;
+                                const top =
+                                  window.innerHeight - rect.bottom > menuHeight + 8
+                                    ? rect.bottom + 4
+                                    : Math.max(8, rect.top - menuHeight - 4);
+                                const left = Math.min(Math.max(8, rect.left), window.innerWidth - 200);
+                                setMenuPos({ top, left });
+                                setMenuMessageId(message.id);
+                              }}
                               className="p-1.5 text-gray-500 bg-white border border-gray-200 shadow-sm hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
                               aria-label="Message options"
                             >
@@ -841,8 +858,7 @@ export default function Messages() {
                             <Menu
                               open={menuMessageId === message.id}
                               onClose={() => setMenuMessageId(null)}
-                              align={mine ? 'right' : 'left'}
-                              up={index >= messages.length - 3}
+                              pos={menuPos}
                             >
                               <MenuItem icon={Copy} onClick={() => handleCopy(message)}>Copy</MenuItem>
                               {mine ? (
