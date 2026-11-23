@@ -512,7 +512,7 @@ export default function FindEstablishments() {
         {/* Content */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Map */}
-          <div className={`${viewMode === 'map' ? 'flex-1 min-w-0' : 'hidden'} h-[500px] lg:h-[calc(100vh-300px)] rounded-xl overflow-hidden border border-gray-200 bg-white relative isolate`}>
+          <div className={`${viewMode === 'map' ? 'w-full lg:w-auto lg:flex-1 min-w-0 flex-shrink-0' : 'hidden'} h-[500px] lg:h-[calc(100vh-300px)] rounded-xl overflow-hidden border border-gray-200 bg-white relative isolate`}>
             <MapContainer
               center={mapCenter}
               zoom={DEFAULT_ZOOM}
