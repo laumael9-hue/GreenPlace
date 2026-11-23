@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, Package, MapPin, CreditCard, Clock,
   CheckCircle, XCircle, AlertCircle, Store, Phone, RotateCcw, Pencil, ChevronRight, FileText, MessageCircle, User, Star
@@ -30,6 +30,7 @@ const statusTimeline = ['pending', 'confirmed', 'processing', 'ready_for_pickup'
 export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { role, profile } = useAuth();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -323,7 +324,7 @@ export default function OrderDetail() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-emerald-500 text-white rounded-3xl">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Link to={isSeller ? '/dashboard/orders' : '/orders'} className="flex items-center gap-2 text-sm text-white/90 hover:text-white font-medium mb-4">
+          <Link to={isSeller || location.state?.fromBusinessOrders ? '/dashboard/orders' : '/orders'} className="flex items-center gap-2 text-sm text-white/90 hover:text-white font-medium mb-4">
             <ArrowLeft className="w-4 h-4" />
             Back to Orders
           </Link>

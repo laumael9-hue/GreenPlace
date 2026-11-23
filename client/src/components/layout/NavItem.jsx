@@ -1,13 +1,21 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 export default function NavItem({ to, icon, label, badge }) {
+  const { pathname, state } = useLocation();
+  // Order detail lives at /orders/:id for both buyers and sellers. When opened
+  // from Incoming Orders, highlight that item instead of "My Orders".
+  const fromBusinessOrders = state?.fromBusinessOrders && pathname.startsWith('/orders/');
+  const override =
+    fromBusinessOrders && to === '/dashboard/orders' ? true
+      : fromBusinessOrders && to === '/orders' ? false
+      : null;
   return (
     <NavLink
       to={to}
       end={to === '/dashboard' || to === '/admin'}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-          isActive
+          (override ?? isActive)
             ? 'bg-primary-600 text-white shadow-sm shadow-primary-600/20'
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
         }`
