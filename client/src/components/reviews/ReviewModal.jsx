@@ -18,6 +18,7 @@ export default function ReviewModal({
   onSaved,
 }) {
   const navigate = useNavigate();
+  const isProduct = !!listingId;
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -74,10 +75,21 @@ export default function ReviewModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={existingReview ? 'Edit Your Review' : businessName ? `Review ${businessName}` : 'Write a Review'}
+      title={`${existingReview ? 'Edit' : 'Write'} ${isProduct ? 'Product' : 'Establishment'} Review`}
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="p-3 bg-gray-50 rounded-lg">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            {isProduct ? 'Rating this product' : 'Rating this establishment'}
+          </p>
+          {businessName && <p className="text-sm font-semibold text-gray-900 mt-0.5">{businessName}</p>}
+          <p className="text-xs text-gray-500 mt-1">
+            {isProduct
+              ? 'Appears on the product page only, not on the establishment.'
+              : 'Appears on the establishment page only, not on its products.'}
+          </p>
+        </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Your rating</label>
           <StarRating value={rating} onChange={setRating} size="lg" />

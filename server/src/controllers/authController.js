@@ -325,7 +325,8 @@ const getProfile = async (req, res) => {
       .limit(1)
       .maybeSingle();
 
-    res.json({ profile, business: business || null });
+    // profiles has no email column; it lives on the auth user
+    res.json({ profile: { ...profile, email: req.user.email }, business: business || null });
   } catch (err) {
     console.error('Get profile error:', err);
     res.status(500).json({ error: 'Failed to get profile' });
@@ -362,7 +363,7 @@ const updateProfile = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    res.json({ profile });
+    res.json({ profile: { ...profile, email: req.user.email } });
   } catch (err) {
     console.error('Update profile error:', err);
     res.status(500).json({ error: 'Failed to update profile' });
