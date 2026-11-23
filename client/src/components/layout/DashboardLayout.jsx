@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileMenu from './MobileMenu';
 import { useAuth } from '../../context/AuthContext';
@@ -15,6 +15,14 @@ export default function DashboardLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
   const { profile, fetchProfile, logout } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate('/login', { replace: true });
+    }
+  };
   const { unreadCount } = useMessages();
   const { itemCount, openCart } = useCart();
   const role = profile?.role || 'resident';
@@ -130,7 +138,7 @@ export default function DashboardLayout() {
                     </Link>
                     <div className="border-t border-gray-100 my-1" />
                     <button
-                      onClick={() => { logout(); setProfileOpen(false); }}
+                      onClick={() => { handleLogout(); setProfileOpen(false); }}
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <LogOut className="w-4 h-4" /> Sign Out

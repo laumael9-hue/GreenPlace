@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, ShoppingBag, ChevronDown, User, LayoutDashboard, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -13,6 +13,14 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate('/login', { replace: true });
+    }
+  };
   // Landing page has a dark hero: float the navbar over it instead of a white bar.
   const dark = pathname === '/' && !isAuthenticated;
 
@@ -106,7 +114,7 @@ export default function Navbar({ onMenuToggle, menuOpen }) {
                     </Link>
                     <div className="border-t border-gray-100 my-1" />
                     <button
-                      onClick={() => { logout(); setProfileOpen(false); }}
+                      onClick={() => { handleLogout(); setProfileOpen(false); }}
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <LogOut className="w-4 h-4" /> Sign Out
