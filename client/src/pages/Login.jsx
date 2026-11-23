@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SocialLogin from '../components/ui/SocialLogin';
 import { Eye, EyeOff, AlertCircle, ShoppingBag, MapPin, Users } from 'lucide-react';
@@ -13,9 +13,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +24,7 @@ export default function Login() {
       if (data?.user?.profile?.is_active === false) {
         navigate('/suspended', { replace: true });
       } else {
-        navigate(from, { replace: true });
+        navigate('/dashboard', { replace: true });
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
