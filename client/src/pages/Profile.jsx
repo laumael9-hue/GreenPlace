@@ -410,11 +410,10 @@ export default function Profile() {
             </p>
             <ul className="text-sm text-amber-700 mt-2 space-y-1 list-disc list-inside">
               <li>You will be immediately logged out</li>
-              <li>You cannot log back in</li>
               <li>Your data is preserved for 30 days</li>
-              <li>Contact support within 30 days to cancel</li>
+              <li>Log back in within 30 days and choose "Reactivate my account" to cancel</li>
               <li>After 30 days: name, email, phone are anonymized</li>
-              <li>Active orders and drop-offs will be cancelled</li>
+              <li>Unfinished orders must be completed or cancelled first; open drop-offs will be cancelled</li>
               <li>Your listings will be archived</li>
             </ul>
           </div>

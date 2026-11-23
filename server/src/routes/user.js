@@ -10,6 +10,7 @@ const {
   updateUserRole,
   deleteUser,
   selfDeleteAccount,
+  selfReactivateAccount,
   reactivateDeletedAccount,
   processExpiredDeletions,
   getDeletionDependencies,
@@ -58,6 +59,7 @@ router.post('/avatar', authenticate, upload.single('avatar'), handleMulterError,
 router.delete('/avatar', authenticate, removeAvatar);
 
 router.post('/self-delete', authenticate, selfDeleteAccount);
+router.post('/self-reactivate', authenticate, selfReactivateAccount);
 router.post('/process-expired-deletions', authenticate, requireAdmin, processExpiredDeletions);
 
 module.exports = router;

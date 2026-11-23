@@ -1,12 +1,29 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import api from '../lib/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Ban, LogOut, AlertCircle } from 'lucide-react';
 import { LogoMark } from '../components/ui/Logo';
 
 export default function Suspended() {
-  const { isAuthenticated, loading, profile, suspensionReason, logout } = useAuth();
+  const { isAuthenticated, loading, profile, suspensionReason, logout, fetchProfile } = useAuth();
   const navigate = useNavigate();
+  const [reactivating, setReactivating] = useState(false);
+  const [reactivateError, setReactivateError] = useState('');
+  const pendingDeletion = !!profile?.pending_deletion_at && !profile?.deleted_at;
+
+  const handleReactivate = async () => {
+    setReactivating(true);
+    setReactivateError('');
+    try {
+      await api.post('/users/self-reactivate');
+      await fetchProfile();
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      setReactivateError(err.response?.data?.error || 'Failed to reactivate account');
+      setReactivating(false);
+    }
+  };
 
   useEffect(() => {
     if (loading) return;
@@ -46,12 +63,31 @@ export default function Suspended() {
             <Ban className="w-7 h-7 text-red-600" />
           </div>
 
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">Your account is suspended</h2>
+          <h2 className="mt-4 text-2xl font-bold text-gray-900">
+            {pendingDeletion ? 'Your account is scheduled for deletion' : 'Your account is suspended'}
+          </h2>
           <p className="mt-2 text-sm text-gray-600">
-            You are signed in, but your account has been suspended and cannot use GreenPlace features right now.
+            {pendingDeletion
+              ? 'You asked to delete your account. You can still change your mind during the 30-day grace period.'
+              : 'You are signed in, but your account has been suspended and cannot use GreenPlace features right now.'}
           </p>
 
-          <div className="mt-6 text-left bg-red-50 border border-red-100 rounded-lg p-4">
+          {pendingDeletion && (
+            <div className="mt-6">
+              {reactivateError && (
+                <p className="mb-3 text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg p-3">{reactivateError}</p>
+              )}
+              <button
+                onClick={handleReactivate}
+                disabled={reactivating}
+                className="w-full flex justify-center items-center py-2 px-4 rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-60"
+              >
+                {reactivating ? 'Reactivating...' : 'Reactivate my account'}
+              </button>
+            </div>
+          )}
+
+          {!pendingDeletion && <div className="mt-6 text-left bg-red-50 border border-red-100 rounded-lg p-4">
             <div className="flex items-start gap-2 text-sm text-red-700">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div>
@@ -65,10 +101,12 @@ export default function Suspended() {
                 )}
               </div>
             </div>
-          </div>
+          </div>}
 
           <p className="mt-6 text-sm text-gray-600">
-            If you believe this is a mistake, contact our support team for assistance.
+            {pendingDeletion
+              ? 'Not you, or the button above does not work? Contact our support team.'
+              : 'If you believe this is a mistake, contact our support team for assistance.'}
           </p>
 
           <button

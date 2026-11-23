@@ -503,6 +503,65 @@ const selfDeleteAccount = async (req, res) => {
   }
 };
 
+// Lets a user undo their own pending deletion during the grace period.
+// Deletions started by an admin, and accounts suspended by an admin, still need an admin.
+const selfReactivateAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('deleted_at, pending_deletion_at, suspended_at')
+      .eq('id', userId)
+      .single();
+
+    if (!profile) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (profile.deleted_at) {
+      return res.status(400).json({ error: 'Account is already permanently deleted and anonymized. Cannot reactivate.' });
+    }
+    if (!profile.pending_deletion_at) {
+      return res.status(400).json({ error: 'Account is not pending deletion' });
+    }
+
+    const { count: selfRequested } = await supabaseAdmin
+      .from('admin_audit_log')
+      .select('*', { count: 'exact', head: true })
+      .eq('action', 'self_delete_pending')
+      .eq('admin_id', userId)
+      .eq('target_id', userId);
+
+    if (!selfRequested || profile.suspended_at) {
+      return res.status(403).json({ error: 'This account must be reactivated by support.', code: 'ADMIN_REACTIVATION_REQUIRED' });
+    }
+
+    await supabaseAdmin
+      .from('businesses')
+      .update({ deleted_at: null })
+      .eq('owner_id', userId)
+      .gte('deleted_at', profile.pending_deletion_at);
+
+    const { data: updated, error } = await supabaseAdmin
+      .from('profiles')
+      .update({ pending_deletion_at: null, is_active: true })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    await logAuditAction(userId, 'self_reactivate', userId, {});
+
+    res.json({ message: 'Welcome back! Your account has been reactivated.', user: updated });
+  } catch (err) {
+    console.error('Self reactivate error:', err);
+    res.status(500).json({ error: 'Failed to reactivate account' });
+  }
+};
+
 const reactivateDeletedAccount = async (req, res) => {
   try {
     const { id } = req.params;
@@ -772,6 +831,7 @@ module.exports = {
   updateUserRole,
   deleteUser,
   selfDeleteAccount,
+  selfReactivateAccount,
   reactivateDeletedAccount,
   processExpiredDeletions,
   runExpiredDeletions,

@@ -50,7 +50,12 @@ const authenticate = async (req, res, next) => {
       const method = req.method.toUpperCase();
       const isSafeMethod = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
 
-      if (!isSafeMethod) {
+      // A user with a pending deletion must be able to undo it; the controller verifies eligibility.
+      const isSelfReactivate = method === 'POST'
+        && req.originalUrl.split('?')[0].endsWith('/users/self-reactivate')
+        && !!profile.pending_deletion_at;
+
+      if (!isSafeMethod && !isSelfReactivate) {
         return res.status(403).json({
           error: 'Account is suspended',
           code: 'ACCOUNT_SUSPENDED',
