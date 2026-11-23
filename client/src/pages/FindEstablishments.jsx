@@ -63,8 +63,8 @@ const CEBU_BOUNDS = L.latLngBounds(
 );
 
 const CATEGORIES = [
-  'Recyclable Materials', 'Eco-Friendly Products', 'Composting Supplies',
-  'Upcycled Goods', 'Reusable Items', 'Garden & Outdoor', 'Household', 'Electronics & Repair',
+  'Recycling Center', 'Junk Shop', 'Composting Facility', 'Waste Collection',
+  'Material Recovery Facility', 'Eco Store', 'Upcycling Workshop', 'Hazardous Waste', 'Other',
 ];
 
 const CEBU_CITIES = [
@@ -138,6 +138,14 @@ export default function FindEstablishments() {
   const [total, setTotal] = useState(0);
   const [fitAll, setFitAll] = useState(false);
   const mapRef = useRef(null);
+
+  // Leaflet needs a size recalculation after the map container is shown again
+  useEffect(() => {
+    if (viewMode === 'map') {
+      const t = setTimeout(() => mapRef.current?.invalidateSize(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [viewMode]);
   const addressDebounceRef = useRef(null);
   const addressSearchRef = useRef(null);
 
@@ -504,7 +512,7 @@ export default function FindEstablishments() {
         {/* Content */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Map */}
-          <div className={`${viewMode === 'map' ? 'w-full' : 'w-full lg:w-1/2'} h-[500px] lg:h-[calc(100vh-300px)] rounded-xl overflow-hidden border border-gray-200 bg-white relative isolate`}>
+          <div className={`${viewMode === 'map' ? 'flex-1 min-w-0' : 'hidden'} h-[500px] lg:h-[calc(100vh-300px)] rounded-xl overflow-hidden border border-gray-200 bg-white relative isolate`}>
             <MapContainer
               center={mapCenter}
               zoom={DEFAULT_ZOOM}
@@ -629,7 +637,7 @@ export default function FindEstablishments() {
           </div>
 
           {/* Business List Sidebar */}
-          <div className={`${viewMode === 'map' ? 'w-full lg:w-96' : 'w-full'} space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto`}>
+          <div className={`${viewMode === 'map' ? 'w-full lg:w-96 lg:flex-shrink-0' : 'w-full'} space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto`}>
             {loading ? (
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
