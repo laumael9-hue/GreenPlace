@@ -425,7 +425,7 @@ export default function OrderDetail() {
                                 className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700"
                               >
                                 <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                                Review this item
+                                Review this product
                               </button>
                             )}
                           </div>
@@ -660,13 +660,13 @@ export default function OrderDetail() {
                   {canLeaveReview && (
                     <Button className="w-full" onClick={() => setShowReviewModal(true)}>
                       <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                      Leave a Review
+                      Review {order.business?.name || 'the Business'}
                     </Button>
                   )}
                   {hasReviewed && (
                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
                       <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-sm font-semibold text-yellow-800">Your Review</p>
+                        <p className="text-sm font-semibold text-yellow-800">Your Business Review</p>
                         <button
                           type="button"
                           onClick={() => setShowReviewModal(true)}
