@@ -19,7 +19,7 @@
 
 Recycling in Metro Cebu is hard to act on. Junk shops and recycling centers are scattered and hard to find, there is no single place to trade recyclable materials, and people who want to live more sustainably have nowhere to share what works.
 
-I built GreenPlace to put all of that in one place: a map of waste-management establishments, a marketplace for recyclables and eco products, drop-off tracking, and a community forum. It started as my capstone project, and I kept developing it into a production-style app with real payments, role-based access, and an end-to-end test plan.
+I built GreenPlace to put all of that in one place: a map of waste-management establishments, a marketplace for recyclables and eco products, drop-off tracking, and a community forum. I designed and built it on my own, from the database to the deployment. It started as my capstone project, and I kept developing it into a production-style app with real payments, role-based access, and an end-to-end test plan.
 
 ## What it does
 
@@ -146,4 +146,4 @@ I'm **Mael Lau**, building toward a career in AI engineering. GreenPlace is wher
 
 ---
 
-<sub>Started as a capstone project. Educational use.</sub>
+<sub>Solo project by Mael Lau. Started as a capstone project. Educational use.</sub>
