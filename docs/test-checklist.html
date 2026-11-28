@@ -1,0 +1,370 @@
+<title>GreenPlace Test Run</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@600&display=swap">
+<style id="css">
+/* Layout: one narrow reading column; sticky progress bar; test cases as rows grouped by module */
+:root{
+  --bg:#f5f7f4; --surface:#ffffff; --line:#dfe5dc; --fg:#1c2620; --muted:#5f6d63;
+  --accent:#1f7a4d; --accent-soft:#e3f1e8;
+  --pass:#1f7a4d; --pass-bg:#e3f1e8; --fail:#b3261e; --fail-bg:#fbe9e7; --block:#9a6400; --block-bg:#fdf1dc;
+  --new:#3b5bb5; --new-bg:#e8edfa;
+  --f-display:"Space Grotesk",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121815; --surface:#1a221e; --line:#2c3831; --fg:#e4ebe6; --muted:#9aaaa0;
+  --accent:#5cc28d; --accent-soft:#1d3428;
+  --pass:#6fd09d; --pass-bg:#1d3428; --fail:#f28b82; --fail-bg:#3a1f1d; --block:#f0b955; --block-bg:#382c16;
+  --new:#9db3f2; --new-bg:#222b45; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121815; --surface:#1a221e; --line:#2c3831; --fg:#e4ebe6; --muted:#9aaaa0;
+  --accent:#5cc28d; --accent-soft:#1d3428;
+  --pass:#6fd09d; --pass-bg:#1d3428; --fail:#f28b82; --fail-bg:#3a1f1d; --block:#f0b955; --block-bg:#382c16;
+  --new:#9db3f2; --new-bg:#222b45; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:880px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--f-display);font-size:1.9rem;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.lede{color:var(--muted);margin:6px 0 0;max-width:65ch}
+.how{margin:16px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font-size:.9rem}
+.how b{color:var(--fg)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:12px 0;margin-top:16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.meter{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--line)}
+.meter span{display:block;height:100%}
+.counts{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.88rem;color:var(--muted);font-variant-numeric:tabular-nums;align-items:center}
+.counts b{color:var(--fg);font-weight:600}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:baseline}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,button,textarea{font:inherit;color:inherit}
+select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+.save{font-size:.82rem;color:var(--muted);margin-left:auto}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.module{margin-top:28px}
+.module h2{font-family:var(--f-display);font-size:1.15rem;margin:0 0 2px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.module h2 small{font-family:var(--f-body);font-weight:400;font-size:.85rem;color:var(--muted)}
+.case{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:10px;display:grid;gap:8px}
+.case[data-s="pass"]{border-left-color:var(--pass)}
+.case[data-s="fail"]{border-left-color:var(--fail)}
+.case[data-s="blocked"]{border-left-color:var(--block)}
+.head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.id{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.title{font-weight:600;min-width:0}
+.tag{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
+.tag.new{background:var(--new-bg);color:var(--new)}
+ol{margin:0;padding-left:1.3rem;min-width:0}
+ol li{margin:1px 0}
+.expect{font-size:.92rem;min-width:0}
+.expect span{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-right:6px}
+.result{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.seg{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:.88rem}
+.seg[aria-pressed="true"][data-v="pass"]{background:var(--pass-bg);border-color:var(--pass);color:var(--pass);font-weight:600}
+.seg[aria-pressed="true"][data-v="fail"]{background:var(--fail-bg);border-color:var(--fail);color:var(--fail);font-weight:600}
+.seg[aria-pressed="true"][data-v="blocked"]{background:var(--block-bg);border-color:var(--block);color:var(--block);font-weight:600}
+.when{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+textarea{width:100%;min-height:38px;resize:vertical;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:.9rem}
+.empty{color:var(--muted);padding:24px 0}
+.notice{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--block-bg);color:var(--block);font-size:.9rem}
+.copybox{width:100%;min-height:160px;font-family:var(--f-mono);font-size:.78rem}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+<div id="app"></div>
+<script type="application/json" id="state">{"results":{}}</script>
+<script id="main">
+(function () {
+  var SRC = document.getElementById('main').textContent;
+  var CSS = document.getElementById('css').textContent;
+  var state;
+  try { state = JSON.parse(document.getElementById('state').textContent); } catch (e) { state = { results: {} }; }
+  if (!state.results) state.results = {};
+
+  // [id, module, role, title, steps[], expected, isNew]
+  var M = {
+    acct: 'Accounts & Login', mkt: 'Marketplace & Cart', pay: 'Checkout & Payments', ord: 'My Orders',
+    biz: 'Business Tools', drop: 'Establishments & Drop-offs', msg: 'Messages', forum: 'Forum',
+    notif: 'Notifications', admin: 'Admin', sec: 'Access & Security'
+  };
+  var CASES = [
+    ['AC-01','acct','Guest','Register a resident account',['Open /register','Fill in name, email, phone, password','Submit'],'Account is created and you land on the resident dashboard.'],
+    ['AC-02','acct','Guest','Log in with correct details',['Open /login','Enter a valid email and password','Submit'],'You land on /dashboard with the sidebar for your role.'],
+    ['AC-03','acct','Guest','Log in with a wrong password',['Open /login','Enter a valid email and a wrong password'],'An error message shows and you stay on the login page.'],
+    ['AC-04','acct','Guest','Forgot password',['Open /forgot-password','Enter a registered email'],'A "check your email" message shows (Supabase mail is rate-limited, so test once).'],
+    ['AC-05','acct','Any','Sign out',['Click Sign out in the sidebar'],'You return to the login page and dashboard pages are no longer reachable.'],
+    ['AC-06','acct','Resident','Edit profile and photo',['Open /profile','Change name or phone and upload a photo','Save'],'Changes show right away and after a page refresh.'],
+    ['AC-07','acct','Resident','Delete account, then reactivate during the grace period',['Profile > delete account and confirm','Log in again before the grace period ends','Choose reactivate'],'Account works again with its orders and posts intact.'],
+    ['AC-08','acct','Admin + Resident','Suspended account is blocked',['Admin suspends a resident in Users','As that resident, try to add to cart or post'],'Resident is sent to the /suspended page and the action is refused.'],
+
+    ['MK-01','mkt','Guest','Browse and filter the marketplace',['Open /marketplace','Filter by category, city and price','Sort by price'],'Only matching listings show, in the chosen order.'],
+    ['MK-02','mkt','Guest','Add to cart while logged out',['Open a product','Click Add to Cart'],'You are sent to the login page.'],
+    ['MK-03','mkt','Resident','Add an item to the cart',['Open a product with stock 5','Add 2 to cart'],'Cart drawer opens with the item. Product page shows "2 in your cart · 5 left".',true],
+    ['MK-04','mkt','Resident','Add more than the stock',['Open a product with stock 2','Add 2, then try to add 1 more'],'A red message shows: "You already have 2 in your cart. Only 2 left in stock."',true],
+    ['MK-05','mkt','Business','Add your own listing to the cart',['As a business, open one of your own listings in the marketplace','Click Add to Cart'],'A red message shows: "You cannot add your own listing to your cart."',true],
+    ['MK-06','mkt','Resident','Change quantity, remove and clear cart',['Open /cart','Change a quantity, remove one item, then Clear cart'],'Totals update each time and the cart ends empty.'],
+    ['MK-07','mkt','Resident','Add to cart with no internet',['Turn off Wi-Fi','Click Add to Cart'],'A red message says the server could not be reached.',true],
+
+    ['PY-01','pay','Resident','Cash on Pickup checkout',['Note the product stock','Checkout with Cash on Pickup'],'Order is created, stock drops by your quantity right away, and the cart is emptied.'],
+    ['PY-02','pay','Resident','GCash checkout takes stock at order time',['Note the product stock','Checkout with GCash','On the PayMongo page, stop before paying and check the product stock in another tab'],'You reach the PayMongo page and stock has already dropped.',true],
+    ['PY-03','pay','Resident','Complete a GCash or Maya test payment',['Checkout with GCash','Authorize the test payment on PayMongo'],'"Payment Successful" shows; the order is Confirmed and Paid; the cart items are gone.'],
+    ['PY-04','pay','Resident','Fail or cancel a PayMongo payment',['Checkout with GCash','Choose Fail (test mode) or cancel on PayMongo'],'Payment Failed page shows; Retry Payment opens the same order; the stock comes back.',true],
+    ['PY-05','pay','Resident','Retry a failed payment with Pay Now',['Open the failed order','Click Try Payment Again'],'You go back to PayMongo; the stock is taken again.',true],
+    ['PY-06','pay','Resident','Check out the same items twice',['Fail a GCash payment','Go to the cart and check out the same items again'],'The old order becomes Cancelled ("Replaced by a new checkout"). My Orders shows one live order, not two.',true],
+    ['PY-07','pay','Resident','Pay for a cart from two shops',['Add items from two different shops','Checkout with GCash and pay'],'Success page says you still have 1 order from another shop to pay, with a link that opens it.',true],
+    ['PY-08','pay','2 Residents','Last item cannot be sold twice',['Set a listing stock to 1','Buyer A checks out with GCash (do not pay yet)','Buyer B tries to check out the same item'],'Buyer B gets "Some items are no longer available".',true],
+    ['PY-09','pay','Resident','Unpaid online order expires after 30 minutes',['Checkout with GCash and close the PayMongo page','Wait 30+ minutes, then open the marketplace'],'The order is Cancelled, you get a notification, and the stock is back.',true],
+    ['PY-10','pay','Resident','PayMongo refuses the payment',['Trigger a declined or blocked payment'],'The order page shows PayMongo’s own reason and a Try Payment Again button.',true],
+
+    ['OR-01','ord','Resident','View and filter My Orders',['Open /orders','Click each status filter'],'Each filter shows only orders in that status.'],
+    ['OR-02','ord','Resident','Cancel an order',['Note the stock','Open a pending order and cancel it'],'Order becomes Cancelled and the stock goes back up.'],
+    ['OR-03','ord','Resident','Reschedule pickup',['Open a pending or confirmed order','Change the pickup date and time'],'New date and time show on the order and to the shop.'],
+    ['OR-04','ord','Resident','Print the receipt',['Open a completed order','Click Receipt, then Print'],'The print view shows the order details and the file is named after the order.'],
+    ['OR-05','ord','Resident','Request a refund',['Open a completed, paid online order','Request a refund with a reason and photo'],'Refund shows as Requested; the shop gets a notification.'],
+    ['OR-06','ord','Resident','Review a shop and its products',['Open a completed order','Leave a shop review and a product review'],'Each review appears on the right page (shop vs product).'],
+
+    ['BZ-01','biz','Resident','Apply to become a business',['Open Become a Business','Fill in the shop details and submit'],'Application shows as pending; you keep all resident features.'],
+    ['BZ-02','biz','Business','Upload verification documents',['Upload the required documents','Submit for review'],'Documents show as submitted and waiting for admin review.'],
+    ['BZ-03','biz','Business','Create and publish a listing',['Listings > New listing with photos','Save as draft, then Publish'],'Listing moves Draft to Pending, then shows in the marketplace after admin approval.'],
+    ['BZ-04','biz','Business','Edit and delete a listing',['Edit a listing price and photo','Delete another listing'],'Changes show in the marketplace; the deleted listing is gone.'],
+    ['BZ-05','biz','Business','Move an order through its statuses',['Incoming Orders > open an order','Confirm, Processing, Ready for pickup, Completed'],'Buyer sees each status change; a cash order becomes Paid when completed.'],
+    ['BZ-06','biz','Business','Shop cancels an order',['Note the stock','Open a confirmed order and set it to Cancelled'],'Order is cancelled and the stock goes back up.',true],
+    ['BZ-07','biz','Business','Record a walk-in sale',['Incoming Orders > New order','Add items and a customer name, then save'],'Order is created as Completed and Paid; stock drops.'],
+    ['BZ-08','biz','Business','Analytics, reviews and replies',['Open Analytics','Open Reviews and reply to one'],'Charts load with your numbers; the reply shows under the review.'],
+    ['BZ-09','biz','Business','Shop profile, hours and materials',['Business Profile: change hours and accepted materials','Upload a logo and cover'],'Public shop page shows the new hours, materials and images.'],
+
+    ['DR-01','drop','Guest','Find establishments on the map and list',['Open /establishments','Filter by category','Switch between map and list'],'Results match the filter in both views; the map keeps its height on a phone.'],
+    ['DR-02','drop','Resident','Schedule a drop-off',['Open a shop page','Schedule a drop-off with materials and a date'],'Drop-off shows in My Drop-offs as Scheduled.'],
+    ['DR-03','drop','Business','Complete a drop-off',['Business Drop-offs > open one','Mark it completed'],'Resident sees it completed and can open a receipt.'],
+
+    ['MS-01','msg','Resident','Message a seller',['Open a product','Click Message Seller and send a message'],'Conversation opens; seller sees an unread badge.'],
+    ['MS-02','msg','Resident','Edit and unsend a message',['Edit one of your messages','Unsend another'],'Edited shows "(edited)"; unsent is removed for both people.'],
+    ['MS-03','msg','Resident','Report and block a user',['Conversation menu > Report user','Tick Also block and submit'],'Report is sent and the other person can no longer message you.'],
+
+    ['FO-01','forum','Resident','Create a thread with a photo',['Open /forum > New thread','Add a title, text and a photo'],'Thread appears at the top of the forum with the photo.'],
+    ['FO-02','forum','Resident','Reply, react and bookmark',['Open a thread','Post a reply, react, and bookmark it'],'Reply shows; reaction count goes up; thread appears in Saved Posts.'],
+    ['FO-03','forum','Resident','Delete your own reply',['On your own reply click Delete','Confirm'],'Reply and its sub-replies disappear.',true],
+    ['FO-04','forum','Resident','Delete your own thread',['On your own thread click the trash icon','Confirm'],'You return to /forum and the thread is gone.',true],
+    ['FO-05','forum','Resident','No delete on other people’s posts',['Open a thread by someone else'],'Only Report shows on their thread and replies, not Delete.',true],
+    ['FO-06','forum','Resident','Report a post',['Click Report on someone else’s reply','Give a reason and submit'],'Report is sent and appears in the admin Reports page.'],
+
+    ['NT-01','notif','Resident','Receive and read notifications',['Trigger an event (order status change)','Open /notifications','Mark one read, then Mark all read'],'Badge count matches unread items and clears after Mark all read.'],
+
+    ['AD-01','admin','Admin','Approve a business',['Business Approvals > open the pending application','Review documents and approve'],'Applicant’s sidebar switches to business tools without logging out.'],
+    ['AD-02','admin','Admin','Reject a business',['Open a pending application and reject it with a reason'],'Applicant stays a resident and is told the reason.'],
+    ['AD-03','admin','Admin','Moderate listings',['Listings > approve one, reject one, feature one'],'Approved shows in the marketplace; rejected does not; featured shows a featured badge.'],
+    ['AD-04','admin','Admin','Manage users',['Users > suspend a user, then reactivate them'],'Suspended user is blocked (AC-08); reactivated user works again.'],
+    ['AD-05','admin','Admin','Moderate the forum',['Forum > pin, lock, then remove a thread'],'Pinned shows first; locked accepts no replies; removed is gone.'],
+    ['AD-06','admin','Admin','Review reports',['Reports > open a user report and a post report','Resolve each'],'Reports change status; suspending from a report blocks that user.'],
+    ['AD-07','admin','Admin','Dashboard and settings',['Open /admin','Change a setting in Settings and save'],'Stats load; the setting is kept after a refresh.'],
+
+    ['SC-01','sec','Guest','Dashboard needs login',['While logged out, open /dashboard directly'],'You are sent to /login.'],
+    ['SC-02','sec','Resident','Residents cannot open admin pages',['As a resident, open /admin directly'],'Access is refused and no admin data shows.'],
+    ['SC-03','sec','Any','Refresh on a deep link',['Open /marketplace/<some product> and press refresh'],'The same page loads again (no 404).'],
+    ['SC-04','sec','Any','Works on a phone',['Open the site on a phone','Use the menu, cart and checkout'],'Nothing is cut off and nothing scrolls sideways.']
+  ];
+
+  var app = document.getElementById('app');
+  var filterMod = 'all', filterStatus = 'all';
+  try { filterMod = sessionStorage.getItem('gp-mod') || 'all'; filterStatus = sessionStorage.getItem('gp-status') || 'all'; } catch (e) {}
+  var artifactApi = null, canSave = null, saveTimer = null, saving = false, dirty = false, saveMsg = 'Results save to this page.';
+
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === 'text') n.textContent = attrs[k];
+      else if (k === 'class') n.className = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    }
+    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function counts() {
+    var c = { pass: 0, fail: 0, blocked: 0, todo: 0 };
+    CASES.forEach(function (t) { var r = state.results[t[0]]; c[r && r.s ? r.s : 'todo']++; });
+    return c;
+  }
+
+  function buildHTML() {
+    var json = JSON.stringify(state).replace(/</g, '\\u003c');
+    var close = '<' + '/script>';
+    var reset = ':root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}';
+    return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>' + reset + '</style></head><body>'
+      + '<title>GreenPlace Test Run</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
+      + '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+      + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@600&display=swap">\n'
+      + '<style id="css">' + CSS + '</style>\n<div id="app"></div>\n'
+      + '<script type="application/json" id="state">' + json + close + '\n'
+      + '<script id="main">' + SRC + close + '</body></html>';
+  }
+
+  function scheduleSave() {
+    dirty = true;
+    if (canSave === false) { renderBar(); return; }
+    saveMsg = 'Saving…'; renderBar();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 1500);
+  }
+  function doSave() {
+    if (!artifactApi || saving || !dirty) return;
+    saving = true; dirty = false;
+    try { sessionStorage.setItem('gp-pending', JSON.stringify(state)); } catch (e) {}
+    artifactApi.publish(buildHTML()).then(function () {
+      saving = false; saveMsg = 'Saved';
+      try { sessionStorage.removeItem('gp-pending'); } catch (e) {}
+      renderBar();
+    }, function (err) {
+      saving = false;
+      var code = err && err.code;
+      if (code === 'conflict') { saveMsg = 'Someone else saved first. Reloading their version…'; }
+      else if (code === 'not_writer' || code === 'not_granted') { canSave = false; saveMsg = 'View only: results are not saved here. Use Copy results.'; }
+      else if (code === 'rate_limited') { dirty = true; saveMsg = 'Saving paused for a moment…'; setTimeout(doSave, 8000); }
+      else { dirty = true; saveMsg = 'Could not save. Your next change will try again.'; }
+      renderBar();
+    });
+  }
+
+  function setResult(id, s) {
+    var r = state.results[id] || {};
+    if (r.s === s) { delete r.s; delete r.at; } else { r.s = s; r.at = today(); }
+    if (!r.s && !r.note) delete state.results[id]; else state.results[id] = r;
+    render(); scheduleSave();
+  }
+  function setNote(id, note) {
+    var r = state.results[id] || {};
+    var clean = note.trim();
+    if ((r.note || '') === clean) return;
+    if (clean) r.note = clean; else delete r.note;
+    if (!r.s && !r.note) delete state.results[id]; else state.results[id] = r;
+    scheduleSave();
+  }
+
+  function resultsTable() {
+    var rows = ['| ID | Module | Test | Expected result | Result | Date | Notes |', '|---|---|---|---|---|---|---|'];
+    CASES.forEach(function (t) {
+      var r = state.results[t[0]] || {};
+      var label = r.s ? r.s.charAt(0).toUpperCase() + r.s.slice(1) : 'Not tested';
+      var clean = function (s) { return String(s || '').replace(/\|/g, '/').replace(/\n/g, ' '); };
+      rows.push('| ' + [t[0], M[t[1]], t[3], t[5], label, r.at || '', r.note || ''].map(clean).join(' | ') + ' |');
+    });
+    return rows.join('\n');
+  }
+  function copyResults(box) {
+    var text = resultsTable();
+    function fallback() {
+      box.hidden = false; box.value = text; box.focus(); box.select();
+      saveMsg = 'Select all and copy the table below.'; renderBar();
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { saveMsg = 'Results table copied. Paste it into your paper.'; renderBar(); }, fallback);
+    } catch (e) { fallback(); }
+  }
+
+  var barEl, listEl, copyBox;
+  function renderBar() {
+    if (!barEl) return;
+    var c = counts(), total = CASES.length;
+    barEl.textContent = '';
+    var meter = el('div', { class: 'meter', role: 'img', 'aria-label': c.pass + ' passed, ' + c.fail + ' failed, ' + c.blocked + ' blocked of ' + total });
+    [['pass', 'var(--pass)'], ['fail', 'var(--fail)'], ['blocked', 'var(--block)']].forEach(function (p) {
+      var s = el('span'); s.style.width = (c[p[0]] / total * 100) + '%'; s.style.background = p[1]; meter.appendChild(s);
+    });
+    function stat(color, n, label) {
+      var d = el('span', { class: 'dot' }); d.style.background = color;
+      return el('span', null, [d, el('b', { text: String(n) }), document.createTextNode(' ' + label)]);
+    }
+    var cnt = el('div', { class: 'counts' }, [
+      stat('var(--pass)', c.pass, 'passed'), stat('var(--fail)', c.fail, 'failed'),
+      stat('var(--block)', c.blocked, 'blocked'), stat('var(--line)', c.todo, 'not tested'),
+      el('span', { class: 'save', text: saveMsg })
+    ]);
+    var modSel = el('select', { id: 'f-mod', 'aria-label': 'Module' });
+    modSel.appendChild(el('option', { value: 'all', text: 'All modules' }));
+    Object.keys(M).forEach(function (k) { modSel.appendChild(el('option', { value: k, text: M[k] })); });
+    modSel.value = filterMod;
+    modSel.onchange = function () { filterMod = modSel.value; try { sessionStorage.setItem('gp-mod', filterMod); } catch (e) {} renderList(); };
+    var stSel = el('select', { id: 'f-status', 'aria-label': 'Status' });
+    [['all', 'All results'], ['todo', 'Not tested'], ['fail', 'Failed'], ['blocked', 'Blocked'], ['pass', 'Passed'], ['new', 'Fixed after defense']].forEach(function (o) { stSel.appendChild(el('option', { value: o[0], text: o[1] })); });
+    stSel.value = filterStatus;
+    stSel.onchange = function () { filterStatus = stSel.value; try { sessionStorage.setItem('gp-status', filterStatus); } catch (e) {} renderList(); };
+    var copy = el('button', { class: 'btn primary', type: 'button', text: 'Copy results table' });
+    copy.onclick = function () { copyResults(copyBox); };
+    barEl.appendChild(meter); barEl.appendChild(cnt);
+    barEl.appendChild(el('div', { class: 'tools' }, [modSel, stSel, copy]));
+  }
+
+  function renderList() {
+    listEl.textContent = '';
+    var shown = 0;
+    Object.keys(M).forEach(function (mk) {
+      if (filterMod !== 'all' && filterMod !== mk) return;
+      var cases = CASES.filter(function (t) {
+        if (t[1] !== mk) return false;
+        var r = state.results[t[0]] || {};
+        if (filterStatus === 'all') return true;
+        if (filterStatus === 'new') return !!t[6];
+        if (filterStatus === 'todo') return !r.s;
+        return r.s === filterStatus;
+      });
+      if (!cases.length) return;
+      var all = CASES.filter(function (t) { return t[1] === mk; });
+      var done = all.filter(function (t) { return (state.results[t[0]] || {}).s; }).length;
+      var sec = el('section', { class: 'module' }, [el('h2', null, [document.createTextNode(M[mk]), el('small', { text: done + ' of ' + all.length + ' tested' })])]);
+      cases.forEach(function (t) {
+        shown++;
+        var r = state.results[t[0]] || {};
+        var head = el('div', { class: 'head' }, [el('span', { class: 'id', text: t[0] }), el('span', { class: 'title', text: t[3] }), el('span', { class: 'tag', text: t[2] }), t[6] ? el('span', { class: 'tag new', text: 'Fixed after defense' }) : null]);
+        var steps = el('ol', null, t[4].map(function (s) { return el('li', { text: s }); }));
+        var exp = el('div', { class: 'expect' }, [el('span', { text: 'Expected' }), document.createTextNode(t[5])]);
+        var res = el('div', { class: 'result' });
+        [['pass', 'Pass'], ['fail', 'Fail'], ['blocked', 'Blocked']].forEach(function (o) {
+          var b = el('button', { class: 'seg', type: 'button', 'data-v': o[0], 'aria-pressed': r.s === o[0] ? 'true' : 'false', text: o[1] });
+          b.onclick = function () { setResult(t[0], o[0]); };
+          res.appendChild(b);
+        });
+        if (r.at) res.appendChild(el('span', { class: 'when', text: 'Tested ' + r.at }));
+        var note = el('textarea', { id: 'note-' + t[0], placeholder: 'Notes (what happened, error text, device)', rows: '1', 'aria-label': 'Notes for ' + t[0] });
+        note.value = r.note || '';
+        note.onchange = function () { setNote(t[0], note.value); };
+        sec.appendChild(el('article', { class: 'case', 'data-s': r.s || '' }, [head, steps, exp, res, note]));
+      });
+      listEl.appendChild(sec);
+    });
+    if (!shown) listEl.appendChild(el('p', { class: 'empty', text: 'No tests match these filters.' }));
+  }
+
+  function render() { renderBar(); renderList(); }
+
+  function build() {
+    var wrap = el('div', { class: 'wrap' });
+    wrap.appendChild(el('h1', { text: 'GreenPlace Test Run' }));
+    wrap.appendChild(el('p', { class: 'lede', text: CASES.length + ' test procedures covering every module of the live app, including the fixes made after the panel review.' }));
+    wrap.appendChild(el('div', { class: 'how' }, [
+      el('b', { text: 'How to use: ' }),
+      document.createTextNode('test on the live site with three accounts (resident, business, admin) and PayMongo in test mode. Mark each test Pass, Fail or Blocked and write what you saw in Notes. Use "Fixed after defense" to show the panel what changed. "Copy results table" gives you a table for your paper.')
+    ]));
+    barEl = el('div', { class: 'bar' });
+    wrap.appendChild(barEl);
+    copyBox = el('textarea', { class: 'copybox', id: 'copy-box', 'aria-label': 'Results table' }); copyBox.hidden = true;
+    wrap.appendChild(copyBox);
+    listEl = el('div');
+    wrap.appendChild(listEl);
+    app.appendChild(wrap);
+    render();
+  }
+
+  build();
+
+  if (window.claude && window.claude.use) {
+    window.claude.use('artifact').then(function (a) {
+      artifactApi = a;
+      if (!a) { canSave = false; saveMsg = 'Saving is off in this view. Use Copy results.'; }
+      else { canSave = true; if (dirty) doSave(); }
+      renderBar();
+    }, function () { canSave = false; saveMsg = 'Saving is off in this view. Use Copy results.'; renderBar(); });
+  } else {
+    canSave = false; saveMsg = 'Saving is off in this view. Use Copy results.'; renderBar();
+  }
+})();
+</script>
