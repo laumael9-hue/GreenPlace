@@ -127,7 +127,7 @@ cp client/.env.example client/.env
 ### Database Setup
 
 1. Create a Supabase project
-2. Run the SQL migrations in `database/migrations/` in numeric order (001-027). They enable Row Level Security on all tables and create the storage buckets and policies.
+2. Run the SQL migrations in `database/migrations/` in numeric order (001-032). They enable Row Level Security on all tables and create the storage buckets and policies.
 3. The `business-documents` bucket is private; documents are served through short-lived signed URLs.
 
 ### Frontend
