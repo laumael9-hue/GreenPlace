@@ -53,7 +53,7 @@ Suspended accounts (`profiles.is_active = false`) are allowed through on GET/HEA
 
 **Dual-render receipts** (`Receipt.jsx`, `DropOffReceipt.jsx`): on-screen uses Tailwind classes; printing uses a hidden iframe injected with standalone HTML built from `PRINT_STYLES` constants. Print filename is set via iframe `<title>`.
 
-**Listing status flow**: listings start as `draft`, transition to `pending` on publish, then require admin approval (`active`/`rejected`). Admins can also mark listings as `featured`.
+**Listing status flow**: listings start as `draft`, transition to `pending` on publish (an admin publishing goes straight to `active`), then require admin approval in Admin > Listings: `active`, or `rejected` with a required `moderation_note` the seller sees. A rejected listing can be edited and resubmitted. Sellers are notified of the outcome; admins are notified of new submissions. Admins can also mark listings as `featured`.
 
 **Resident → Business conversion**: applying for a business creates a `businesses` row with `status='pending'` while `profiles.role` stays `resident`. `approveBusiness` in `businessController.js` flips the role to `business` and syncs Supabase auth metadata.
 

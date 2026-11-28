@@ -3,7 +3,7 @@
 Stack: one Vercel project with two services (client + server, see root `vercel.json`) + Supabase (database/auth/storage) + PayMongo test mode. Client and API share one domain: `/api/*` goes to the Express server, everything else to the Vite client.
 
 ## 1. Supabase
-1. Run `database/migrations/001`-`032` in order (both `027` files; there is no `007`).
+1. Run `database/migrations/001`-`033` in order (both `027` files; there is no `007`).
 2. Optional demo data: run `database/seeds/demo_data.sql` (needs at least one registered user).
 3. **Change the seeded admin password** (`admin@greenplace.com`, seeded as `admin123456`) in Authentication > Users.
 4. Copy Project URL, `anon` key and `service_role` key from Project Settings > API.

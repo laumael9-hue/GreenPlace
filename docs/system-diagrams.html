@@ -1,0 +1,351 @@
+<title>GreenPlace System Diagrams</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: single reading column of numbered figures (paper order), each with a caption the student can quote. Light only on purpose: matches the white page of the capstone paper. */
+:root {
+  color-scheme: light;
+  --bg: #f6f8f6;
+  --paper: #ffffff;
+  --ink: #18221c;
+  --muted: #56645b;
+  --line: #dbe3dd;
+  --green: #16a34a;
+  --green-soft: #e8f6ec;
+  --f-display: "Space Grotesk", system-ui, sans-serif;
+  --f-body: "Inter", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 32px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header h1 { font-family: var(--f-display); font-size: 2rem; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+header p { color: var(--muted); max-width: 68ch; margin: 8px 0 0; }
+nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+nav a { font-size: 0.85rem; color: var(--ink); text-decoration: none; border: 1px solid var(--line); background: var(--paper); border-radius: 99px; padding: 4px 12px; }
+nav a:hover, nav a:focus-visible { border-color: var(--green); color: var(--green); outline: none; }
+section { margin-top: 40px; }
+h2 { font-family: var(--f-display); font-size: 1.35rem; margin: 0 0 4px; text-wrap: balance; }
+.fig-no { font-family: var(--f-mono); font-size: 0.78rem; color: var(--green); letter-spacing: 0.06em; text-transform: uppercase; }
+.lead { color: var(--muted); max-width: 72ch; margin: 4px 0 14px; }
+figure { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.diagram { overflow-x: auto; padding: 20px 16px; }
+.diagram pre.mermaid { margin: 0; background: transparent; text-align: center; min-width: 640px; }
+figcaption { border-top: 1px solid var(--line); padding: 12px 16px; font-size: 0.88rem; color: var(--muted); }
+figcaption b { color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 0.85rem; color: var(--muted); margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sym { display: inline-block; width: 30px; height: 18px; border: 1.5px solid var(--ink); background: var(--paper); }
+.sym.proc { border-radius: 9px; background: var(--green-soft); border-color: var(--green); }
+.sym.store { border-radius: 50% / 22%; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; background: var(--paper); }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; background: var(--green-soft); }
+td code { font-family: var(--f-mono); font-size: 0.8rem; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+.note { font-size: 0.85rem; color: var(--muted); margin-top: 10px; max-width: 72ch; }
+</style>
+
+<div class="wrap">
+<header>
+  <h1>GreenPlace System Diagrams</h1>
+  <p>Data flow diagrams, network model and network topology for the GreenPlace capstone, drawn from the live system as deployed in November 2026 (React client and Express API on Vercel, Supabase database, PayMongo payments).</p>
+  <nav aria-label="Diagrams">
+    <a href="#dfd0">DFD Level 0</a>
+    <a href="#dfd1">DFD Level 1</a>
+    <a href="#dfd2">DFD Level 2: Ordering and Payment</a>
+    <a href="#stores">Data store list</a>
+    <a href="#model">Network model</a>
+    <a href="#topology">Network topology</a>
+  </nav>
+</header>
+
+<section id="dfd0">
+  <div class="fig-no">Figure 1</div>
+  <h2>Data Flow Diagram, Level 0 (Context Diagram)</h2>
+  <p class="lead">The whole system as one process and the outside parties it exchanges data with.</p>
+  <div class="legend" aria-label="Notation">
+    <span><i class="sym"></i>External entity</span>
+    <span><i class="sym proc"></i>Process</span>
+    <span><i class="sym store"></i>Data store</span>
+    <span>Arrow: data flow, labelled with the data that moves</span>
+  </div>
+  <figure>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart LR
+  G["Guest"]
+  R["Resident"]
+  B["Business Owner"]
+  A["Administrator"]
+  P0(["0<br/>GreenPlace<br/>System"])
+  PM["PayMongo"]
+  EM["Email Service<br/>(Supabase Auth)"]
+
+  G -->|"search filters, sign-up details"| P0
+  P0 -->|"listings, establishments, forum posts"| G
+  R -->|"login, cart items, orders, drop-off requests,<br/>posts, messages, reviews, refund requests"| P0
+  P0 -->|"order status, receipts, notifications,<br/>messages, drop-off records"| R
+  B -->|"business application, documents, listings,<br/>order status updates, drop-off logs"| P0
+  P0 -->|"incoming orders, sales analytics,<br/>reviews, approval results"| B
+  A -->|"approvals, rejections, moderation actions,<br/>account status, settings"| P0
+  P0 -->|"pending applications, reports,<br/>listings to review, statistics"| A
+  P0 -->|"payment intent, refund request"| PM
+  PM -->|"payment page, webhook: payment.paid / payment.failed"| P0
+  P0 -->|"password reset request"| EM
+  EM -->|"reset link email"| R
+</pre>
+    </div>
+    <figcaption><b>Figure 1.</b> Context diagram. Residents, business owners and administrators are separate entities because each sends and receives different data. A business owner keeps every resident capability (layered roles), so they also use the resident flows. PayMongo is external: GreenPlace never handles card or e-wallet credentials itself.</figcaption>
+  </figure>
+</section>
+
+<section id="dfd1">
+  <div class="fig-no">Figure 2</div>
+  <h2>Data Flow Diagram, Level 1</h2>
+  <p class="lead">Process 0 broken into the eleven major processes, with the data stores each one reads and writes.</p>
+  <figure>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart LR
+  R["Resident"]
+  B["Business Owner"]
+  A["Administrator"]
+  PM["PayMongo"]
+
+  P1(["1.0 Manage Accounts<br/>and Authentication"])
+  P2(["2.0 Register and Verify<br/>Business"])
+  P3(["3.0 Manage Listings"])
+  P4(["4.0 Process Cart<br/>and Orders"])
+  P5(["5.0 Process Payments<br/>and Refunds"])
+  P6(["6.0 Manage Drop-offs"])
+  P7(["7.0 Run Community Forum"])
+  P8(["8.0 Exchange Messages"])
+  P9(["9.0 Manage Reviews"])
+  P10(["10.0 Administer and<br/>Moderate"])
+  P11(["11.0 Send Notifications"])
+
+  D1[("D1 Users")]
+  D2[("D2 Businesses")]
+  D3[("D3 Listings")]
+  D4[("D4 Cart")]
+  D5[("D5 Orders")]
+  D6[("D6 Payments")]
+  D7[("D7 Drop-offs")]
+  D8[("D8 Forum")]
+  D9[("D9 Messages")]
+  D10[("D10 Notifications")]
+  D11[("D11 Reviews")]
+  D12[("D12 Reports and Audit")]
+
+  R -->|"credentials, profile"| P1
+  P1 <-->|"account, role, status"| D1
+  B -->|"application, 3 documents"| P2
+  P2 -->|"business record"| D2
+  A -->|"document and business approval"| P2
+  P2 -->|"role change to business"| D1
+  B -->|"listing details, photos"| P3
+  P3 <-->|"listing, status, stock"| D3
+  A -->|"approve / reject listing"| P3
+  R -->|"items, quantity, checkout"| P4
+  P4 <-->|"cart items"| D4
+  P4 -->|"reserve / release stock"| D3
+  P4 <-->|"orders, order items"| D5
+  B -->|"order status updates"| P4
+  P4 -->|"online order to pay"| P5
+  P5 -->|"payment intent"| PM
+  PM -->|"payment result (webhook)"| P5
+  P5 <-->|"payment, refund records"| D6
+  P5 -->|"paid / failed status"| D5
+  B -->|"drop-off log, completion"| P6
+  P6 <-->|"drop-off records"| D7
+  R -->|"threads, replies, reactions"| P7
+  P7 <-->|"posts, bookmarks"| D8
+  R -->|"messages, reports, blocks"| P8
+  P8 <-->|"conversations"| D9
+  R -->|"ratings, comments"| P9
+  P9 <-->|"reviews, replies"| D11
+  P9 -->|"verified purchase check"| D5
+  A -->|"suspend, moderate, settings"| P10
+  P10 <-->|"reports, audit log, settings"| D12
+  P10 -->|"account status"| D1
+  EV["order, payment, approval,<br/>drop-off and message events<br/>from 2.0 to 9.0"] -.-> P11
+  P11 -->|"notification"| D10
+  D10 -->|"unread notifications"| R
+</pre>
+    </div>
+    <figcaption><b>Figure 2.</b> Level 1 DFD. Processes 4.0 and 5.0 carry the main business flow and are expanded in Figure 3. Every process writes through the API server, which is the only component allowed to change the data stores (Figure 4). The dotted input to 11.0 stands for the events that processes 2.0 to 9.0 raise (order placed, payment received, listing approved and so on); each becomes a notification in D10.</figcaption>
+  </figure>
+</section>
+
+<section id="dfd2">
+  <div class="fig-no">Figure 3</div>
+  <h2>Data Flow Diagram, Level 2: Ordering and Payment (Processes 4.0 and 5.0)</h2>
+  <p class="lead">How an order moves from the cart to a confirmed payment, including the stock rules added after the panel review.</p>
+  <figure>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart LR
+  R["Resident"]
+  B["Business Owner"]
+  PM["PayMongo"]
+
+  P41(["4.1 Add to Cart<br/>(check stock)"])
+  P42(["4.2 Check Out<br/>(one order per shop)"])
+  P43(["4.3 Reserve Stock"])
+  P44(["4.4 Update Order Status"])
+  P51(["5.1 Create Payment"])
+  P52(["5.2 Confirm Payment"])
+  P53(["5.3 Release Stock<br/>(failed or 30 min unpaid)"])
+  P54(["5.4 Process Refund"])
+
+  D3[("D3 Listings")]
+  D4[("D4 Cart")]
+  D5[("D5 Orders")]
+  D6[("D6 Payments")]
+
+  R -->|"listing, quantity"| P41
+  D3 -->|"available stock"| P41
+  P41 -->|"cart item"| D4
+  P41 -->|"error: only N left"| R
+  R -->|"selected items, pickup date, method"| P42
+  D4 -->|"cart items"| P42
+  P42 -->|"order, order items"| D5
+  P42 -->|"quantities"| P43
+  P43 -->|"stock minus quantity"| D3
+  P42 -->|"GCash / Maya order"| P51
+  P51 -->|"amount, buyer billing"| PM
+  PM -->|"payment page"| R
+  PM -->|"webhook: payment.paid"| P52
+  P52 -->|"paid, confirmed"| D5
+  P52 -->|"payment record"| D6
+  PM -->|"webhook: payment.failed"| P53
+  P53 -->|"stock plus quantity"| D3
+  P53 -->|"failed / cancelled"| D5
+  B -->|"confirmed, ready, completed, cancelled"| P44
+  P44 <-->|"order status"| D5
+  P44 -->|"cancelled: return stock"| P53
+  R -->|"refund reason"| P54
+  B -->|"approve refund"| P54
+  P54 -->|"refund"| PM
+  P54 -->|"refunded"| D6
+  P54 -->|"return stock"| D3
+</pre>
+    </div>
+    <figcaption><b>Figure 3.</b> Level 2 DFD of ordering and payment. Stock is reserved when the order is placed (4.3), for every payment method, so the last unit cannot be sold twice. It is released when a payment fails, when an online order stays unpaid for 30 minutes, when an order is cancelled, or on refund (5.3, 5.4). If the buyer returns to the site before the webhook arrives, 5.2 also confirms the payment by asking PayMongo directly.</figcaption>
+  </figure>
+</section>
+
+<section id="stores">
+  <div class="fig-no">Table 1</div>
+  <h2>Data Stores and Their Database Tables</h2>
+  <p class="lead">Each data store in Figures 2 and 3 maps to these tables in the Supabase PostgreSQL database.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Data store</th><th>Tables</th><th>Holds</th></tr></thead>
+      <tbody>
+        <tr><td>D1 Users</td><td><code>profiles</code> (+ Supabase Auth users)</td><td>Name, role (resident, business, admin), active status</td></tr>
+        <tr><td>D2 Businesses</td><td><code>businesses</code>, <code>business_documents</code>, <code>business_hours</code>, <code>business_materials</code></td><td>Shop profile, DTI/SEC, permit and BIR documents, hours, accepted materials and prices</td></tr>
+        <tr><td>D3 Listings</td><td><code>listings</code>, <code>listing_images</code>, <code>categories</code></td><td>Products, stock, status (draft, pending, active, rejected), photos</td></tr>
+        <tr><td>D4 Cart</td><td><code>cart_items</code></td><td>Items a resident intends to buy</td></tr>
+        <tr><td>D5 Orders</td><td><code>orders</code>, <code>order_items</code></td><td>Orders per shop, pickup schedule, status, stock-held flag</td></tr>
+        <tr><td>D6 Payments</td><td><code>payments</code>, <code>refunds</code>, <code>webhook_events</code></td><td>PayMongo payment IDs, refund records, processed webhook events</td></tr>
+        <tr><td>D7 Drop-offs</td><td><code>drop_offs</code>, <code>drop_off_items</code></td><td>Recyclables brought to shops, weights, estimated value</td></tr>
+        <tr><td>D8 Forum</td><td><code>forum_threads</code>, <code>forum_posts</code>, <code>forum_reactions</code>, <code>forum_thread_reactions</code>, <code>forum_bookmarks</code></td><td>Community posts, replies, reactions, saved posts</td></tr>
+        <tr><td>D9 Messages</td><td><code>conversations</code>, <code>messages</code>, <code>conversation_settings</code></td><td>Direct messages, mute, archive, block</td></tr>
+        <tr><td>D10 Notifications</td><td><code>notifications</code></td><td>In-app notifications and read status</td></tr>
+        <tr><td>D11 Reviews</td><td><code>reviews</code></td><td>Shop and product ratings, shop replies</td></tr>
+        <tr><td>D12 Reports and Audit</td><td><code>reports</code>, <code>admin_audit_log</code>, <code>system_settings</code></td><td>User and content reports, admin actions, platform settings</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Uploaded files (product photos, business documents, logos, avatars) are kept in Supabase Storage buckets, and their links are saved in the tables above.</p>
+</section>
+
+<section id="model">
+  <div class="fig-no">Figure 4</div>
+  <h2>Network Model: Three-Tier Client–Server</h2>
+  <p class="lead">Which tier does what, and which tier is allowed to talk to which.</p>
+  <figure>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart LR
+  subgraph T1["Presentation tier (client)"]
+    C["React web app<br/>runs in the user's browser<br/>phone, tablet or laptop"]
+  end
+  subgraph T2["Application tier (server)"]
+    S["Express.js REST API<br/>Vercel serverless functions<br/>login checks, roles, business rules"]
+  end
+  subgraph T3["Data tier"]
+    DB[("Supabase PostgreSQL<br/>29 tables")]
+    AU["Supabase Auth<br/>accounts, tokens"]
+    ST["Supabase Storage<br/>photos, documents"]
+  end
+  subgraph EXT["External service"]
+    PM["PayMongo<br/>GCash, Maya"]
+  end
+
+  C -->|"HTTPS requests /api/*<br/>with login token"| S
+  S -->|"JSON responses"| C
+  S -->|"SQL queries (service role)"| DB
+  S -->|"verify token"| AU
+  S -->|"upload / read files"| ST
+  S -->|"create payment, refund"| PM
+  PM -->|"webhook (signed)"| S
+  C -->|"redirect to pay"| PM
+</pre>
+    </div>
+    <figcaption><b>Figure 4.</b> GreenPlace follows a three-tier client–server model. The browser never talks to the database directly: every read and write goes through the API, which checks the login token and the user's role (resident, business or admin) first. Payment details stay with PayMongo; the API receives only the result, through a webhook signed with a shared secret.</figcaption>
+  </figure>
+</section>
+
+<section id="topology">
+  <div class="fig-no">Figure 5</div>
+  <h2>Network Topology</h2>
+  <p class="lead">The physical and cloud path a request takes, with where each part is hosted.</p>
+  <figure>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart LR
+  subgraph USERS["User devices (Metro Cebu)"]
+    U1["Smartphone<br/>mobile data / Wi-Fi"]
+    U2["Laptop / PC<br/>Wi-Fi / LAN"]
+  end
+  RT["Home router /<br/>cell tower"]
+  ISP["Internet Service<br/>Provider"]
+  NET(("Internet"))
+  subgraph VERCEL["Vercel cloud: greenplace-three.vercel.app"]
+    EDGE["Edge network / CDN<br/>HTTPS (TLS, port 443)<br/>routes /api/* vs pages"]
+    WEB["Static web app<br/>(React build)"]
+    FN["API functions<br/>(Express, Singapore region)"]
+  end
+  subgraph SUPA["Supabase cloud, Sydney"]
+    PG[("PostgreSQL")]
+    AUTH["Auth"]
+    STO["Storage"]
+  end
+  PMG["PayMongo API<br/>(payment gateway)"]
+
+  U1 --> RT
+  U2 --> RT
+  RT --> ISP --> NET
+  NET -->|"HTTPS"| EDGE
+  EDGE -->|"/*"| WEB
+  EDGE -->|"/api/*"| FN
+  FN -->|"HTTPS"| PG
+  FN -->|"HTTPS"| AUTH
+  FN -->|"HTTPS"| STO
+  FN -->|"HTTPS"| PMG
+  PMG -->|"webhook HTTPS"| EDGE
+</pre>
+    </div>
+    <figcaption><b>Figure 5.</b> Network topology. User devices connect through their router or cell tower and ISP to the internet. Vercel's edge network receives all traffic over HTTPS and routes it: page requests to the static React app, and <code>/api/*</code> requests to the Express functions running in Singapore. Only the functions connect to Supabase in Sydney and to PayMongo, all over encrypted HTTPS. PayMongo calls back into the same edge address with its webhook. Overall this is a hub-and-spoke (star) layout with the API functions as the hub.</figcaption>
+  </figure>
+</section>
+</div>

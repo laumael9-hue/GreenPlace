@@ -1,6 +1,7 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const crypto = require('crypto');
 const { expireStaleOnlineOrders } = require('../services/unpaidOrders');
+const { createNotification } = require('../services/notifications');
 
 const BUCKET_IMAGES = 'product-images';
 
@@ -678,12 +679,17 @@ const publishListing = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
+    if (!['draft', 'rejected'].includes(existing.status)) {
+      return res.status(400).json({ error: `This listing is already ${existing.status}` });
+    }
+
+    // Sellers' listings wait for admin approval; an admin publishing goes live directly.
+    const isAdmin = req.user.profile.role === 'admin';
     const { data: updated, error } = await supabaseAdmin
       .from('listings')
-      .update({
-        status: 'active',
-        published_at: new Date().toISOString(),
-      })
+      .update(isAdmin
+        ? { status: 'active', published_at: new Date().toISOString(), moderation_note: null }
+        : { status: 'pending', moderation_note: null })
       .eq('id', id)
       .select()
       .single();
@@ -692,7 +698,23 @@ const publishListing = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    res.json({ message: 'Listing published', listing: updated });
+    if (!isAdmin) {
+      const { data: admins } = await supabaseAdmin.from('profiles').select('id').eq('role', 'admin');
+      for (const admin of admins || []) {
+        await createNotification({
+          userId: admin.id,
+          type: 'system',
+          title: 'Listing waiting for approval',
+          body: `"${updated.title}" was submitted and needs review.`,
+          data: { link: '/admin/listings' },
+        });
+      }
+    }
+
+    res.json({
+      message: isAdmin ? 'Listing published' : 'Listing submitted for approval',
+      listing: updated,
+    });
   } catch (err) {
     console.error('Publish listing error:', err);
     res.status(500).json({ error: 'Failed to publish listing' });
@@ -1199,7 +1221,7 @@ const getAdminListings = async (req, res) => {
     let query = supabaseAdmin
       .from('listings')
       .select(`
-        id, title, slug, price, unit, status, city, is_featured, created_at,
+        id, title, slug, price, unit, status, city, is_featured, created_at, moderation_note,
         category:categories(id, name),
         seller:profiles(id, first_name, last_name),
         business:businesses(id, name),
@@ -1287,14 +1309,14 @@ const updateAdminListingStatus = async (req, res) => {
     const { id } = req.params;
     const { status, reason } = req.body;
 
-    const allowedStatuses = ['draft', 'active', 'sold', 'archived'];
+    const allowedStatuses = ['draft', 'pending', 'active', 'rejected', 'sold', 'archived'];
     if (!status || !allowedStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
     const { data: existing } = await supabaseAdmin
       .from('listings')
-      .select('id, title, status')
+      .select('id, title, status, seller_id, slug')
       .eq('id', id)
       .single();
 
@@ -1302,9 +1324,18 @@ const updateAdminListingStatus = async (req, res) => {
       return res.status(404).json({ error: 'Listing not found' });
     }
 
+    const note = typeof reason === 'string' ? reason.trim() : '';
+    if (status === 'rejected' && !note) {
+      return res.status(400).json({ error: 'A reason is required so the seller knows what to fix' });
+    }
+
     const updates = { status };
     if (status === 'active') {
       updates.published_at = new Date().toISOString();
+      updates.moderation_note = null;
+    }
+    if (status === 'rejected') {
+      updates.moderation_note = note;
     }
 
     const { data: updated, error } = await supabaseAdmin
@@ -1324,8 +1355,22 @@ const updateAdminListingStatus = async (req, res) => {
       reason: reason || null,
     });
 
+    // Tell the seller the outcome of a review
+    if (existing.status === 'pending' && ['active', 'rejected'].includes(status)) {
+      await createNotification({
+        userId: existing.seller_id,
+        type: 'system',
+        title: status === 'active' ? 'Listing approved' : 'Listing needs changes',
+        body: status === 'active'
+          ? `"${existing.title}" is now live in the marketplace.`
+          : `"${existing.title}" was not approved: ${note}. Edit it and submit again.`,
+        data: { link: status === 'active' ? `/marketplace/${existing.slug}` : '/dashboard/listings' },
+      });
+    }
+
+    const verb = { archived: 'archived', active: 'approved', rejected: 'rejected' }[status] || 'updated';
     res.json({
-      message: `Listing ${status === 'archived' ? 'archived' : 'updated'} successfully`,
+      message: `Listing ${verb} successfully`,
       listing: updated,
     });
   } catch (err) {

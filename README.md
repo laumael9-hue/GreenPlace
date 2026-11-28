@@ -1,235 +1,149 @@
 # GreenPlace
 
-A web-based digital platform designed to promote sustainable living, proper waste segregation, recycling, composting, waste-management establishment discovery, recyclable material exchange, marketplace transactions, and community engagement in Metro Cebu.
+**A full-stack marketplace and community platform that helps people in Metro Cebu recycle, find waste-management shops, and buy and sell eco-friendly goods.**
 
-## Problem
+[**Live demo →**](https://greenplace-three.vercel.app) &nbsp;·&nbsp; [System diagrams](docs/DIAGRAMS.md) &nbsp;·&nbsp; [Test plan and results](docs/TEST-PLAN.md)
 
-Metro Cebu faces significant waste management challenges. Residents struggle to find proper waste disposal facilities, recycling centers are not easily discoverable, and there's no centralized platform for recyclable material exchange or community engagement around sustainability.
+![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?logo=supabase&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-38bdf8?logo=tailwindcss&logoColor=white)
+![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?logo=vercel&logoColor=white)
+![PayMongo](https://img.shields.io/badge/Payments-PayMongo-24b47e)
 
-## Solution
+![GreenPlace home page](docs/screenshots/home.jpg)
 
-GreenPlace connects Metro Cebu residents with waste management establishments, provides a marketplace for recyclable materials and eco-friendly products, and fosters a community dedicated to sustainable living practices.
+---
 
-## Objectives
+## Why I built it
 
-- Enable residents to find and connect with waste management establishments
-- Provide a marketplace for recyclable materials and sustainable products
-- Track recycling drop-offs and environmental impact
-- Build a community forum for sustainability discussions
-- Facilitate secure transactions between residents and businesses
+Recycling in Metro Cebu is hard to act on. Junk shops and recycling centers are scattered and hard to find, there is no single place to trade recyclable materials, and people who want to live more sustainably have nowhere to share what works.
 
-## User Roles
+I built GreenPlace to put all of that in one place: a map of waste-management establishments, a marketplace for recyclables and eco products, drop-off tracking, and a community forum. I designed and built it on my own, from the database to the deployment. It started as my capstone project, and I kept developing it into a production-style app with real payments, role-based access, and an end-to-end test plan.
 
-1. **Resident** - Browse establishments, use marketplace, track drop-offs, participate in community
-2. **Business/Waste Management Establishment** - Manage profile, listings, orders, drop-offs, analytics
-3. **Administrator** - Manage users, businesses, moderate content, view reports
+## What it does
 
-## Features
+| For residents | For businesses | For admins |
+|---|---|---|
+| Find junk shops and recycling centers on a map | Apply with business documents for verification | Approve businesses after reviewing their documents |
+| Buy recyclables and eco products, pay with GCash, Maya or cash on pickup | List products and manage stock | Approve or reject new listings with feedback |
+| Track drop-offs and download receipts | Process orders and walk-in sales | Moderate the forum and handle user reports |
+| Join the forum, message shops, leave reviews | See sales analytics and reply to reviews | Suspend accounts and manage platform settings |
 
-### Resident Features
-- Authentication (register, login, logout, password reset)
-- Profile management
-- Business discovery with map and filters
-- Marketplace (browse, cart, checkout, orders)
-- Payments (Cash on Pickup, PayMongo test mode)
-- Drop-off history tracking
-- Community forum
-- Messaging with businesses
-- Notifications
-- Reviews and ratings
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/marketplace.jpg" alt="Marketplace with product cards and category filters"></td>
+    <td width="50%"><img src="docs/screenshots/establishments.jpg" alt="Establishments directory with drop-off and marketplace tags"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Marketplace</sub></td>
+    <td align="center"><sub>Establishment directory (map and list views)</sub></td>
+  </tr>
+</table>
 
-### Business Features
-- Registration with document upload
-- Profile management (hours, materials, prices)
-- Marketplace listing management
-- Order processing
-- Drop-off processing
-- Community forum
-- Analytics dashboard
-- Messaging with residents
+<p align="center"><img src="docs/screenshots/mobile-marketplace.jpg" alt="GreenPlace marketplace on a phone" width="260"><br><sub>Fully responsive on phones</sub></p>
 
-### Admin Features
-- User management
-- Business approval/rejection/suspension
-- Marketplace moderation
-- Forum moderation
-- Reports and CSV export
-- System settings
+## Engineering highlights
+
+The parts I'm proudest of are the ones you can't see in a screenshot.
+
+**Stock that can't be oversold.** Stock is reserved the moment an order is placed, for every payment method, using an atomic compare-and-swap update. Each order carries a `stock_reserved` flag that is flipped atomically before stock is taken or returned, so a payment webhook and a status check arriving at the same time can never double-count. Unpaid online orders release their stock after 30 minutes, so abandoned checkouts can't lock items forever.
+
+**Real payment integration.** GCash and Maya payments run through PayMongo payment intents. The server verifies every webhook signature, records each event once (so retries are safe), and also confirms payments directly with PayMongo when a buyer returns before the webhook arrives. Refunds go back through PayMongo and restore stock.
+
+**Layered roles and moderation.** Users are residents, businesses or admins, enforced by server-side middleware and Supabase Row Level Security. Becoming a business never removes resident features. Businesses must upload DTI/SEC, permit and BIR documents (stored in a private bucket behind short-lived signed links) and pass admin review. New listings go through admin approval, and a database rule stops users from changing their own role.
+
+**Built for real use.** Suspended accounts keep read-only access instead of being locked out, auth routes are rate-limited, and the API sits behind Helmet security headers and strict CORS. The whole app works on phone screens.
+
+## Testing and what I learned
+
+I wrote a **[64-procedure test plan](docs/TEST-PLAN.md)** covering every module and ran it end to end against the live deployment, using temporary test accounts and PayMongo test mode, then cleaned up all test data.
+
+Testing the real deployment found bugs that never showed up on my laptop:
+
+- **Logging out signed out a different user.** The server shared one Supabase client across all requests, and logout revoked whichever session was stored on it last. I fixed it so logout revokes only the caller's own token.
+- **A database filter failed silently.** A `LIKE` filter on a Postgres enum column threw an error that the code ignored, so unpaid orders were never auto-cancelled. I replaced it with an explicit list and made query errors visible in the logs.
+- **The payment page and the webhook disagreed.** I tested the case where a buyer closes the tab before returning to the site, to prove the webhook alone can confirm a payment.
+
+The lesson I took away: testing against the live system, with real network paths and real third-party services, catches a class of bugs that local testing can't.
+
+## How I built it
+
+I built GreenPlace with AI-assisted development, using Claude Code as a pair programmer for implementation, debugging and testing. I owned the product decisions, the architecture and the review of every change. Working this way taught me how to direct an AI agent well: give it clear goals, check its work against the live system, and catch it when it is wrong.
 
 ## Architecture
 
-```
-React/Vite (Frontend)
-    ↓
-Express.js (Backend API)
-    ↓
-Supabase PostgreSQL (Database & Auth & Storage)
-```
-
-Integrations:
-- OpenStreetMap + Leaflet + React-Leaflet (Maps)
-- PayMongo Test Mode (Payments)
-
-## Technology Stack
-
-### Frontend
-- React 19
-- Vite
-- Tailwind CSS
-- Axios
-- React Router
-- React-Leaflet
-
-### Backend
-- Node.js
-- Express.js
-- Supabase Client
-
-### Database & Auth
-- Supabase PostgreSQL
-- Supabase Auth
-- Supabase Storage
-
-### Maps
-- OpenStreetMap
-- Leaflet
-- React-Leaflet
-
-### Payments
-- PayMongo Test Mode
-- Cash on Pickup
-
-## Setup
-
-### Prerequisites
-- Node.js 18+
-- npm
-- Supabase account (free tier)
-- PayMongo account (test mode)
-
-### Environment Variables
-
-Copy the example files and fill in your values:
-
-```bash
-cp server/.env.example server/.env
-cp client/.env.example client/.env
+```mermaid
+flowchart LR
+  B["React app<br/>(browser)"] -->|"HTTPS /api"| A["Express API<br/>(Vercel functions)"]
+  A --> D[("Supabase<br/>PostgreSQL")]
+  A --> S["Supabase Auth<br/>and Storage"]
+  A -->|"payment intents, refunds"| P["PayMongo"]
+  P -->|"signed webhooks"| A
 ```
 
-| Variable | Where | Notes |
-|---|---|---|
-| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | server | Service role key is server-only; never expose it to the client |
-| `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET` | server | Use `sk_test_` keys only |
-| `CLIENT_URL` | server | Allowed CORS origin and redirect base; **required** when `NODE_ENV=production` |
-| `NODE_ENV` | server | Set to `production` when deployed |
-| `VITE_API_URL` | client | API base URL including `/api`; set at build time |
+The browser never talks to the database directly. Every read and write goes through the API, which checks the login token and the user's role first. Full data flow diagrams (levels 0 to 2), the network model and the network topology are in [docs/DIAGRAMS.md](docs/DIAGRAMS.md).
 
-### Database Setup
+| Layer | Tools |
+|---|---|
+| Frontend | React 19, Vite, Tailwind CSS, React Router, Axios, Leaflet and OpenStreetMap, Recharts |
+| Backend | Node.js, Express 5, Helmet, express-rate-limit, Multer |
+| Data | Supabase PostgreSQL (Row Level Security), Supabase Auth, Supabase Storage |
+| Payments | PayMongo (GCash, Maya), cash on pickup |
+| Hosting | Vercel (client and API as one project), Supabase |
 
-1. Create a Supabase project
-2. Run the SQL migrations in `database/migrations/` in numeric order (001-032). They enable Row Level Security on all tables and create the storage buckets and policies.
-3. The `business-documents` bucket is private; documents are served through short-lived signed URLs.
+## Try it
 
-### Frontend
+Open the [live demo](https://greenplace-three.vercel.app) and register as a resident. Payments run in **PayMongo test mode**, so no real money moves: choose GCash at checkout and click "Authorize Test Payment" on the PayMongo page.
 
-```bash
-cd client
-npm install
-npm run dev
-```
+## Run it locally
 
-Runs on http://localhost:5173
+**You need:** Node.js 18+, a free Supabase project, and a PayMongo account in test mode.
 
-### Backend
+1. Copy the environment files and fill them in:
 
-```bash
-cd server
-npm install
-npm run dev
-```
+   ```bash
+   cp server/.env.example server/.env
+   ```
 
-Runs on http://localhost:3001
+   ```bash
+   cp client/.env.example client/.env
+   ```
 
-## Supabase Setup
+   | Variable | Where | Notes |
+   |---|---|---|
+   | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | server | The service role key is server-only; never expose it to the client |
+   | `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET` | server | Use `sk_test_` keys only. `/api/health` shows which mode is running |
+   | `CLIENT_URL` | server | Allowed CORS origin and redirect base; required in production |
+   | `NODE_ENV` | server | `production` when deployed |
+   | `VITE_API_URL` | client | API base URL including `/api` |
 
-1. Create a new Supabase project
-2. Go to Settings > API to get your keys
-3. Enable Email/Password auth in Authentication > Providers
-4. Run migrations from `database/migrations/` (they create the storage buckets)
-5. Optional: run `database/seeds/demo_data.sql` for sample businesses, listings and forum threads
+2. In Supabase, run the SQL files in `database/migrations/` in numeric order (001 to 033). They create the tables, Row Level Security policies and storage buckets. Optionally run `database/seeds/demo_data.sql` for sample shops, listings and forum posts.
 
-## PayMongo Test Setup
+3. Start the API (runs on http://localhost:3001):
 
-1. Create a PayMongo account
-2. Go to Developers > API Keys
-3. Use TEST keys only (pk_test_..., sk_test_...)
-4. Configure webhook URL: `https://your-backend-url/api/payments/webhook`
+   ```bash
+   cd server && npm install && npm run dev
+   ```
 
-## Map Setup
+4. Start the web app (runs on http://localhost:5173):
 
-Uses OpenStreetMap with Leaflet - no API key required.
+   ```bash
+   cd client && npm install && npm run dev
+   ```
 
-## Running Locally
+5. For payments, add a PayMongo **test-mode** webhook pointing to `https://<your-api>/api/payments/webhook` with the events `payment.paid` and `payment.failed`, and put its signing secret in `PAYMONGO_WEBHOOK_SECRET`.
 
-1. Start the backend: `cd server && npm run dev`
-2. Start the frontend: `cd client && npm run dev`
-3. Visit http://localhost:5173
+**Checks:** `cd client && npm run lint && npm run build` for the frontend. `cd server && npm test` runs the API integration suite against a running server.
 
-## Testing
+**Deploying:** see [docs/DEPLOY.md](docs/DEPLOY.md) for the full Vercel and Supabase setup.
 
-```bash
-# Frontend (no test runner; use lint and build)
-cd client && npm run lint && npm run build
+## About me
 
-# Backend
-cd server && npm run test
-```
+I'm **Mael Lau**, building toward a career in AI engineering. GreenPlace is where I practiced shipping a real product end to end: designing the system, integrating payments, testing against production, and fixing what broke.
 
-## Deployment
+[GitHub @laumael9-hue](https://github.com/laumael9-hue)
 
-Step-by-step demo deployment (one Vercel project with client + server services, plus Supabase): see [docs/DEPLOY.md](docs/DEPLOY.md).
+---
 
-### Frontend (Free Tier)
-- Vercel
-- Netlify
-- GitHub Pages
-
-### Backend (Free Tier)
-- Render
-- Railway
-- Fly.io
-
-### Database
-- Supabase Free Tier
-
-## Security
-
-- Supabase Row Level Security (RLS)
-- Server-side authorization
-- Input validation
-- Secure file uploads
-- Environment variable protection
-- CORS configuration
-- Helmet.js security headers
-- Rate limiting on `/api/auth`
-- Private storage bucket with signed URLs for verification documents
-
-## Free-Tier Limitations
-
-- Supabase: 500MB database, 1GB storage, 50MB file uploads
-- PayMongo: Test mode only, no real transactions
-- Hosting: Platform-specific limits
-- Maps: OpenStreetMap rate limits
-
-## Demo Instructions
-
-1. Register as a resident or business
-2. Business accounts require admin approval
-3. Browse establishments on the map
-4. Use marketplace with test payments
-5. Participate in community forum
-6. Track drop-offs and view receipts
-
-## License
-
-Capstone Project - Educational Use
+<sub>Solo project by Mael Lau. Started as a capstone project. Educational use.</sub>

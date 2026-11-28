@@ -30,16 +30,18 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    try {
-      const { data } = await api.get('/auth/session');
-      setUser(data.user);
-      await fetchProfile();
-    } catch {
+    // Check the session and load the profile at the same time instead of one after the
+    // other: every page waits on this before it renders, so it was paid twice per load.
+    const [session] = await Promise.allSettled([api.get('/auth/session'), fetchProfile()]);
+    if (session.status === 'fulfilled') {
+      setUser(session.value.data.user);
+    } else {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
-    } finally {
-      setLoading(false);
+      setProfile(null);
+      setBusiness(null);
     }
+    setLoading(false);
   }, [fetchProfile]);
 
   useEffect(() => {

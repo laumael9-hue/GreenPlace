@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Package, Flag, Eye, ChevronLeft, ChevronRight, Archive, RotateCcw, Loader2, AlertTriangle, Download, Star } from 'lucide-react';
+import { Search, Package, Flag, Eye, ChevronLeft, ChevronRight, Archive, RotateCcw, Loader2, AlertTriangle, Download, Star, CheckCircle, XCircle } from 'lucide-react';
 import api from '../../lib/api';
 import { exportToCsv, csvFilename } from '../../lib/exportCsv';
 import Card from '../../components/ui/Card';
@@ -11,6 +11,8 @@ import Modal from '../../components/ui/Modal';
 
 const statusConfig = {
   draft: { variant: 'neutral', label: 'Draft' },
+  pending: { variant: 'warning', label: 'Pending' },
+  rejected: { variant: 'danger', label: 'Rejected' },
   active: { variant: 'success', label: 'Active' },
   sold: { variant: 'info', label: 'Sold' },
   archived: { variant: 'warning', label: 'Archived' },
@@ -26,6 +28,8 @@ export default function ListingModeration() {
   const [actionLoading, setActionLoading] = useState(null);
   const [archiveTarget, setArchiveTarget] = useState(null);
   const [archiveReason, setArchiveReason] = useState('');
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [error, setError] = useState('');
 
   const fetchListings = useCallback(async (page = 1) => {
@@ -67,6 +71,8 @@ export default function ListingModeration() {
       await api.patch(`/marketplace/admin/listings/${id}/status`, { status, reason: reason || undefined });
       setArchiveTarget(null);
       setArchiveReason('');
+      setRejectTarget(null);
+      setRejectReason('');
       fetchListings(pagination.page);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update listing status.');
@@ -169,6 +175,8 @@ export default function ListingModeration() {
             >
               <option value="">All Status</option>
               <option value="draft">Draft</option>
+              <option value="pending">Pending approval</option>
+              <option value="rejected">Rejected</option>
               <option value="active">Active</option>
               <option value="sold">Sold</option>
               <option value="archived">Archived</option>
@@ -280,6 +288,28 @@ export default function ListingModeration() {
                             <Star className={`w-4 h-4 ${l.is_featured ? 'fill-current' : ''}`} />
                           )}
                         </button>
+                        {l.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleStatusChange(l.id, 'active')}
+                              disabled={actionLoading === l.id}
+                              className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Approve listing"
+                              aria-label={`Approve ${l.title}`}
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => { setRejectTarget(l); setRejectReason(''); }}
+                              disabled={actionLoading === l.id}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Reject listing"
+                              aria-label={`Reject ${l.title}`}
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                         {l.status === 'archived' ? (
                           <button
                             onClick={() => handleStatusChange(l.id, 'active')}
@@ -384,6 +414,38 @@ export default function ListingModeration() {
               disabled={actionLoading === archiveTarget?.id}
             >
               {actionLoading === archiveTarget?.id ? 'Archiving...' : 'Archive'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Reject Modal */}
+      <Modal open={!!rejectTarget} onClose={() => setRejectTarget(null)} title="Reject Listing" maxWidth="max-w-sm">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            <span className="font-medium text-gray-900">{rejectTarget?.title}</span> will not go live. The seller sees your
+            note, can edit the listing and submit it again.
+          </p>
+          <div>
+            <label htmlFor="reject-reason" className="block text-sm font-medium text-gray-700 mb-1">What needs to change?</label>
+            <textarea
+              id="reject-reason"
+              rows={3}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g., Add a clear photo of the actual item."
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setRejectTarget(null)}>Cancel</Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => handleStatusChange(rejectTarget.id, 'rejected', rejectReason)}
+              disabled={!rejectReason.trim() || actionLoading === rejectTarget?.id}
+            >
+              {actionLoading === rejectTarget?.id ? 'Rejecting...' : 'Reject'}
             </Button>
           </div>
         </div>
