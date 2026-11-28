@@ -34,7 +34,9 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    service: 'GreenPlace API'
+    service: 'GreenPlace API',
+    // 'test' | 'live' | 'missing' | 'unknown' (never the key itself)
+    paymongo: require('./services/paymongo').PAYMONGO_MODE,
   });
 });
 
