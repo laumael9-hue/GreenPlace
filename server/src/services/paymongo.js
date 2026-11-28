@@ -2,6 +2,16 @@ const axios = require('axios');
 const Paymongo = require('paymongo-node');
 
 const secretKey = process.env.PAYMONGO_SECRET_KEY;
+
+// Which PayMongo mode the key is for, from its prefix only (the key itself is never exposed).
+// Shown on /api/health so a deploy can be checked; this demo must run on a test key.
+const PAYMONGO_MODE = !secretKey ? 'missing'
+  : secretKey.startsWith('sk_test_') ? 'test'
+  : secretKey.startsWith('sk_live_') ? 'live'
+  : 'unknown';
+if (PAYMONGO_MODE !== 'test') {
+  console.warn(`PayMongo key mode is "${PAYMONGO_MODE}". Use a test key (sk_test_...) for this demo; live keys charge real money.`);
+}
 const webhookSecret = process.env.PAYMONGO_WEBHOOK_SECRET;
 
 const paymongo = Paymongo(secretKey);
@@ -147,6 +157,7 @@ const verifyWebhook = ({ payload, signatureHeader }) => {
 };
 
 module.exports = {
+  PAYMONGO_MODE,
   getErrorDetail,
   METHOD_MAP,
   createPaymentIntent,

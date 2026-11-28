@@ -8,6 +8,10 @@ const { createNotification } = require('./notifications');
 // an item look sold out forever.
 const UNPAID_HOLD_MINUTES = 30;
 
+// payment_method is a Postgres enum, which has no LIKE operator, so list the online
+// methods explicitly (a LIKE filter errors and silently matches nothing).
+const ONLINE_METHODS = ['paymongo_gcash', 'paymongo_maya', 'paymongo_card'];
+
 // Cancel one unpaid online order and give its stock back.
 // Only matches orders still 'pending' and not paid, so it can never undo a real sale.
 const cancelUnpaidOnlineOrder = async (orderId, reason, { notifyBuyer = false } = {}) => {
@@ -21,7 +25,7 @@ const cancelUnpaidOnlineOrder = async (orderId, reason, { notifyBuyer = false } 
     })
     .eq('id', orderId)
     .eq('status', 'pending')
-    .like('payment_method', 'paymongo_%')
+    .in('payment_method', ONLINE_METHODS)
     .in('payment_status', ['pending', 'failed'])
     .select('id, buyer_id, order_number')
     .maybeSingle();
@@ -69,13 +73,14 @@ const cancelUnpaidOnlineOrder = async (orderId, reason, { notifyBuyer = false } 
 const cancelSupersededOnlineOrders = async (userId, listingIds) => {
   if (!listingIds.length) return;
 
-  const { data: unpaidOrders } = await supabaseAdmin
+  const { data: unpaidOrders, error } = await supabaseAdmin
     .from('orders')
     .select('id, order_items(listing_id)')
     .eq('buyer_id', userId)
     .eq('status', 'pending')
-    .like('payment_method', 'paymongo_%')
+    .in('payment_method', ONLINE_METHODS)
     .in('payment_status', ['pending', 'failed']);
+  if (error) console.error('Find superseded orders error:', error);
 
   for (const order of unpaidOrders || []) {
     const overlaps = (order.order_items || []).some((i) => listingIds.includes(i.listing_id));
@@ -94,15 +99,16 @@ const expireStaleOnlineOrders = async () => {
 
   try {
     const cutoff = new Date(now - UNPAID_HOLD_MINUTES * 60 * 1000).toISOString();
-    const { data: stale } = await supabaseAdmin
+    const { data: stale, error } = await supabaseAdmin
       .from('orders')
       .select('id')
       .eq('status', 'pending')
       .eq('stock_reserved', true)
-      .like('payment_method', 'paymongo_%')
+      .in('payment_method', ONLINE_METHODS)
       .in('payment_status', ['pending', 'failed'])
       .lt('created_at', cutoff)
       .limit(50);
+    if (error) console.error('Find stale online orders error:', error);
 
     for (const order of stale || []) {
       await cancelUnpaidOnlineOrder(order.id, 'Payment not completed in time', { notifyBuyer: true });

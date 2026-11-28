@@ -178,10 +178,13 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
+    // End only the caller's own session. The shared `supabase` client must never be
+    // signed out: it would revoke whichever user logged in last on this server.
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    if (token) {
+      const { error } = await supabaseAdmin.auth.admin.signOut(token, 'local');
+      if (error) console.error('Logout revoke error:', error.message);
     }
 
     res.json({ message: 'Logged out successfully' });
@@ -233,7 +236,14 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    const { error } = await supabase.auth.updateUser(token, { password });
+    // Verify the recovery token, then change THAT user's password. (updateUser on the
+    // shared client would act on whoever last signed in on this server.)
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return res.status(401).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
+    }
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userData.user.id, { password });
 
     if (error) {
       return res.status(400).json({ error: error.message });

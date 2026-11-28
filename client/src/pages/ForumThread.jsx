@@ -340,8 +340,13 @@ export default function ForumThread() {
         return;
       }
       await api.delete(`/forum/posts/${deleteTarget.id}`);
+      // Remove it (and its replies) right away instead of waiting for the reload.
+      const removeById = (list) => list
+        .filter((p) => p.id !== deleteTarget.id)
+        .map((p) => (p.replies ? { ...p, replies: removeById(p.replies) } : p));
+      setPosts((prev) => removeById(prev));
       setDeleteTarget(null);
-      await fetchThread();
+      fetchThread();
     } catch (err) {
       setDeleteError(err?.response?.data?.error || 'Failed to delete. Please try again.');
     } finally {
