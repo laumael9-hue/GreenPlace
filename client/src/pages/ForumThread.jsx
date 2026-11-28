@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   MessageCircle, Flag, Lock, Loader2, Send, Bookmark, Share2,
-  Image as ImageIcon, X, ChevronLeft, ChevronRight, Megaphone,
+  Image as ImageIcon, X, ChevronLeft, ChevronRight, Megaphone, Trash2,
 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -139,7 +139,7 @@ function ImagePreviews({ previews, onRemove }) {
   );
 }
 
-function PostItem({ post, onReact, onReply, onReport, onOpenLightbox, isAuthenticated }) {
+function PostItem({ post, onReact, onReply, onReport, onDelete, onOpenLightbox, isAuthenticated }) {
   const { user } = useAuth();
   const [showReply, setShowReply] = useState(false);
   const [replyBody, setReplyBody] = useState('');
@@ -242,6 +242,15 @@ function PostItem({ post, onReact, onReply, onReport, onOpenLightbox, isAuthenti
                   Report
                 </button>
               )}
+              {user && post.author?.id === user.id && (
+                <button
+                  onClick={() => onDelete(post.id, 'post')}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -254,6 +263,7 @@ function PostItem({ post, onReact, onReply, onReport, onOpenLightbox, isAuthenti
           onReact={onReact}
           onReply={onReply}
           onReport={onReport}
+          onDelete={onDelete}
           onOpenLightbox={onOpenLightbox}
           isAuthenticated={isAuthenticated}
         />
@@ -310,6 +320,34 @@ export default function ForumThread() {
   const [rootFiles, setRootFiles] = useState([]);
   const [rootPreviews, setRootPreviews] = useState([]);
   const [rootError, setRootError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  const openDelete = (id, type) => {
+    setDeleteError('');
+    setDeleteTarget({ id, type });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      if (deleteTarget.type === 'thread') {
+        await api.delete(`/forum/threads/${deleteTarget.id}`);
+        navigate('/forum');
+        return;
+      }
+      await api.delete(`/forum/posts/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      await fetchThread();
+    } catch (err) {
+      setDeleteError(err?.response?.data?.error || 'Failed to delete. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const fetchThread = useCallback(async () => {
     try {
@@ -603,6 +641,15 @@ export default function ForumThread() {
                 <Flag className="w-5 h-5" />
               </button>
             )}
+            {thread && user && thread.author?.id === user.id && (
+              <button
+                onClick={() => openDelete(thread.id, 'thread')}
+                className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                title="Delete thread"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
         <div className="mt-4 text-gray-700 whitespace-pre-wrap border-t border-gray-100 pt-4">{thread.body}</div>
@@ -626,6 +673,7 @@ export default function ForumThread() {
             onReact={handleReact}
             onReply={handleReply}
             onReport={openReport}
+            onDelete={openDelete}
             onOpenLightbox={openLightbox}
             isAuthenticated={isAuthenticated}
           />
@@ -704,6 +752,34 @@ export default function ForumThread() {
           onNavigate={navigateLightbox}
         />
       )}
+
+      <Modal
+        open={!!deleteTarget}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        title={deleteTarget?.type === 'thread' ? 'Delete thread?' : 'Delete reply?'}
+      >
+        <div className="space-y-4">
+          {deleteError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              {deleteError}
+            </p>
+          )}
+          <p className="text-sm text-gray-600">
+            {deleteTarget?.type === 'thread'
+              ? 'This removes your thread and all of its replies. This cannot be undone.'
+              : 'This removes your reply and any replies under it. This cannot be undone.'}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDelete} disabled={deleting}>
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={showReport} onClose={() => setShowReport(false)} title="Report Content">
         <form onSubmit={handleReport} className="space-y-4">

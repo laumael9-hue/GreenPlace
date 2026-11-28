@@ -34,6 +34,8 @@ export default function OrderDetail() {
   const { role, profile } = useAuth();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [messaging, setMessaging] = useState(false);
   const [error, setError] = useState('');
@@ -278,6 +280,27 @@ export default function OrderDetail() {
     return map[currentStatus];
   };
 
+  const canPayNow = isBuyer && order && order.status !== 'cancelled'
+    && order.payment_method?.startsWith('paymongo_')
+    && ['pending', 'failed'].includes(order.payment_status);
+
+  const handlePayNow = async () => {
+    setPayError('');
+    setPaying(true);
+    try {
+      const { data } = await api.post('/payments/checkout', { orderId: order.id });
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+        return;
+      }
+      setPayError('PayMongo did not return a payment page. Please try again.');
+    } catch (err) {
+      setPayError(err.response?.data?.error || 'Could not start the payment. Please try again.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
   const canCancel = order && ['pending', 'confirmed', 'processing', 'ready_for_pickup'].includes(order.status);
   const canReschedule = isBuyer && order && ['pending', 'confirmed', 'processing'].includes(order.status);
   const canUpdateStatus = isSeller && order && getNextStatus(order.status);
@@ -514,11 +537,26 @@ export default function OrderDetail() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Status</span>
-                  <Badge variant={order.payment_status === 'paid' ? 'success' : 'warning'}>
+                  <Badge variant={order.payment_status === 'paid' ? 'success' : order.payment_status === 'failed' ? 'danger' : 'warning'}>
                     {order.payment_status?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </Badge>
                 </div>
               </div>
+              {(canPayNow || payError || location.state?.paymentError) && (
+                <div className="mt-4 space-y-2">
+                  {(payError || location.state?.paymentError) && (
+                    <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                      {payError || location.state?.paymentError}
+                    </p>
+                  )}
+                  {canPayNow && (
+                    <Button className="w-full" onClick={handlePayNow} disabled={paying}>
+                      {paying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CreditCard className="w-4 h-4 mr-2" />}
+                      {order.payment_status === 'failed' ? 'Try Payment Again' : 'Pay Now'}
+                    </Button>
+                  )}
+                </div>
+              )}
             </Card>
 
             {/* Customer Info */}

@@ -67,7 +67,7 @@ const createCheckout = async (req, res) => {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, buyer_id, total, payment_method, payment_status, order_number')
+      .select('id, buyer_id, status, total, payment_method, payment_status, order_number')
       .eq('id', orderId)
       .single();
 
@@ -79,8 +79,13 @@ const createCheckout = async (req, res) => {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
-    if (order.payment_status !== 'pending') {
-      return res.status(400).json({ error: 'Order already paid or payment is no longer pending' });
+    if (order.status === 'cancelled') {
+      return res.status(400).json({ error: 'This order was cancelled and can no longer be paid' });
+    }
+
+    // 'failed' is allowed so the buyer can retry with "Pay now" after a declined or expired payment.
+    if (!['pending', 'failed'].includes(order.payment_status)) {
+      return res.status(400).json({ error: 'This order is already paid' });
     }
 
     const amountInCentavos = Math.round(parseFloat(order.total) * 100);
@@ -101,16 +106,30 @@ const createCheckout = async (req, res) => {
       return res.status(400).json({ error: 'Invalid payment method for PayMongo' });
     }
 
-    const method = await paymongoService.createPaymentMethod(methodType);
+    const profile = req.user.profile || {};
+    const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+    const method = await paymongoService.createPaymentMethod(methodType, {
+      name: fullName,
+      email: req.user.email,
+      phone: profile.phone,
+    });
 
     const returnUrl = `${CLIENT_URL}/payment/success?order_id=${order.id}`;
     const attached = await paymongoService.attachPaymentMethod(intent.id, method.id, returnUrl);
 
+    // Link the new intent to this order's payment row (also resets a failed attempt to pending).
     await supabaseAdmin
       .from('payments')
-      .update({ paymongo_payment_id: intent.id })
+      .update({ paymongo_payment_id: intent.id, status: 'pending' })
       .eq('order_id', orderId)
-      .eq('status', 'pending');
+      .in('status', ['pending', 'failed']);
+
+    if (order.payment_status === 'failed') {
+      await supabaseAdmin
+        .from('orders')
+        .update({ payment_status: 'pending' })
+        .eq('id', orderId);
+    }
 
     let checkoutUrl = null;
     if (attached.next_action?.redirect?.url) {
@@ -125,7 +144,15 @@ const createCheckout = async (req, res) => {
     });
   } catch (err) {
     console.error('Create checkout error:', err?.response?.data || err);
-    res.status(500).json({ error: 'Failed to create PayMongo checkout' });
+    const paymongoError = paymongoService.getErrorDetail(err);
+    if (paymongoError) {
+      // PayMongo refused the payment (e.g. risk controls). Tell the buyer why instead of a generic error.
+      return res.status(502).json({
+        error: paymongoError.detail || 'PayMongo could not start this payment. Please try another payment method.',
+        code: paymongoError.subCode || paymongoError.code,
+      });
+    }
+    res.status(500).json({ error: 'Could not start the payment. Please try again in a moment.' });
   }
 };
 

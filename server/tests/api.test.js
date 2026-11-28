@@ -534,7 +534,7 @@ describe('cart', () => {
     assert.equal((await api('POST', '/marketplace/cart', { token: t, body: { listingId: ids.listingId, quantity: -3 } })).status, 400);
     const over = await api('POST', '/marketplace/cart', { token: t, body: { listingId: ids.listingId, quantity: 999 } });
     assert.equal(over.status, 400);
-    assert.match(over.json.error, /quantity/i);
+    assert.match(over.json.error, /left in stock|quantity/i);
     const own = await api('POST', '/marketplace/cart', { token: u.owner.token, body: { listingId: ids.listingId } });
     assert.equal(own.status, 400);
     assert.equal((await api('POST', '/marketplace/cart', { token: t, body: { listingId: FAKE_UUID } })).status, 404);

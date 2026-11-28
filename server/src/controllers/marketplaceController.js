@@ -971,15 +971,19 @@ const addToCart = async (req, res) => {
     }
 
     if (listing.status !== 'active') {
-      return res.status(400).json({ error: 'Listing is not available' });
+      return res.status(400).json({ error: 'This item is no longer available.' });
     }
 
     if (listing.seller_id === userId) {
-      return res.status(400).json({ error: 'Cannot add your own listing to cart' });
+      return res.status(400).json({ error: 'You cannot add your own listing to your cart.' });
+    }
+
+    if (listing.quantity_available < 1) {
+      return res.status(400).json({ error: 'This item is out of stock.' });
     }
 
     if (qty > listing.quantity_available) {
-      return res.status(400).json({ error: 'Not enough quantity available' });
+      return res.status(400).json({ error: `Only ${listing.quantity_available} left in stock.` });
     }
 
     const { data: existingItem } = await supabaseAdmin
@@ -994,7 +998,9 @@ const addToCart = async (req, res) => {
     if (existingItem) {
       const newQty = existingItem.quantity + qty;
       if (newQty > listing.quantity_available) {
-        return res.status(400).json({ error: 'Not enough quantity available' });
+        return res.status(400).json({
+          error: `You already have ${existingItem.quantity} in your cart. Only ${listing.quantity_available} left in stock.`,
+        });
       }
 
       const { data: updated, error: updateError } = await supabaseAdmin

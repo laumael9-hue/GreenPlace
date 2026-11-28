@@ -43,9 +43,17 @@ const createPaymentIntent = async ({ amount, description, metadata = {} }) => {
   };
 };
 
-const createPaymentMethod = async (type) => {
+// Billing details (name/email/phone) are sent so PayMongo's risk checks see a real
+// customer; anonymous e-wallet payments are more likely to be blocked.
+const createPaymentMethod = async (type, billing = {}) => {
+  const cleanBilling = Object.fromEntries(
+    Object.entries(billing).filter(([, v]) => typeof v === 'string' && v.trim())
+  );
+  const attributes = { type };
+  if (Object.keys(cleanBilling).length > 0) attributes.billing = cleanBilling;
+
   const response = await api.post('/payment_methods', {
-    data: { attributes: { type } },
+    data: { attributes },
   });
 
   const method = response.data.data;
@@ -72,6 +80,12 @@ const attachPaymentMethod = async (paymentIntentId, paymentMethodId, returnUrl) 
     client_key: intent.attributes?.client_key,
     next_action: intent.attributes?.next_action || null,
   };
+};
+
+// Pull PayMongo's human-readable reason out of an axios error, if there is one.
+const getErrorDetail = (err) => {
+  const first = err?.response?.data?.errors?.[0];
+  return first ? { code: first.code, subCode: first.sub_code, detail: first.detail } : null;
 };
 
 const retrievePaymentIntent = async (id) => {
@@ -133,6 +147,7 @@ const verifyWebhook = ({ payload, signatureHeader }) => {
 };
 
 module.exports = {
+  getErrorDetail,
   METHOD_MAP,
   createPaymentIntent,
   createPaymentMethod,

@@ -17,6 +17,55 @@ const generateOrderNumber = () => {
 };
 
 // ============================================================
+// HELPER: Cancel the buyer's earlier unpaid online orders for the same items
+// Only touches orders that never got paid and were never confirmed, so no stock or money is involved.
+// ============================================================
+
+const cancelSupersededOnlineOrders = async (userId, listingIds) => {
+  const { data: unpaidOrders } = await supabaseAdmin
+    .from('orders')
+    .select('id, order_items(listing_id), payments(id, paymongo_payment_id, status)')
+    .eq('buyer_id', userId)
+    .eq('status', 'pending')
+    .like('payment_method', 'paymongo_%')
+    .in('payment_status', ['pending', 'failed']);
+
+  const superseded = (unpaidOrders || []).filter((o) =>
+    (o.order_items || []).some((item) => listingIds.includes(item.listing_id))
+  );
+
+  for (const order of superseded) {
+    for (const payment of order.payments || []) {
+      if (payment.paymongo_payment_id && payment.status === 'pending') {
+        try {
+          await paymongoService.cancelPaymentIntent(payment.paymongo_payment_id);
+        } catch (err) {
+          // Already expired/cancelled on PayMongo's side; nothing else to do.
+        }
+      }
+    }
+
+    await supabaseAdmin
+      .from('payments')
+      .update({ status: 'failed' })
+      .eq('order_id', order.id)
+      .eq('status', 'pending');
+
+    await supabaseAdmin
+      .from('orders')
+      .update({
+        status: 'cancelled',
+        payment_status: 'failed',
+        cancelled_at: new Date().toISOString(),
+        cancellation_reason: 'Replaced by a new checkout',
+      })
+      .eq('id', order.id)
+      .eq('status', 'pending')
+      .neq('payment_status', 'paid');
+  }
+};
+
+// ============================================================
 // CHECKOUT: Create order from cart items
 // ============================================================
 
@@ -100,6 +149,12 @@ const checkout = async (req, res) => {
         }
         reserved.push({ listingId: item.listing.id, quantity: item.quantity });
       }
+    }
+
+    // Checking out the same cart again (e.g. after a declined GCash/Maya payment) used to leave
+    // the earlier unpaid order behind, so My Orders filled up with duplicates. Cancel those first.
+    if (paymentMethod !== 'cash_on_pickup') {
+      await cancelSupersededOnlineOrders(userId, cartItems.map((i) => i.listing.id));
     }
 
     const createdOrders = [];

@@ -24,24 +24,33 @@ export default function PaymentFailed() {
 
           <div className="border-t border-gray-100 pt-6 mt-6">
             <p className="text-sm text-gray-600 mb-6">
-              You can try placing your order again. Your cart items are still available.
+              {orderId
+                ? 'Your order is saved. You can retry the payment from the order page, or pick a different payment method.'
+                : 'Your cart items are still available. You can try checking out again.'}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link to="/checkout" className="flex-1">
-                <Button className="w-full">
-                  <ShoppingCart className="w-4 h-4" />
-                  Try Again
-                </Button>
-              </Link>
-              {orderId && (
+              {orderId ? (
                 <Link to={`/orders/${orderId}`} className="flex-1">
-                  <Button variant="secondary" className="w-full">
-                    View Order
+                  <Button className="w-full">
+                    Retry Payment
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
+              ) : (
+                <Link to="/checkout" className="flex-1">
+                  <Button className="w-full">
+                    <ShoppingCart className="w-4 h-4" />
+                    Try Again
+                  </Button>
+                </Link>
               )}
+              <Link to="/cart" className="flex-1">
+                <Button variant="secondary" className="w-full">
+                  <ShoppingCart className="w-4 h-4" />
+                  Back to Cart
+                </Button>
+              </Link>
             </div>
           </div>
         </Card>
