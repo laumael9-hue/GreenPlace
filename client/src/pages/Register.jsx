@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Check, ShoppingBag, MapPin, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import SocialLogin from '../components/ui/SocialLogin';
 import Logo from '../components/ui/Logo';
 
 const PASSWORD_MIN_LENGTH = 6;
@@ -284,7 +283,6 @@ export default function Register() {
               </button>
             </div>
           </form>
-          <SocialLogin verb="Sign up" />
         </div>
       </div>
     </div>

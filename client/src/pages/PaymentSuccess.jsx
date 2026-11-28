@@ -14,6 +14,15 @@ export default function PaymentSuccess() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Orders from other shops in the same checkout still need their own payment.
+  const [unpaidOrderIds] = useState(() => {
+    try {
+      const ids = JSON.parse(sessionStorage.getItem('unpaidOrderIds') || '[]');
+      return Array.isArray(ids) ? ids.filter((id) => id !== orderId) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     if (!orderId) {
@@ -118,6 +127,22 @@ export default function PaymentSuccess() {
                   ₱{parseFloat(order.total || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                 </span>
               </div>
+            </div>
+          )}
+
+          {unpaidOrderIds.length > 0 && (
+            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <p className="font-medium">
+                You still have {unpaidOrderIds.length} order{unpaidOrderIds.length > 1 ? 's' : ''} from other shops to pay.
+              </p>
+              <p className="mt-1">Each shop is paid separately. Open the order and tap Pay Now.</p>
+              <Link
+                to={`/orders/${unpaidOrderIds[0]}`}
+                onClick={() => sessionStorage.setItem('unpaidOrderIds', JSON.stringify(unpaidOrderIds.slice(1)))}
+                className="mt-2 inline-flex items-center gap-1 font-medium text-amber-900 underline"
+              >
+                Pay next order <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           )}
 

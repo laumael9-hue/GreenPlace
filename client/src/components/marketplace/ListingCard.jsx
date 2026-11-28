@@ -17,14 +17,15 @@ export default function ListingCard({ listing, onAddToCart, addingToCart, onRepo
   const sellerName = business?.name || (seller ? `${seller.first_name} ${seller.last_name}` : 'Seller');
 
   return (
-    <div className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
+    <div className="group bg-white rounded-2xl border border-gray-200/70 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-gray-200 transition-all duration-500 ease-out-expo flex flex-col">
       <Link to={`/marketplace/${listing.slug}`} className="block">
         <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary-50 to-emerald-50">
           {listing.primary_image ? (
             <img
               src={listing.primary_image}
               alt={listing.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out-expo"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -45,7 +46,7 @@ export default function ListingCard({ listing, onAddToCart, addingToCart, onRepo
           )}
           {/* Slide-up cart overlay */}
           {onAddToCart && (
-            <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out bg-gradient-to-t from-primary-700 to-primary-600 px-3 py-2.5 flex items-center justify-between">
+            <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 group-focus-within:translate-y-0 transition-transform duration-500 ease-out-expo bg-gradient-to-t from-primary-700 to-primary-600 px-3 py-2.5 flex items-center justify-between">
               <span className="text-white text-xs font-medium">
                 {listing.quantity_available < 1 ? 'Out of stock' : 'Add to cart'}
               </span>
@@ -56,7 +57,7 @@ export default function ListingCard({ listing, onAddToCart, addingToCart, onRepo
                   if (listing.quantity_available >= 1) onAddToCart(listing.id);
                 }}
                 disabled={isAdding || listing.quantity_available < 1}
-                className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-primary-600 hover:bg-emerald-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-primary-600 hover:bg-emerald-50 hover:scale-110 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                 aria-label="Add to cart"
               >
                 {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}

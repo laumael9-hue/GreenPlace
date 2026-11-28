@@ -27,7 +27,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { isAuthenticated, user, role } = useAuth();
   const isAdmin = role === 'admin';
-  const { addItem } = useCart();
+  const { addItem, items: cartItems } = useCart();
   const [listing, setListing] = useState(null);
   const [modReason, setModReason] = useState('');
   const [modLoading, setModLoading] = useState(false);
@@ -220,6 +220,11 @@ export default function ProductDetail() {
   const seller = listing?.seller;
   const business = listing?.business;
 
+  // How many of this item the buyer already has in their cart (stock is only taken at checkout).
+  const inCartQty = cartItems
+    .filter((item) => item.listing?.id === listing?.id)
+    .reduce((sum, item) => sum + (item.quantity || 0), 0);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -378,7 +383,9 @@ export default function ProductDetail() {
               {listing.quantity_available > 0 ? (
                 <div className="flex items-center gap-1.5 text-sm text-green-700 bg-green-50 border border-green-100 rounded-full px-3 py-1">
                   <Package className="w-4 h-4" />
-                  {listing.quantity_available} available
+                  {inCartQty > 0
+                    ? `${inCartQty} in your cart · ${listing.quantity_available} left`
+                    : `${listing.quantity_available} available`}
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 text-sm text-red-700 bg-red-50 border border-red-100 rounded-full px-3 py-1">
@@ -473,7 +480,7 @@ export default function ProductDetail() {
                       </button>
                       <span className="w-12 text-center font-medium">{quantity}</span>
                       <button
-                        onClick={() => setQuantity(q => Math.min(listing.quantity_available, q + 1))}
+                        onClick={() => setQuantity(q => Math.min(Math.max(1, listing.quantity_available - inCartQty), q + 1))}
                         className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
                       >
                         <Plus className="w-4 h-4" />

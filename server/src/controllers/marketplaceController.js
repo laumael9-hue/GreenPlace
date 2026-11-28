@@ -1,5 +1,6 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const crypto = require('crypto');
+const { expireStaleOnlineOrders } = require('../services/unpaidOrders');
 
 const BUCKET_IMAGES = 'product-images';
 
@@ -69,6 +70,8 @@ const getCategoryBySlug = async (req, res) => {
 
 const getListings = async (req, res) => {
   try {
+    // Return stock held by abandoned GCash/Maya checkouts so shoppers see real numbers.
+    await expireStaleOnlineOrders();
     const {
       page = 1, limit = 20, search = '', category = '',
       minPrice, maxPrice, condition, sort = 'newest',
@@ -393,6 +396,8 @@ const getRecommendedListings = async (req, res) => {
 
 const getListingBySlug = async (req, res) => {
   try {
+    // Return stock held by abandoned GCash/Maya checkouts so shoppers see real numbers.
+    await expireStaleOnlineOrders();
     const { slug } = req.params;
 
     const { data: listing, error } = await supabaseAdmin
@@ -444,6 +449,8 @@ const getListingBySlug = async (req, res) => {
 
 const getListingById = async (req, res) => {
   try {
+    // Return stock held by abandoned GCash/Maya checkouts so shoppers see real numbers.
+    await expireStaleOnlineOrders();
     const { id } = req.params;
 
     const { data: listing, error } = await supabaseAdmin
@@ -948,6 +955,8 @@ const getCart = async (req, res) => {
 
 const addToCart = async (req, res) => {
   try {
+    // Return stock held by abandoned GCash/Maya checkouts so shoppers see real numbers.
+    await expireStaleOnlineOrders();
     const userId = req.user.id;
     const { listingId, quantity = 1 } = req.body;
 
@@ -971,15 +980,19 @@ const addToCart = async (req, res) => {
     }
 
     if (listing.status !== 'active') {
-      return res.status(400).json({ error: 'Listing is not available' });
+      return res.status(400).json({ error: 'This item is no longer available.' });
     }
 
     if (listing.seller_id === userId) {
-      return res.status(400).json({ error: 'Cannot add your own listing to cart' });
+      return res.status(400).json({ error: 'You cannot add your own listing to your cart.' });
+    }
+
+    if (listing.quantity_available < 1) {
+      return res.status(400).json({ error: 'This item is out of stock.' });
     }
 
     if (qty > listing.quantity_available) {
-      return res.status(400).json({ error: 'Not enough quantity available' });
+      return res.status(400).json({ error: `Only ${listing.quantity_available} left in stock.` });
     }
 
     const { data: existingItem } = await supabaseAdmin
@@ -994,7 +1007,9 @@ const addToCart = async (req, res) => {
     if (existingItem) {
       const newQty = existingItem.quantity + qty;
       if (newQty > listing.quantity_available) {
-        return res.status(400).json({ error: 'Not enough quantity available' });
+        return res.status(400).json({
+          error: `You already have ${existingItem.quantity} in your cart. Only ${listing.quantity_available} left in stock.`,
+        });
       }
 
       const { data: updated, error: updateError } = await supabaseAdmin

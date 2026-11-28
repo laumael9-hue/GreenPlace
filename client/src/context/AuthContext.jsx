@@ -71,20 +71,6 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const loginWithSession = useCallback(async (session) => {
-    localStorage.setItem('access_token', session.access_token);
-    localStorage.setItem('refresh_token', session.refresh_token);
-    try {
-      const { data } = await api.get('/auth/session');
-      setUser(data.user);
-      return await fetchProfile();
-    } catch (err) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      throw err;
-    }
-  }, [fetchProfile]);
-
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -121,7 +107,6 @@ export function AuthProvider({ children }) {
     loading,
     register,
     login,
-    loginWithSession,
     logout,
     forgotPassword,
     resetPassword,

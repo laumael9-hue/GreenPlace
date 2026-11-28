@@ -2,7 +2,8 @@ const { supabaseAdmin } = require('../config/supabase');
 const paymongoService = require('../services/paymongo');
 const { checkPendingPaymentStatus } = require('./paymentController');
 const { createNotification, getOrderImage, notifyBusinessNewOrder } = require('../services/notifications');
-const { reserveListingStock, releaseListingStock } = require('../services/stock');
+const { reserveListingStock, releaseListingStock, releaseOrderStock } = require('../services/stock');
+const { cancelSupersededOnlineOrders, expireStaleOnlineOrders } = require('../services/unpaidOrders');
 const crypto = require('crypto');
 
 // ============================================================
@@ -42,6 +43,17 @@ const checkout = async (req, res) => {
     if (preferredPickupTime && !validPickupTimes.includes(preferredPickupTime)) {
       return res.status(400).json({ error: 'Invalid pickup time. Must be "morning" or "afternoon"' });
     }
+
+    // Free stock held by abandoned online orders, then replace this buyer's earlier unpaid
+    // order for the same items (e.g. after a declined GCash payment) so it does not linger
+    // as a duplicate in My Orders. Both run before stock is checked below.
+    await expireStaleOnlineOrders();
+    const { data: cartListingRows } = await supabaseAdmin
+      .from('cart_items')
+      .select('listing_id')
+      .eq('user_id', userId)
+      .in('id', cartItemIds);
+    await cancelSupersededOnlineOrders(userId, (cartListingRows || []).map((r) => r.listing_id));
 
     // Fetch cart items with listing details
     const { data: cartItems, error: cartError } = await supabaseAdmin
@@ -86,20 +98,20 @@ const checkout = async (req, res) => {
       businessGroups[businessId].push(item);
     });
 
-    // Cash orders hold stock immediately: reserve every line up front, undo on any failure.
+    // Every order holds its stock from the moment it is placed (cash and online alike), so the
+    // last unit can never be sold twice. Online orders give it back if payment fails or is not
+    // finished within the hold window (see services/unpaidOrders.js). Undo on any failure here.
     const reserved = [];
     const releaseReserved = async () => {
       for (const r of reserved.splice(0)) await releaseListingStock(r.listingId, r.quantity);
     };
-    if (paymentMethod === 'cash_on_pickup') {
-      for (const item of cartItems) {
-        const ok = await reserveListingStock(item.listing.id, item.quantity);
-        if (!ok) {
-          await releaseReserved();
-          return res.status(400).json({ error: `Some items are no longer available: ${item.listing.title}` });
-        }
-        reserved.push({ listingId: item.listing.id, quantity: item.quantity });
+    for (const item of cartItems) {
+      const ok = await reserveListingStock(item.listing.id, item.quantity);
+      if (!ok) {
+        await releaseReserved();
+        return res.status(400).json({ error: `Some items are no longer available: ${item.listing.title}` });
       }
+      reserved.push({ listingId: item.listing.id, quantity: item.quantity });
     }
 
     const createdOrders = [];
@@ -153,7 +165,8 @@ const checkout = async (req, res) => {
           shipping_fee: 0,
           total,
           payment_method: paymentMethod,
-          payment_status: paymentMethod === 'cash_on_pickup' ? 'pending' : 'pending',
+          payment_status: 'pending',
+          stock_reserved: true,
           pickup_address: pickupAddress,
           pickup_latitude: pickupLatitude,
           pickup_longitude: pickupLongitude,
@@ -186,7 +199,7 @@ const checkout = async (req, res) => {
         return res.status(400).json({ error: 'Failed to create order items' });
       }
 
-      // Remove from cart (cash on pickup only; stock was reserved above)
+      // Remove from cart for cash orders. Online orders keep the cart until paid so the buyer can retry.
       if (paymentMethod === 'cash_on_pickup') {
         const cartItemIdsForOrder = items.map(i => i.id);
         await supabaseAdmin
@@ -356,6 +369,7 @@ const createWalkInOrder = async (req, res) => {
         total,
         payment_method: paymentMethod,
         payment_status: 'paid',
+        stock_reserved: true,
         pickup_address: business.address,
         pickup_latitude: business.latitude,
         pickup_longitude: business.longitude,
@@ -729,6 +743,7 @@ const updateOrderStatus = async (req, res) => {
     const updates = { status };
     if (status === 'confirmed') updates.confirmed_at = new Date().toISOString();
     if (status === 'completed') updates.completed_at = new Date().toISOString();
+    if (status === 'cancelled') updates.cancelled_at = new Date().toISOString();
 
     const { data: updatedOrder, error: updateError } = await supabaseAdmin
       .from('orders')
@@ -739,6 +754,11 @@ const updateOrderStatus = async (req, res) => {
 
     if (updateError) {
       return res.status(400).json({ error: updateError.message });
+    }
+
+    // A cancelled order puts its items back on sale
+    if (status === 'cancelled') {
+      await releaseOrderStock(id);
     }
 
     // If completed, update payment status for cash on pickup
@@ -888,13 +908,8 @@ const cancelOrder = async (req, res) => {
       }
     }
 
-    // Stock is only reserved for cash orders and paid PayMongo orders
-    const stockReserved = order.payment_method === 'cash_on_pickup' || order.payment_status === 'paid';
-
-    // Restore listing quantities
-    for (const item of stockReserved ? order.items : []) {
-      await releaseListingStock(item.listing_id, item.quantity);
-    }
+    // Give back the stock this order holds (no-op if it was not holding any)
+    await releaseOrderStock(id);
 
     // Update payment status
     if (needsRefund) {

@@ -9,7 +9,7 @@ export default function Input({ label, error, id, className = '', ...props }) {
       )}
       <input
         id={inputId}
-        className={`block w-full px-3.5 py-2.5 bg-white text-gray-900 border rounded-xl shadow-sm focus:outline-none focus:ring-4 sm:text-sm transition-all ${
+        className={`block w-full px-3.5 py-2.5 bg-white text-gray-900 border rounded-xl shadow-sm focus:outline-none focus:ring-4 sm:text-sm transition-all duration-200 ease-out-expo ${
           error
             ? 'border-red-300 focus:ring-red-500/15 focus:border-red-500'
             : 'border-gray-200 hover:border-gray-300 focus:ring-primary-500/15 focus:border-primary-500'

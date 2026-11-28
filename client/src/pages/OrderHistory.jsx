@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Loader2, ChevronRight, Store, ShoppingBag } from 'lucide-react';
+import { Package, ChevronRight, Store, ShoppingBag } from 'lucide-react';
 import api from '../lib/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -81,8 +81,22 @@ export default function OrderHistory() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+          <div className="space-y-4" aria-label="Loading orders">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-200/70 p-5 animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div className="h-4 bg-gray-200 rounded w-40" />
+                  <div className="h-5 bg-gray-200 rounded-full w-20" />
+                </div>
+                <div className="mt-4 flex gap-3">
+                  <div className="w-14 h-14 bg-gray-200 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 bg-gray-200 rounded w-2/3" />
+                    <div className="h-3 bg-gray-200 rounded w-1/3" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : orders.length === 0 ? (
           <Card>
@@ -96,7 +110,7 @@ export default function OrderHistory() {
             </div>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 stagger-in">
             {orders.map(order => {
               const statusInfo = order.refund_status === 'refunded'
                 ? statusConfig.refunded

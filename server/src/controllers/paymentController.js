@@ -1,7 +1,7 @@
 const { supabaseAdmin } = require('../config/supabase');
 const paymongoService = require('../services/paymongo');
 const { createNotification, getOrderImage, notifyBusinessNewOrder } = require('../services/notifications');
-const { reserveListingStock, releaseListingStock } = require('../services/stock');
+const { reserveOrderStock, releaseOrderStock } = require('../services/stock');
 const crypto = require('crypto');
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -27,12 +27,11 @@ const finalizePaidOrder = async (orderId) => {
     .select('listing_id, quantity')
     .eq('order_id', orderId);
 
-  if (orderItems) {
-    for (const item of orderItems) {
-      // Money is already received, so never refuse: take the stock and clamp at zero.
-      await reserveListingStock(item.listing_id, item.quantity, { force: true });
-    }
+  // Normally the order already holds its stock (reserved at checkout). If it was released
+  // (payment failed/expired first), money is now received, so take it back and never refuse.
+  await reserveOrderStock(orderId, { force: true });
 
+  if (orderItems) {
     await supabaseAdmin
       .from('cart_items')
       .delete()
@@ -67,7 +66,7 @@ const createCheckout = async (req, res) => {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, buyer_id, total, payment_method, payment_status, order_number')
+      .select('id, buyer_id, status, total, payment_method, payment_status, order_number')
       .eq('id', orderId)
       .single();
 
@@ -79,8 +78,22 @@ const createCheckout = async (req, res) => {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
-    if (order.payment_status !== 'pending') {
-      return res.status(400).json({ error: 'Order already paid or payment is no longer pending' });
+    if (order.status === 'cancelled') {
+      return res.status(400).json({ error: 'This order was cancelled and can no longer be paid' });
+    }
+
+    // 'failed' is allowed so the buyer can retry with "Pay now" after a declined or expired payment.
+    if (!['pending', 'failed'].includes(order.payment_status)) {
+      return res.status(400).json({ error: 'This order is already paid' });
+    }
+
+    // A failed payment gave its stock back. Take it again before retrying, so the buyer
+    // cannot pay for something that sold out in the meantime.
+    const stockOk = await reserveOrderStock(order.id);
+    if (!stockOk) {
+      return res.status(409).json({
+        error: 'Some items in this order sold out after your last payment attempt. Please check out again.',
+      });
     }
 
     const amountInCentavos = Math.round(parseFloat(order.total) * 100);
@@ -101,16 +114,30 @@ const createCheckout = async (req, res) => {
       return res.status(400).json({ error: 'Invalid payment method for PayMongo' });
     }
 
-    const method = await paymongoService.createPaymentMethod(methodType);
+    const profile = req.user.profile || {};
+    const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+    const method = await paymongoService.createPaymentMethod(methodType, {
+      name: fullName,
+      email: req.user.email,
+      phone: profile.phone,
+    });
 
     const returnUrl = `${CLIENT_URL}/payment/success?order_id=${order.id}`;
     const attached = await paymongoService.attachPaymentMethod(intent.id, method.id, returnUrl);
 
+    // Link the new intent to this order's payment row (also resets a failed attempt to pending).
     await supabaseAdmin
       .from('payments')
-      .update({ paymongo_payment_id: intent.id })
+      .update({ paymongo_payment_id: intent.id, status: 'pending' })
       .eq('order_id', orderId)
-      .eq('status', 'pending');
+      .in('status', ['pending', 'failed']);
+
+    if (order.payment_status === 'failed') {
+      await supabaseAdmin
+        .from('orders')
+        .update({ payment_status: 'pending' })
+        .eq('id', orderId);
+    }
 
     let checkoutUrl = null;
     if (attached.next_action?.redirect?.url) {
@@ -125,7 +152,15 @@ const createCheckout = async (req, res) => {
     });
   } catch (err) {
     console.error('Create checkout error:', err?.response?.data || err);
-    res.status(500).json({ error: 'Failed to create PayMongo checkout' });
+    const paymongoError = paymongoService.getErrorDetail(err);
+    if (paymongoError) {
+      // PayMongo refused the payment (e.g. risk controls). Tell the buyer why instead of a generic error.
+      return res.status(502).json({
+        error: paymongoError.detail || 'PayMongo could not start this payment. Please try another payment method.',
+        code: paymongoError.subCode || paymongoError.code,
+      });
+    }
+    res.status(500).json({ error: 'Could not start the payment. Please try again in a moment.' });
   }
 };
 
@@ -204,6 +239,9 @@ const handleWebhook = async (req, res) => {
         .update({ payment_status: 'failed' })
         .eq('id', payment.order_id);
 
+      // Failed/expired payment: put the items back on sale. "Pay Now" reserves them again.
+      await releaseOrderStock(payment.order_id);
+
       const { data: failedOrder } = await supabaseAdmin
         .from('orders')
         .select('id, buyer_id')
@@ -260,6 +298,7 @@ const checkPendingPaymentStatus = async (payment, orderId) => {
         .from('orders')
         .update({ payment_status: 'failed' })
         .eq('id', orderId);
+      await releaseOrderStock(orderId);
       payment.status = 'failed';
       return { payment, updated: true, payment_status: 'failed', order_status: null };
     }
@@ -375,6 +414,8 @@ const expirePayment = async (req, res) => {
       .from('orders')
       .update({ payment_status: 'failed' })
       .eq('id', payment.order_id);
+
+    await releaseOrderStock(payment.order_id);
 
     res.json({ message: 'Payment expired' });
   } catch (err) {
@@ -712,17 +753,8 @@ const processRefund = async (req, res) => {
         .update({ status: 'refunded' })
         .eq('order_id', refund.order_id);
 
-      // Restore listing quantities
-      const { data: orderItems } = await supabaseAdmin
-        .from('order_items')
-        .select('listing_id, quantity')
-        .eq('order_id', refund.order_id);
-
-      if (orderItems) {
-        for (const item of orderItems) {
-          await releaseListingStock(item.listing_id, item.quantity);
-        }
-      }
+      // Restore listing quantities (only if the order still holds them)
+      await releaseOrderStock(refund.order_id);
 
       if (refund.order?.buyer_id) {
         await createNotification({
@@ -937,17 +969,8 @@ const requestWalkInRefund = async (req, res) => {
       .update({ status: 'refunded' })
       .eq('order_id', orderId);
 
-    // Restore listing quantities
-    const { data: orderItems } = await supabaseAdmin
-      .from('order_items')
-      .select('listing_id, quantity')
-      .eq('order_id', orderId);
-
-    if (orderItems) {
-      for (const item of orderItems) {
-        await releaseListingStock(item.listing_id, item.quantity);
-      }
-    }
+    // Restore listing quantities (only if the order still holds them)
+    await releaseOrderStock(orderId);
 
     if (order.buyer_id) {
       await createNotification({

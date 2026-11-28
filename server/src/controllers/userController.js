@@ -1,4 +1,5 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
+const { releaseOrderStock } = require('../services/stock');
 const { createNotification } = require('../services/notifications');
 
 const BUCKET = 'profile-images';
@@ -39,11 +40,17 @@ const closeOutUserActivity = async (userId) => {
     .is('deleted_at', null);
   const businessIds = (businesses || []).map(b => b.id);
 
-  await supabaseAdmin
+  const { data: buyerOrders } = await supabaseAdmin
     .from('orders')
     .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancellation_reason: 'Account deleted' })
     .eq('buyer_id', userId)
-    .in('status', OPEN_ORDER_STATUSES);
+    .in('status', OPEN_ORDER_STATUSES)
+    .select('id');
+
+  // Their open orders no longer hold stock: put those items back on sale.
+  for (const order of buyerOrders || []) {
+    await releaseOrderStock(order.id);
+  }
 
   if (businessIds.length > 0) {
     await supabaseAdmin

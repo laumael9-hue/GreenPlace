@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import PageTransition from './PageTransition';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileMenu from './MobileMenu';
@@ -150,7 +151,7 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 pt-5"><Outlet /></main>
+        <main className="flex-1 p-4 sm:p-6 pt-5"><PageTransition><Outlet /></PageTransition></main>
       </div>
     </div>
   );

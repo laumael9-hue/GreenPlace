@@ -8,7 +8,6 @@ const ALLOWED_PATHS = [
   '/login',
   '/register',
   '/suspended',
-  '/auth/callback',
   '/forgot-password',
   '/reset-password',
 ];

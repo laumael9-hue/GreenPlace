@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PageTransition from './PageTransition';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import MobileMenu from './MobileMenu';
@@ -12,7 +13,9 @@ export default function MainLayout() {
     <div className="min-h-screen bg-gray-50">
       <Navbar onMenuToggle={() => setMenuOpen(!menuOpen)} menuOpen={menuOpen} />
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
-      <Outlet />
+      <PageTransition>
+        <Outlet />
+      </PageTransition>
     </div>
   );
 }
@@ -54,7 +57,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-12 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
-          <p>&copy; 2025 GreenPlace. All rights reserved. | Capstone Project</p>
+          <p>&copy; {new Date().getFullYear()} GreenPlace. All rights reserved. | Capstone Project</p>
         </div>
       </div>
     </footer>

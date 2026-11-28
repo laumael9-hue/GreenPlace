@@ -114,16 +114,34 @@ export default function Checkout() {
       const firstOrder = data.orders?.[0];
 
       if (data.requiresPayment && firstOrder) {
-        const { data: paymentData } = await api.post('/payments/checkout', {
-          orderId: firstOrder.id,
-        });
+        // One order per shop. PayMongo pays one order at a time, so remember the others
+        // and offer them on the success page ("Pay Now" on each order).
+        const otherOrderIds = (data.orders || []).slice(1).map((o) => o.id);
+        if (otherOrderIds.length > 0) {
+          sessionStorage.setItem('unpaidOrderIds', JSON.stringify(otherOrderIds));
+        } else {
+          sessionStorage.removeItem('unpaidOrderIds');
+        }
+
+        let paymentData;
+        try {
+          ({ data: paymentData } = await api.post('/payments/checkout', { orderId: firstOrder.id }));
+        } catch (payErr) {
+          // The order exists; send the buyer to it with the reason and a "Try Payment Again" button.
+          navigate(`/orders/${firstOrder.id}`, {
+            state: { paymentError: payErr.response?.data?.error || 'Could not start the payment. Please try again.' },
+          });
+          return;
+        }
 
         if (paymentData.checkout_url) {
           window.location.href = paymentData.checkout_url;
           return;
         }
 
-        navigate(`/orders/${firstOrder.id}/success`);
+        navigate(`/orders/${firstOrder.id}`, {
+          state: { paymentError: 'PayMongo did not return a payment page. Please try again.' },
+        });
         return;
       }
 
