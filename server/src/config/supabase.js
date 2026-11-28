@@ -12,7 +12,14 @@ if (process.env.NODE_ENV === 'production' && !supabaseServiceKey) {
   throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Shared by every request, so it must never hold a user session of its own:
+// pass tokens explicitly (getUser(token)) and use supabaseAdmin for per-user changes.
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
 
 const supabaseAdmin = supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, {
