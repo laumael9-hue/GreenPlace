@@ -16,12 +16,11 @@ Stack: one Vercel project with two services (client + server, see root `vercel.j
    - `PAYMONGO_SECRET_KEY` (`sk_test_...` only), `PAYMONGO_WEBHOOK_SECRET` (placeholder until step 4)
    - `CLIENT_URL` = placeholder `https://example.vercel.app` until step 4
    - `VITE_API_URL=/api`
-   - `VITE_SUPABASE_URL` = Supabase project URL (shows the Google/Facebook buttons)
 3. Deploy, then copy the project's production domain.
 
 ## 3. Wire it together
 - Vercel: set `CLIENT_URL` to the production domain (exact origin, **no trailing slash**), then redeploy. It is used for CORS, the password-reset link and the PayMongo return URL.
-- Supabase > Authentication > URL Configuration: Site URL = the Vercel domain; Redirect URLs include `<domain>/auth/callback` and `<domain>/reset-password`.
+- Supabase > Authentication > URL Configuration: Site URL = the Vercel domain; Redirect URLs include `<domain>/reset-password`. Sign-in is email and password only; keep the Google and Facebook providers turned off in Authentication > Sign In / Providers.
 
 ## 4. PayMongo webhook
 PayMongo > Developers > Webhooks: `https://<domain>/api/payments/webhook`. Copy its signing secret into `PAYMONGO_WEBHOOK_SECRET` and redeploy.

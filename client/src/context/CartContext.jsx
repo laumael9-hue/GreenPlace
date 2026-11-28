@@ -119,7 +119,7 @@ export function CartProvider({ children }) {
       {cartError && (
         <div
           role="alert"
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-md flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl shadow-lg px-4 py-3"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 animate-toast-in z-[100] w-[calc(100%-2rem)] max-w-md flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl shadow-lg px-4 py-3"
         >
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <p className="flex-1 text-sm">{cartError}</p>

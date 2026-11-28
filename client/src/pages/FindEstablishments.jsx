@@ -666,7 +666,7 @@ export default function FindEstablishments() {
                 }
               />
             ) : (
-              <>
+              <div className="space-y-3 stagger-in">
                 {businesses.map((biz) => (
                   <div
                     key={biz.id}
@@ -746,7 +746,7 @@ export default function FindEstablishments() {
                     </button>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>

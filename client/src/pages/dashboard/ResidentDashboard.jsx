@@ -348,7 +348,7 @@ export default function ResidentDashboard() {
             No stores available yet.
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-in">
             {stores.slice(0, 4).map((biz) => (
               <StoreCard key={biz.id} business={biz} />
             ))}
@@ -405,7 +405,7 @@ export default function ResidentDashboard() {
             title="Featured Picks"
             actionTo="/marketplace"
           />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-in">
             {featured.slice(0, 4).map((listing) => (
               <ListingCard
                 key={listing.id}
@@ -432,7 +432,7 @@ export default function ResidentDashboard() {
             Nothing rated yet — be the first to review a product!
           </Card>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-in">
             {topRated.slice(0, 4).map((listing) => (
               <ListingCard
                 key={listing.id}

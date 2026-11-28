@@ -330,7 +330,7 @@ export default function BusinessDetail() {
                   Shop
                   <span className="ml-2 text-sm font-normal text-gray-400">({shopTotal})</span>
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 stagger-in">
                   {shopListings.map((listing) => (
                     <ListingCard
                       key={listing.id}

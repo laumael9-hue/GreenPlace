@@ -37,7 +37,28 @@ export default {
         xl: '0 20px 40px -10px rgb(24 24 27 / 0.15), 0 8px 16px -8px rgb(24 24 27 / 0.06)',
         '2xl': '0 28px 60px -12px rgb(24 24 27 / 0.22)',
       },
+      transitionTimingFunction: {
+        // Fast start, soft landing: used for every UI motion so it all feels like one system.
+        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
+      },
       keyframes: {
+        'page-in': {
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'none' },
+        },
+        'rise-in': {
+          '0%': { opacity: '0', transform: 'translateY(10px) scale(0.985)' },
+          '100%': { opacity: '1', transform: 'none' },
+        },
+        'toast-in': {
+          '0%': { opacity: '0', transform: 'translate(-50%, 12px) scale(0.97)' },
+          '100%': { opacity: '1', transform: 'translate(-50%, 0) scale(1)' },
+        },
+        'pop-in': {
+          '0%': { transform: 'scale(0.6)', opacity: '0' },
+          '70%': { transform: 'scale(1.08)', opacity: '1' },
+          '100%': { transform: 'scale(1)' },
+        },
         'modal-in': {
           '0%': { opacity: '0', transform: 'translateY(8px) scale(0.98)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
@@ -48,7 +69,11 @@ export default {
         },
       },
       animation: {
-        'modal-in': 'modal-in 0.18s ease-out',
+        'page-in': 'page-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) backwards',
+        'rise-in': 'rise-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards',
+        'toast-in': 'toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'pop-in': 'pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'modal-in': 'modal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
         'fade-in': 'fade-in 0.15s ease-out',
       },
     },

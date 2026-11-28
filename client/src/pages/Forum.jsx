@@ -326,8 +326,23 @@ export default function Forum() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      <div className="max-w-2xl mx-auto space-y-4" aria-label="Loading forum">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-200/70 p-5 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-200 rounded-full" />
+              <div className="space-y-2">
+                <div className="h-3.5 bg-gray-200 rounded w-32" />
+                <div className="h-3 bg-gray-200 rounded w-20" />
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-3/4" />
+              <div className="h-3 bg-gray-200 rounded w-full" />
+              <div className="h-3 bg-gray-200 rounded w-5/6" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -442,7 +457,7 @@ export default function Forum() {
           <p className="text-gray-500">No posts yet. Start the conversation!</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 stagger-in">
           {threads.map((thread) => (
             <PostCard key={thread.id} thread={thread} onReact={handleThreadReact} onReport={openReport} />
           ))}
