@@ -11,6 +11,8 @@ import EmptyState from '../../components/ui/EmptyState';
 
 const STATUS_LABELS = {
   draft: { label: 'Draft', variant: 'neutral' },
+  pending: { label: 'Waiting for approval', variant: 'warning' },
+  rejected: { label: 'Needs changes', variant: 'danger' },
   active: { label: 'Active', variant: 'success' },
   sold: { label: 'Sold', variant: 'info' },
   archived: { label: 'Archived', variant: 'warning' },
@@ -115,6 +117,8 @@ export default function ListingManagement() {
         >
           <option value="">All Status</option>
           <option value="draft">Draft</option>
+          <option value="pending">Waiting for approval</option>
+          <option value="rejected">Needs changes</option>
           <option value="active">Active</option>
           <option value="sold">Sold</option>
           <option value="archived">Archived</option>
@@ -267,6 +271,17 @@ function ListingRow({ listing, onEdit, onImages, onDelete, onPublish }) {
             <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
           </div>
 
+          {listing.status === 'pending' && (
+            <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
+              An admin is reviewing this listing. It goes live in the marketplace once approved.
+            </p>
+          )}
+          {listing.status === 'rejected' && listing.moderation_note && (
+            <p className="mt-2 text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
+              <span className="font-semibold">Admin note:</span> {listing.moderation_note} Edit the listing, then submit it again.
+            </p>
+          )}
+
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
             {listing.category && <span>{listing.category.name}</span>}
             <span>{listing.quantity_available} in stock</span>
@@ -285,9 +300,9 @@ function ListingRow({ listing, onEdit, onImages, onDelete, onPublish }) {
             <Button variant="ghost" size="sm" onClick={onImages}>
               <ImageIcon className="w-3.5 h-3.5" /> Images
             </Button>
-            {listing.status === 'draft' && (
+            {(listing.status === 'draft' || listing.status === 'rejected') && (
               <Button variant="ghost" size="sm" onClick={onPublish}>
-                <Eye className="w-3.5 h-3.5" /> Publish
+                <Eye className="w-3.5 h-3.5" /> {listing.status === 'rejected' ? 'Resubmit for approval' : 'Submit for approval'}
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={onDelete} className="text-red-600 hover:text-red-700 hover:bg-red-50">
